@@ -60,6 +60,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdint.h>
+#include "vg_lite_kernel.h"
+
 /*!
  @brief Wait a number of milliseconds.
 

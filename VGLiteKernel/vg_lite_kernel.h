@@ -55,6 +55,8 @@
 #ifndef _vg_lite_kernel_h_
 #define _vg_lite_kernel_h_
 
+#include "vg_lite_hw.h"
+
 /* Interrupt IDs from GPU. */
 #define EVENT_UNEXPECTED_MESH  0x80000000
 #define EVENT_CMD_BAD_WRITE    0x40000000
