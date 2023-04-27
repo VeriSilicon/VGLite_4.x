@@ -51,9 +51,9 @@
 *    version of this file.
 *
 *****************************************************************************/
-#include "../../vg_lite_platform.h"
+#include "vg_lite_platform.h"
 #include "vg_lite_kernel.h"
-#include "../../../vg_lite_hal.h"
+#include "vg_lite_hal.h"
 
 int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args);
 
@@ -115,17 +115,17 @@ static int drv_probe(struct pci_dev *p_dev, const struct pci_device_id *ent)
     static u64 dma_mask = DMA_40BIT_MASK;
 #endif
 
-    printk("PCIE DRIVER PROBED");
+    vg_lite_kernel_hintmsg("PCIE DRIVER PROBE!\n");
 
     ret = pci_enable_device(p_dev);
     if (ret) {
-        printk(KERN_ERR "vg_lite: pci_enable_device() failed.\n");
+        vg_lite_kernel_error("pci_enable_device call failed.\n");
         return ret;
     }
 
     ret = pci_set_dma_mask(p_dev, dma_mask);
     if (ret) {
-        printk(KERN_ERR "vg_lite: Failed to set DMA mask.\n");
+        vg_lite_kernel_error("Failed to set DMA mask.\n");
         goto err0;
     }
 
@@ -133,20 +133,20 @@ static int drv_probe(struct pci_dev *p_dev, const struct pci_device_id *ent)
 
     ret = pci_request_regions(p_dev, "vg_lite");
     if (ret) {
-        printk(KERN_ERR "vg_lite: Failed to get ownership of BAR region.\n");
+        vg_lite_kernel_error("Failed to get ownership of BAR region.\n");
         goto err1;
     }
 
     ret = pci_alloc_irq_vectors(p_dev, 1, 32, PCI_IRQ_LEGACY);
     if (ret < 1) {
-        printk("vg_lite: Failed to allocate irq vectors.\n");
+        vg_lite_kernel_error("Failed to allocate irq vectors.\n");
         goto err2;
     }
 
     irq_line = pci_irq_vector(p_dev, 0);
     if (irq_line < 1)
     {
-        printk("vg_lite: Failed to pci_irq_vector.\n");
+        vg_lite_kernel_error("Failed to pci_irq_vector.\n");
         goto err3;
     }
     
@@ -210,14 +210,14 @@ int vg_kernel_platform_init(struct platform_driver *pdrv, vg_platform_t **platfo
     
     default_dev = platform_device_alloc(pdrv->driver.name, -1);
     if (!default_dev) {
-        printk(KERN_ERR "vg_lite: platform_device_alloc failed.\n");
+        vg_lite_kernel_error("platform_device_alloc failed.\n");
         return -ENOMEM;
     }
 
     /* Add device */
     ret = platform_device_add(default_dev);
     if (ret) {
-        printk(KERN_ERR "vg_lite: platform_device_add failed.\n");
+        vg_lite_kernel_error("platform_device_add failed.\n");
         goto on_error;
     }
 

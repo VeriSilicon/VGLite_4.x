@@ -12,6 +12,8 @@ EXPORTS
 
     vg_lite_unmap
 
+    vg_lite_flush_mapped_buffer
+
     vg_lite_clear
 
     vg_lite_blit

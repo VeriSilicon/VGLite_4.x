@@ -51,7 +51,7 @@
 *    version of this file.
 *
 *****************************************************************************/
-#include "../../vg_lite_platform.h"
+#include "vg_lite_platform.h"
 #include "vg_lite_kernel.h"
 
 struct imx_priv
@@ -114,14 +114,16 @@ int _get_power(vg_platform_t * platform)
     if (IS_ERR(_imx_priv.clk_2d_core)) {
         _imx_priv.clk_2d_core = NULL;
         clk_put(_imx_priv.clk_2d_core);
-        printk("clk_get gpu2d_clk error!\n");
+        vg_lite_kernel_error("clk_get gpu2d_clk error!\n");
+        return -1;
     }
 
     _imx_priv.clk_vg_axi = clk_get(dev, "openvg_axi_clk");
     if (IS_ERR(_imx_priv.clk_vg_axi)) {
         _imx_priv.clk_vg_axi  = NULL;
         clk_put(_imx_priv.clk_vg_axi);
-        printk("clk_get openvg_axi_clk error!\n");
+        vg_lite_kernel_error("clk_get openvg_axi_clk error!\n");
+        return -1;
     }
 
 #ifdef CONFIG_PM
@@ -132,7 +134,7 @@ int _get_power(vg_platform_t * platform)
     return 0;
 }
 
-int _set_power(vg_platform_t * platform, vg_bool_t enable)
+int _set_power(vg_platform_t * platform, vg_lite_bool_t enable)
 {
     struct device *dev = &platform->device->dev;
 
@@ -182,7 +184,7 @@ int _put_power(vg_platform_t * platform)
 }
 
 
-int _set_clock(vg_platform_t * platform, vg_bool_t enable)
+int _set_clock(vg_platform_t * platform, vg_lite_bool_t enable)
 {
     if (enable) {
         /* enable clock. */

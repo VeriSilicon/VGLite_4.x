@@ -58,11 +58,11 @@ char filename[30];
 /*** Global Context Access ***/
 #define GET_CONTEXT()               &s_context
 
-/*** Default command buffer size is 32KB. Double command buffer is used.
+/*** Default command buffer size is 128KB. Double command buffer is used.
      App can call vg_lite_set_command_buffer_size(size) before vg_lite_init()
      to overwrite the default command buffer size.
 ***/
-#define VG_LITE_COMMAND_BUFFER_SIZE (32 << 10)
+#define VG_LITE_COMMAND_BUFFER_SIZE (128 << 10)
 
 #define CMDBUF_BUFFER(context)      (context).command_buffer[(context).command_buffer_current]
 #define CMDBUF_INDEX(context)       (context).command_buffer_current
@@ -132,6 +132,24 @@ typedef struct vg_lite_hardware {
     vg_lite_states_t            hw_states[STATES_COUNT];
 } vg_lite_hardware_t;
 
+/* Tessellation buffer information. */
+typedef struct vg_lite_tess_buffer
+{
+    vg_lite_uint32_t            physical_addr;         /*! Physical address for tessellation buffer. */
+    vg_lite_uint8_t            *logical_addr;          /*! Logical address for tessellation buffer. */
+    vg_lite_uint32_t            tessbuf_size;          /*! Buffer size for tessellation buffer */
+    vg_lite_uint32_t            countbuf_size;         /*! Buffer size for VG count buffer */
+    vg_lite_uint32_t            tess_w_h;              /*! Combination of buffer width and height. */
+    /* gc355 Specific fields below */
+    vg_lite_uint32_t            L1_phyaddr;            /*! L1 physical address. */
+    vg_lite_uint32_t            L2_phyaddr;            /*! L2 physical address. */
+    vg_lite_uint8_t            *L1_logical;            /*! L1 Logical address. */
+    vg_lite_uint8_t            *L2_logical;            /*! L2 Logical address. */
+    vg_lite_uint32_t            L1_size;               /*! L1 size for tessellation buffer */
+    vg_lite_uint32_t            L2_size;               /*! L2 size for tessellation buffer */
+    vg_lite_uint32_t            tess_stride;           /*! Stride for tessellation buffer */
+} vg_lite_tess_buffer_t;
+
 typedef struct vg_lite_context {
     vg_lite_kernel_context_t    context;
     vg_lite_hardware_t          hw;
@@ -142,15 +160,19 @@ typedef struct vg_lite_context {
     uint32_t                    command_buffer_current;
     vg_lite_tess_buffer_t       tessbuf;
     vg_lite_buffer_t           *rtbuffer;                   /* DDRLess: this is used as composing buffer. */
-
-    uint32_t                    scissor_enabled;
+    vg_lite_float_t             path_lastX;
+    vg_lite_float_t             path_lastY;
+    uint32_t                    scissor_set;
+    uint32_t                    scissor_enable;
     uint32_t                    scissor_dirty;
     int32_t                     scissor[4];                 /* Scissor area: x, y, right, bottom. */
+    vg_lite_buffer_t            *scissor_layer;
 
     uint32_t                    src_alpha_mode;
     uint32_t                    src_alpha_value;
     uint32_t                    dst_alpha_mode;
     uint32_t                    dst_alpha_value;
+    vg_lite_blend_t             blend_mode;
 
     uint32_t                    sbi_mode;
     uint32_t                    sync_mode;
@@ -174,12 +196,17 @@ typedef struct vg_lite_context {
     uint32_t                    mirror_dirty;
     uint32_t                    gamma_value;
     uint32_t                    gamma_dirty;
+    uint32_t                    gamma_src;
+    uint32_t                    gamma_dst;
     uint32_t                    premultiply_src;
     uint32_t                    premultiply_dst;
     uint32_t                    premultiply_dirty;
     uint32_t                    color_transform;
     uint32_t                    path_counter;
-    uint32_t                    scissor_enable;
+    vg_lite_filter_t            filter;
+#if (CHIPID == 0x355)
+    uint8_t                     from_blit_rect;
+#endif
 } vg_lite_context_t;
 
 typedef struct vg_lite_ftable {
@@ -193,7 +220,7 @@ extern vg_lite_error_t set_render_target(vg_lite_buffer_t* target);
 extern vg_lite_error_t push_state(vg_lite_context_t* context, uint32_t address, uint32_t data);
 extern vg_lite_error_t push_state_ptr(vg_lite_context_t* context, uint32_t address, void* data_ptr);
 extern vg_lite_error_t push_call(vg_lite_context_t* context, uint32_t address, uint32_t bytes);
-extern vg_lite_error_t push_data(vg_lite_context_t* context, int size, void* data);
+extern vg_lite_error_t push_data(vg_lite_context_t* context, uint32_t size, void* data);
 extern vg_lite_error_t push_clut(vg_lite_context_t* context, uint32_t address, uint32_t count, uint32_t* data);
 extern vg_lite_error_t push_stall(vg_lite_context_t* context, uint32_t module);
 

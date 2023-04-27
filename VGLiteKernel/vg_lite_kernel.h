@@ -83,6 +83,16 @@
 #define GPU_CHIP_ID_GC355               0x355
 #define GPU_CHIP_ID_GCNANOULTRAV        0x265
 
+/* vg_lite_kernel_map_t flag type */
+#define VG_LITE_HAL_MAP_DMABUF          0x00000004
+#define VG_LITE_HAL_MAP_USER_MEMORY     0x00000008
+
+/* vg_lite_kernel_allocate_t flag type */
+#define VG_LITE_RESERVED_ALLOCATOR      0x10000000
+#define VG_LITE_GFP_ALLOCATOR           0x20000000
+#define VG_LITE_DMA_ALLOCATOR           0x40000000
+#define VG_LITE_MEMORY_ALLOCATOR_FLAG   0x70000000
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -98,18 +108,19 @@ extern "C" {
     */
 typedef enum vg_lite_error
 {
-    VG_LITE_SUCCESS = 0,        /*! Success. */
-    VG_LITE_INVALID_ARGUMENT,   /*! An invalid argument was specified. */
-    VG_LITE_OUT_OF_MEMORY,      /*! Out of memory. */
-    VG_LITE_NO_CONTEXT,         /*! No context or an unintialized context specified. */
-    VG_LITE_TIMEOUT,            /*! A timeout has occurred during a wait. */
-    VG_LITE_OUT_OF_RESOURCES,   /*! Out of system resources. */
-    VG_LITE_GENERIC_IO,         /*! Cannot communicate with the kernel driver. */
-    VG_LITE_NOT_SUPPORT,        /*! Function call not supported. */
-    VG_LITE_ALREADY_EXISTS,     /*! Object already exists */
-    VG_LITE_NOT_ALIGNED,        /*! Data alignment error */
-    VG_LITE_FLEXA_TIME_OUT,     /*! VG timeout requesting for segment buffer */
-    VG_LITE_FLEXA_HANDSHAKE_FAIL,/*! VG and SBI synchronizer handshake failed */
+    VG_LITE_SUCCESS = 0,          /*! Success.                                         */
+    VG_LITE_INVALID_ARGUMENT,     /*! An invalid argument was specified.               */
+    VG_LITE_OUT_OF_MEMORY,        /*! Out of memory.                                   */
+    VG_LITE_NO_CONTEXT,           /*! No context or an unintialized context specified. */
+    VG_LITE_TIMEOUT,              /*! A timeout has occurred during a wait.            */
+    VG_LITE_OUT_OF_RESOURCES,     /*! Out of system resources.                         */
+    VG_LITE_GENERIC_IO,           /*! Cannot communicate with the kernel driver.       */
+    VG_LITE_NOT_SUPPORT,          /*! Function call not supported.                     */
+    VG_LITE_ALREADY_EXISTS,       /*! Object already exists                            */
+    VG_LITE_NOT_ALIGNED,          /*! Data alignment error                             */
+    VG_LITE_FLEXA_TIME_OUT,       /*! VG timeout requesting for segment buffer         */
+    VG_LITE_FLEXA_HANDSHAKE_FAIL, /*! VG and SBI synchronizer handshake failed         */
+    VG_LITE_SYSTEM_CALL_FAIL,     /*! kernel api call fail                             */
 }
 vg_lite_error_t;
 #endif
@@ -188,8 +199,21 @@ typedef enum vg_lite_kernel_command
 
     /* Close gpu */
     VG_LITE_CLOSE,
+
+    /* Operation cache */
+    VG_LITE_CACHE,
+
+    /* Export memory */
+    VG_LITE_EXPORT_MEMORY,
 }
 vg_lite_kernel_command_t;
+
+typedef enum vg_lite_cache_op {
+    VG_LITE_CACHE_CLEAN,
+    VG_LITE_CACHE_INVALIDATE,
+    VG_LITE_CACHE_FLUSH,
+} 
+vg_lite_cache_op_t;
 
 struct vg_lite_kernel_context {
     /* Command buffer. */
@@ -281,11 +305,16 @@ vg_lite_kernel_terminate_t;
 
 typedef struct vg_lite_kernel_allocate
 {
+    /* INPUT */
+
     /* Number of bytes to allocate. */
     uint32_t bytes;
 
     /* Flag to indicate whether the allocated memory is contiguous or not. */
     int32_t contiguous;
+
+    /* Flag to indicate where to allocate memory  */
+    uint32_t flags;
 
     /* OUTPUT */
 
@@ -381,6 +410,10 @@ vg_lite_kernel_debug_t;
 
 typedef struct vg_lite_kernel_map
 {
+    /* INPUT */  
+    uint32_t flags;
+
+    /* user memory */
     /* Number of bytes to map. */
     uint32_t bytes;
 
@@ -390,8 +423,11 @@ typedef struct vg_lite_kernel_map
     /* Physical memory address or 0. */
     uint32_t physical;
 
-    /* OUTPUT */
+    /* dma_buf */
+    /* dma_buf fd */
+    int32_t dma_buf_fd;
 
+    /* OUTPUT */
     /* Memory handle for mapped memory. */
     void * memory_handle;
 
@@ -406,6 +442,15 @@ typedef struct vg_lite_kernel_unmap
     void * memory_handle;
 }
 vg_lite_kernel_unmap_t;
+
+typedef struct vg_lite_kernel_cache
+{
+    vg_lite_cache_op_t cache_op;    
+
+    /* Memory handle to operation. */
+    void * memory_handle;
+}
+vg_lite_kernel_cache_t;
 
 typedef struct vg_lite_kernel_info
 {
@@ -459,6 +504,18 @@ typedef struct vg_lite_kernel_unmap_memory
     void * logical;
 }
 vg_lite_kernel_unmap_memory_t;
+
+typedef struct vg_lite_kernel_close
+{
+    vg_lite_kernel_context_t * context;
+}
+vg_lite_kernel_close_t;
+
+typedef struct vg_lite_kernel_export_memory
+{
+    int32_t fd;
+}
+vg_lite_kernel_export_memory_t;
 
 vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data);
 

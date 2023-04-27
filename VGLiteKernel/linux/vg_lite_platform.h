@@ -63,21 +63,51 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
-//#include <linux/busfreq-imx6.h>
 #include <linux/reset.h>
 #include <linux/regulator/consumer.h>
-#include "../vg_lite_kernel.h"
-#include "../vg_lite_hal.h"
+#include "vg_lite_kernel.h"
+#include "vg_lite_hal.h"
+#include "vg_lite_debug.h"
+#include "vg_lite_type.h"
 #ifdef ENABLE_PCIE
 #include <linux/pci.h>
 #endif
 
 #define VG_DEVICE_NAME "vg_lite"
 
-#define VG_TRUE  1
-#define VG_FALSE 0
+struct memory_heap {
+    uint32_t free;
+    struct list_head list;
+};
 
-typedef int vg_bool_t;
+struct vg_lite_device {
+    void *register_base_mapped;             /* Register memory base */
+    ulong register_mem_base;
+    uint register_mem_size;
+    ulong contiguous_base;
+    uint contiguous_size;
+    uint irq_line;
+    struct page *pages;
+    unsigned int order;
+    void *virtual;
+    uint64_t physical;
+    uint32_t size;
+    struct memory_heap heap;
+    int irq_enabled;
+    volatile uint32_t int_flags;
+    wait_queue_head_t int_queue;
+    void *device;
+    struct device *dev;
+    struct platform_device *pdev;
+    int registered;
+    int major;
+    struct class *class;
+    int created;
+#ifdef ENABLE_PCIE
+    struct pci_dev *p_dev;
+    int pci_registered;
+#endif
+};
 
 typedef struct vg_module_parameters
 {
@@ -105,8 +135,8 @@ typedef struct vg_linux_operations
     */
     int
     (*adjust_param)(
-        vg_platform_t * platform,
-        vg_module_parameters_t * args
+        vg_platform_t *platform,
+        vg_module_parameters_t *args
         );
 
     /*******************************************************************************
@@ -117,7 +147,7 @@ typedef struct vg_linux_operations
     */
     int
     (*get_power)(
-        vg_platform_t * platform
+        vg_platform_t *platform
         );
 
     /*******************************************************************************
@@ -136,8 +166,8 @@ typedef struct vg_linux_operations
     */
     int
     (*set_power)(
-        vg_platform_t * platform,
-        vg_bool_t enable
+        vg_platform_t *platform,
+        vg_lite_bool_t enable
         );
 
         /*******************************************************************************
@@ -156,7 +186,7 @@ typedef struct vg_linux_operations
     */
     int
     (*put_power)(
-        vg_platform_t * platform
+        vg_platform_t *platform
         );
 
     /*******************************************************************************
@@ -175,8 +205,8 @@ typedef struct vg_linux_operations
     */
     int
     (*set_clock)(
-        vg_platform_t * platform,
-        vg_bool_t enable
+        vg_platform_t *platform,
+        vg_lite_bool_t enable
         );
 
     /*******************************************************************************
@@ -187,20 +217,20 @@ typedef struct vg_linux_operations
     */
     int
     (*adjust_driver)(
-        vg_platform_t * platform);
+        vg_platform_t *platform);
 }
 vg_linux_operations_t;
 
 
 struct vg_platform
 {
-    struct platform_device * device;
-    struct platform_driver * driver;
-    struct vg_lite_device  * vg_device;
+    struct platform_device *device;
+    struct platform_driver *driver;
+    struct vg_lite_device  *vg_device;
 
-    const char             * name;
-    vg_linux_operations_t  * ops;
-    void                   * priv;
+    const char             *name;
+    vg_linux_operations_t  *ops;
+    void                   *priv;
 };
 
 int vg_kernel_platform_init(struct platform_driver *pdrv, vg_platform_t **platform);

@@ -135,12 +135,12 @@ void vg_lite_hal_free_os_heap(void)
     /* TODO: Remove unfree node. */
 }
 
-int32_t unmap_to_user(void)
+vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
 {
-    return 0;
+    return VG_LITE_SUCCESS;
 }
 
-void * vg_lite_hal_map(unsigned long size, void * logical, uint32_t physical, uint32_t * gpu)
+void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu)
 {
     // Not supported in emulator.
     return NULL;
@@ -150,6 +150,12 @@ void vg_lite_hal_unmap(void * handle)
 {
     // Not supported in emulator.
 }
+
+vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cache_op)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
 
 uint32_t vg_lite_hal_peek(uint32_t address)
 {

@@ -268,6 +268,7 @@ vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lit
 
     /* Scissor dirty. */
     s_context.scissor_dirty = 1;
+    s_context.scissor_set = 1;
 
     return error;
 #else
@@ -301,8 +302,8 @@ vg_lite_error_t vg_lite_disable_scissor()
     VGLITE_LOG("vg_lite_disable_scissor\n");
 #endif
 
-    /* disable scissor Mode. */
-    s_context.scissor_enabled = 0;
+    /* Disable scissor Mode. */
+    s_context.scissor_enable = 0;
     s_context.scissor_dirty = 1;
 
     return VG_LITE_SUCCESS;
@@ -578,7 +579,9 @@ vg_lite_error_t vg_lite_blend_masklayer(
 #endif
 
     vg_lite_identity(&matrix);
-
+    vg_lite_translate((vg_lite_float_t)rect->x, (vg_lite_float_t)rect->y, &matrix);
+    rect->x = 0;
+    rect->y = 0;
     switch (operation)
     {
     case VG_LITE_CLEAR_MASK:
@@ -746,72 +749,123 @@ vg_lite_error_t vg_lite_gaussian_filter(vg_lite_float_t w0, vg_lite_float_t w1, 
 vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t rect[])
 {
 #if gcFEATURE_VG_MASK
-    int i = 0, j = 0, k = 0;
-    uint32_t temp[100];
+    vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    vg_lite_matrix_t matrix;
-    vg_lite_filter_t filter = VG_LITE_FILTER_POINT;
-    vg_lite_buffer_t scissor_dst_layer;
-    vg_lite_buffer_t scissor_src_layer;
-
+    static vg_lite_buffer_t scissor_layer;
+    vg_lite_rectangle_t rect_clamp, rect_draw;
+    vg_lite_int32_t left_x, right_x, left_len, middle_len, right_len, stride, j, max_x, max_y;
+    vg_lite_uint8_t alpha;
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_scissor_rects %d %p\n", nums, rect);
 #endif
 
-    for (i = 0; i < (int)nums; i++) {
-        if (rect[i].x >= s_context.target_width || rect[i].y >= s_context.target_height) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-        if (rect[i].x + rect[i].width > s_context.target_width) {
-            rect[i].width = s_context.target_width - rect[i].x;
-        }
-        if (rect[i].y + rect[i].height > s_context.target_height) {
-            rect[i].height = s_context.target_height - rect[i].y;
-        }
-    }
-    vg_lite_identity(&matrix);
-    memset(&scissor_dst_layer, 0, sizeof(vg_lite_buffer_t));
-    memset(&scissor_src_layer, 0, sizeof(vg_lite_buffer_t));
-    scissor_src_layer.width = scissor_dst_layer.width = s_context.target_width/8;
-    scissor_src_layer.height = scissor_dst_layer.height = s_context.target_height;
-    scissor_src_layer.format = scissor_dst_layer.format = VG_LITE_A8;
-    error = vg_lite_allocate(&scissor_dst_layer);
-    error = vg_lite_clear(&scissor_dst_layer, NULL, 0x0);
-    error = vg_lite_allocate(&scissor_src_layer);
-    error = vg_lite_clear(&scissor_src_layer, NULL, 0xFFFFFFFF);
+    /* Record scissor enable flag and disable scissor. */
+    vg_lite_bool_t enable = s_context.scissor_enable;
+    s_context.scissor_enable = 0;
 
-    /* One bit data of scissor layer corresponds to one pixel, so adjust the size of the rect area. */
-    /* Determine how many edge pixels need to be rendered. */
-    for (i = 0, k = 0; i < (int)nums; i++, k += 2) {
-        temp[k] = rect[i].x % 8;
-        temp[k + 1] = (rect[i].x + rect[i].width) % 8;
-    }
-    /* Determine the pixels that can be rendered as a whole. */
-    for (i = 0; i < (int)nums; i++) {
-        rect[i].width = (rect[i].x + rect[i].width) / 8;
-        rect[i].x /= 8;
-        rect[i].width -= rect[i].x;
+    /* Allocate if scissor layer is NULL */
+    if (s_context.scissor_layer == NULL) {
+        memset(&scissor_layer, 0, sizeof(vg_lite_buffer_t));
+        scissor_layer.width = (s_context.target_width + 7) / 8;
+        scissor_layer.height = s_context.target_height;
+        scissor_layer.format = VG_LITE_A8;
+        error = vg_lite_allocate(&scissor_layer);
+        s_context.scissor_layer = &scissor_layer;
+        VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, NULL, 0xFFFFFFFF));
+        vg_lite_finish();
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, scissor_layer.address));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, scissor_layer.stride));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+        vg_lite_finish();
     }
 
-    /* Use the gpu to render areas that can be drawn as a whole. */
-    for (i = 0; i < (int)nums; i++) {
-        vg_lite_translate((vg_lite_float_t)rect[i].x, (vg_lite_float_t)rect[i].y, &matrix);
-        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(&scissor_dst_layer, &scissor_src_layer, &rect[i], &matrix, VG_LITE_BLEND_NONE, 0, filter));
-
-    }
+    /* Clear scissor layer*/
+    VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, NULL, 0x00000000));
     vg_lite_finish();
 
-    /* Render edge pixels using cpu. */
-    for (i = 0; i < (int)nums; i++) {
-        for (j = rect[i].y; j < (int)(rect[i].y + rect[i].height); j++) {
-            memset((uint8_t*)((uint8_t*)scissor_dst_layer.memory + rect[i].x + j * scissor_src_layer.width), 0xFF << temp[i * 2], 1);
-            memset((uint8_t*)((uint8_t*)scissor_dst_layer.memory + rect[i].x + rect[i].width + j * scissor_src_layer.width), 0xFF >> (8 - temp[i * 2 + 1]), 1);
+    max_x = scissor_layer.width * 8;
+    max_y = scissor_layer.height;
+
+    /* Draw rectangle to scissor layer, one bit data of scissor layer corresponds to one pixel. */
+    for (i = 0; i < nums; ++i) {
+        /* Clamp the rect */
+        memcpy(&rect_clamp, &rect[i], sizeof(vg_lite_rectangle_t));
+        {
+            if (rect_clamp.x < 0 || rect_clamp.y < 0) {
+                rect_clamp.width += rect_clamp.x;
+                rect_clamp.height += rect_clamp.y;
+                rect_clamp.x = rect_clamp.y = 0;
+            }
+            if (rect_clamp.x >= max_x || rect_clamp.y >= max_y || rect_clamp.width <= 0 || rect_clamp.height <= 0) {
+                rect_clamp.x = rect_clamp.y = rect_clamp.width = rect_clamp.height = 0;
+            }
+            if (rect_clamp.x + rect_clamp.width > max_x) {
+                rect_clamp.width = max_x - rect_clamp.x;
+            }
+            if (rect_clamp.y + rect_clamp.height > max_y) {
+                rect_clamp.height = max_y - rect_clamp.y;
+            }
+        }
+
+        if (((rect_clamp.x + rect_clamp.width) >> 3) == (rect_clamp.x >> 3)) {
+            rect_draw.x = rect_clamp.x / 8;
+            rect_draw.y = rect_clamp.y;
+            rect_draw.width = 1;
+            rect_draw.height = rect_clamp.height;
+            alpha = (uint8_t)(((uint8_t)(0xff >> (8 - rect_clamp.width))) << (rect_clamp.x % 8));
+            stride = scissor_layer.stride;
+            for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
+                ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
+            }
+        }
+        else {
+            /* Split the rect */
+            left_x = (rect_clamp.x % 8 == 0) ? rect_clamp.x : ((rect_clamp.x + 7) & 0xFFFFFFF8);
+            right_x = (rect_clamp.x + rect_clamp.width) & 0xFFFFFFF8;
+            middle_len = right_x - left_x;
+            left_len = left_x - rect_clamp.x;
+            right_len = rect_clamp.x + rect_clamp.width - right_x;
+
+            /* Draw left rect */
+            if (left_len) {
+                rect_draw.x = rect_clamp.x / 8;
+                rect_draw.y = rect_clamp.y;
+                rect_draw.width = 1;
+                rect_draw.height = rect_clamp.height;
+                alpha = (uint8_t)(0xff << (8 - left_len));
+                stride = scissor_layer.stride;
+                for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
+                    ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
+                }
+            }
+
+            /* Draw middle rect */
+            if (middle_len) {
+                rect_draw.x = left_x / 8;
+                rect_draw.y = rect_clamp.y;
+                rect_draw.width = middle_len / 8;
+                rect_draw.height = rect_clamp.height;
+                VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, &rect_draw, 0xFFFFFFFF));
+                vg_lite_finish();
+            }
+
+            /* Draw right rect */
+            if (right_len) {
+                rect_draw.x = (rect_clamp.x + rect_clamp.width - right_len) / 8;
+                rect_draw.y = rect_clamp.y;
+                rect_draw.width = 1;
+                rect_draw.height = rect_clamp.height;
+                alpha = (uint8_t)(0xff >> (8 - right_len));
+                stride = scissor_layer.stride;
+                for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
+                    ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
+                }
         }
     }
+}
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, scissor_dst_layer.address));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, scissor_dst_layer.stride));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+    s_context.scissor_enable = enable;
+    s_context.scissor_dirty = 1;
 
     return error;
 #else
@@ -909,7 +963,7 @@ vg_lite_error_t vg_lite_disable_color_transform()
 #endif
 }
 
-vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transfrom_t* values)
+vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
 {
 #if gcFEATURE_VG_COLOR_TRANSFORMATION
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -928,10 +982,10 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transfrom_t* values)
         temp_transform[color_elements] = (short)(color_transformations[color_elements] * 256);
     }
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, temp_transform[0] | temp_transform[1] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, temp_transform[2] | temp_transform[3] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, temp_transform[4] | temp_transform[5] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, temp_transform[6] | temp_transform[7] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, temp_transform[0] | temp_transform[1] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, temp_transform[2] | temp_transform[3] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, temp_transform[4] | temp_transform[5] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, temp_transform[6] | temp_transform[7] << 16));
 
     return error;
 #else

@@ -34,7 +34,7 @@ ZC702)
     export CPU_ARCH=armv7-a
     export ARCH=arm
     export ENABLE_PCIE=0
-    export LINUX_ALLOCATE_MEMORY=0
+    export USE_RESERVE_MEMORY=1
     export BACKUP_COMMAND=0
     export gcdIRQ_SHARED=1
     export CC=${CROSS_COMPILE}gcc
@@ -48,7 +48,7 @@ PCIE-GEN6)
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
     export ENABLE_PCIE=1
     export BACKUP_COMMAND=0
-    export LINUX_ALLOCATE_MEMORY=0
+    export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
     export gcdIRQ_SHARED=1
@@ -62,7 +62,21 @@ X86)
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
     export ENABLE_PCIE=1
     export BACKUP_COMMAND=0
-    export LINUX_ALLOCATE_MEMORY=0
+    export USE_RESERVE_MEMORY=1
+    export CPU_ARCH=0
+    export ARCH=x86
+    export gcdIRQ_SHARED=1
+    export PLATFORM=vivante/vg_lite_platform_default
+;;
+
+X86_51510)
+    export SDK_DIR=./build
+    export TOOLCHAIN=/usr
+    export CROSS_COMPILE=""
+    export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-5.15.10/
+    export ENABLE_PCIE=1
+    export BACKUP_COMMAND=0
+    export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
     export gcdIRQ_SHARED=1
@@ -79,7 +93,7 @@ IMX6Q35)
     export ARCH_TYPE=arm
     export ARCH=arm
     export ENABLE_PCIE=0
-    export LINUX_ALLOCATE_MEMORY=1
+    export USE_RESERVE_MEMORY=0
     export BACKUP_COMMAND=0
     export gcdIRQ_SHARED=1
     export PLATFORM=freescale/vg_lite_platform_imx6

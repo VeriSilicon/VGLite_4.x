@@ -277,7 +277,7 @@ static int split_node(heap_node_t * node, unsigned long size)
     return 0;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, uint32_t * physical,void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical,void ** node)
 {
     unsigned long aligned_size;
     heap_node_t * pos;
@@ -499,12 +499,19 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * v
 #endif
 }
 
-void * vg_lite_hal_map(unsigned long bytes, void * logical, uint32_t physical, uint32_t * gpu)
+vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
 {
+    return VG_LITE_SUCCESS;
+}
 
+
+void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu)
+{
+    (void) flags;
     (void) bytes;
     (void) logical;
     (void) physical;
+    (void) dma_buf_fd;
     (void) gpu;
     return (void *)0;
 }
@@ -515,7 +522,13 @@ void vg_lite_hal_unmap(void * handle)
     (void) handle;
 }
 
+vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cache_op)
+{
+    (void) handle;
+    (void) cache_op;
 
+    return VG_LITE_SUCCESS;
+}
 
 static void vg_lite_exit(void)
 {

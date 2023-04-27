@@ -86,6 +86,9 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         sizeof(vg_lite_kernel_flexa_info_t),
         sizeof(vg_lite_kernel_map_memory_t),
         sizeof(vg_lite_kernel_unmap_memory_t),
+        sizeof(vg_lite_kernel_close_t),
+        sizeof(vg_lite_kernel_cache_t),
+        sizeof(vg_lite_kernel_export_memory_t),
     };
 
     if (device == 0) {

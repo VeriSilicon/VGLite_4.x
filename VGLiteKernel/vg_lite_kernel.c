@@ -111,8 +111,9 @@ static vg_lite_error_t backup_power_context_buffer(uint32_t *command_buffer_klog
     uint32_t context_index = 0; 
     uint32_t data          = 0;
 
-    if (NULL == command_buffer_klogical)
+    if (NULL == command_buffer_klogical) {
         return VG_LITE_INVALID_ARGUMENT;
+    }
 
     for (index = 0; index < size; index++) {
         address = command_buffer_klogical[index];
@@ -484,8 +485,6 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
         vg_lite_hal_deinitialize();
     }
 
-    unmap_to_user();
-
 #if defined(__linux__) && !defined(EMULATOR)
     if (copy_to_user((vg_lite_kernel_context_t  __user *) data->context,
         &mycontext, sizeof(vg_lite_kernel_context_t)) != 0) {
@@ -551,7 +550,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     offset = (uint8_t *) data->commands - (uint8_t *)context->command_buffer_logical[data->command_id];
 
 #ifdef BACKUP_COMMAND
-    backup_power_context_buffer((uint32_t *)((uint32_t)context->command_buffer_klogical[data->command_id] + offset), (data->command_size + 3) / 4);
+    backup_power_context_buffer((uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset), (data->command_size + 3) / 4);
 #endif
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical + offset);
@@ -631,7 +630,8 @@ static vg_lite_error_t do_debug(void)
 }
 
 static vg_lite_error_t do_map(vg_lite_kernel_map_t * data)
-{    data->memory_handle = vg_lite_hal_map(data->bytes, data->logical, data->physical, &data->memory_gpu);
+{
+    data->memory_handle = vg_lite_hal_map(data->flags, data->bytes, data->logical, data->physical, data->dma_buf_fd, &data->memory_gpu);
     if (data->memory_handle == NULL)
     {
         return VG_LITE_OUT_OF_RESOURCES;
@@ -727,6 +727,23 @@ static vg_lite_error_t do_unmap_memory(vg_lite_kernel_unmap_memory_t * data)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     error = vg_lite_hal_unmap_memory(data);
+
+    return error;
+}
+
+static vg_lite_error_t do_cache(vg_lite_kernel_cache_t * data)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    error = vg_lite_hal_operation_cache(data->memory_handle, data->cache_op);
+
+    return error;
+}
+
+static vg_lite_error_t do_export_memory(vg_lite_kernel_export_memory_t * data)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    error = vg_lite_hal_memory_export(&data->fd); 
 
     return error;
 }
@@ -828,6 +845,12 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
 
         case VG_LITE_CLOSE:
             return do_gpu_close();
+
+        case VG_LITE_CACHE:
+            return do_cache(data);
+
+        case VG_LITE_EXPORT_MEMORY:
+            return do_export_memory(data);
 
         default:
             break;

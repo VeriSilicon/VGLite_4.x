@@ -55,67 +55,11 @@
 #ifndef _vg_lite_hal_h_
 #define _vg_lite_hal_h_
 
-#include "vg_lite_platform.h"
-
 #define VGLITE_MEM_ALIGNMENT    128
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#if !defined(_WINDLL)
-
-/* Struct definitions. */
-struct heap_node {
-    struct list_head list;
-    uint32_t offset;
-    unsigned long size;
-    int32_t status;
-};
-
-struct memory_heap {
-    uint32_t free;
-    struct list_head list;
-};
-
-struct mapped_memory {
-    void * logical;
-    uint32_t physical;
-    int page_count;
-    struct page ** pages;
-};
-
-struct vg_lite_device {
-    void * register_base_mapped;             /* Register memory base */
-    ulong register_mem_base;
-    uint register_mem_size;
-    ulong contiguous_base;
-    uint contiguous_size;
-    uint irq_line;
-    struct page * pages;
-    unsigned int order;
-    void * virtual;
-    uint64_t physical;
-    uint32_t size;
-    struct memory_heap heap;
-    int irq_enabled;
-    volatile uint32_t int_flags;
-    wait_queue_head_t int_queue;
-    void * device;
-    struct device * dev;
-    struct platform_device *pdev;
-    int registered;
-    int major;
-    struct class * class;
-    int created;
-#ifdef ENABLE_PCIE
-    struct pci_dev *p_dev;
-    int pci_registered;
-#endif
-};
-
-#endif
-
 /*!
  @brief Wait a number of milliseconds.
 
@@ -223,8 +167,7 @@ void vg_lite_hal_free_os_heap(void);
  A pointer to an opaque structure that will be used as the memory handle. NULL should be returned if there is
  not enough system resources to map the region.
  */
-void * vg_lite_hal_map(unsigned long size, void * logical, uint32_t physical, uint32_t * gpu);
-
+void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu);
 /*!
  @brief Unmap a previously mapped region.
 
@@ -327,13 +270,15 @@ vg_lite_error_t vg_lite_hal_unmap_memory(vg_lite_kernel_unmap_memory_t *node);
 int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * value);
 
 /*!
- @brief Unmap contiguous memory to user.
-
- @result
- A boolean value indicating whether the unmap was success (0) or not (-1).
+ @brief After call vg_lite_hal_map(), flush cpu cache according the direction 
+ spicified by parameter cache_op.
  */
-int32_t unmap_to_user(void);
+vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cache_op);
 
+/*!
+ @brief export memory to dma buf, and get the dma buf fd 
+ */
+vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd);
 
 #ifdef __cplusplus
 }
