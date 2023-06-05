@@ -29,6 +29,18 @@ CHANGES
 April 2023: vglite_4_0_18
 -------------------------
 
+	1. Refine lineargrad.
+	2. Fix G710106, G710108, G30106 bug.
+	3. Refine lineargrad and make gradient svg test more complex.
+	4. Use constant VLC_GRADIENT_BUFFER_WIDTH instead of 1023 for gradient buffer setting.
+	5. In the new version of 265, HW requirements dst PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication.
+	6. add NULL pointer check.
+
+
+
+April 2023: vglite_4_0_16
+-------------------------
+
 	1. fix stroke memory leak.    
 	2. Support gamma feature, add macro switch for gamma feature and make the new gamma feature implementation compatible with the old one.  
 	3. Add VG_LITE_S8, VG_LITE_S16, VG_LITE_S32 support in vg_lite_init_arc_path and vg_lite_append_path.    
@@ -53,12 +65,7 @@ April 2023: vglite_4_0_18
     22. Fix scissor function enable
 	23. Fix a memory reported by Dr. Memory.
 	24. Fix vg_lite_scissor_rects bug
-	25. Refine lineargrad.
-	26. Fix G710106, G710108, G30106 bug.
-	27. Refine lineargrad and make gradient svg test more complex.
-	28. Use constant VLC_GRADIENT_BUFFER_WIDTH instead of 1023 for gradient buffer setting.
-	29. In the new version of 265, HW requirements dst PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication.
-	30. add NULL pointer check.
+	
 	
 
 
