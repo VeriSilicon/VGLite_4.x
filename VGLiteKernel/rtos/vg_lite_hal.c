@@ -277,7 +277,7 @@ static int split_node(heap_node_t * node, unsigned long size)
     return 0;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, uint32_t * physical,void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical,void ** node)
 {
     unsigned long aligned_size;
     heap_node_t * pos;
