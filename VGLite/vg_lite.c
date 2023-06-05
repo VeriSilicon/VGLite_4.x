@@ -1949,7 +1949,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
         else
         {
-            gamma_value = 0;
+            gamma_value = s_context.gamma_value;
         }
 #endif
 
