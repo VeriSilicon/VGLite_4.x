@@ -172,6 +172,7 @@ typedef struct vg_lite_context {
     uint32_t                    src_alpha_value;
     uint32_t                    dst_alpha_mode;
     uint32_t                    dst_alpha_value;
+    vg_lite_blend_t             blend_mode;
 
     uint32_t                    sbi_mode;
     uint32_t                    sync_mode;

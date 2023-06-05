@@ -1920,10 +1920,22 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         rgb_alphadiv = 0x00000200;
 #else
         premultiply_dst = 0x00000100;
+
 #endif
+        /* In the new version of 265, HW requirements PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication. */
+        if (!gcFEATURE_VG_SRC_PREMULTIPLIED)
+        {
+            if (CHIPID == 0x265)
+               
+            if (s_context.blend_mode != VG_LITE_BLEND_NONE && s_context.blend_mode != VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+                premultiply_dst = 0x00000000;
+            }
+        }
+       
 
 #if gcFEATURE_VG_USE_DST
         read_dest = 0x00100000;
+
 #endif
 
 #if gcFEATURE_VG_GAMMA
@@ -2738,6 +2750,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
 
+    /*blend input into context*/
+    s_context.blend_mode = blend;
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
