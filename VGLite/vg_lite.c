@@ -495,10 +495,6 @@ void get_format_bytes(vg_lite_buffer_format_t format,
             break;
 
         case VG_BW_1:
-            *div = 8;
-            *bytes_align = 8;
-            break;
-
         case VG_A_4:
         case VG_A_1:
             * div = 2;
