@@ -1578,7 +1578,8 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == VG_LITE_NOT_SUPPORT)
-            return VG_LITE_NOT_SUPPORT;
+            printf("error: Target format is not supported.\n");
+            return VG_LITE_SUCCESS;
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
             dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
