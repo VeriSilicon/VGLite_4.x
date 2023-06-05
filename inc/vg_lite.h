@@ -399,7 +399,9 @@ typedef unsigned int        vg_lite_color_t;
     /* Blending modes. Match OpenVG enum VGBlendMode.
      * S and D represent source and destination color channels.
      * Sa and Da represent the source and destination alpha channels.
+     * For the new version of 265, the Src and Dst colors are already pre_multiplied in previous step.
      */
+
     typedef enum vg_lite_blend
     {
         VG_LITE_BLEND_NONE                      = 0x2000,   /*! S, i.e. no blending. */

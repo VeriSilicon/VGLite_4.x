@@ -2826,6 +2826,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
     in_premult = 0x10000000;
+    if (CHIPID == 0x265 && blend != VG_LITE_BLEND_NONE && gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
+    {
+        in_premult = 0x00000000;
+    }
 #if (CHIPID==0x555 || CHIPID==0x265)
     switch (source->format) {
         case VG_LITE_A4:
