@@ -574,8 +574,10 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
 
         case VG_LITE_AYUY2:
         case VG_LITE_AYUY2_TILED:
-        default:
             return 0xF;
+
+        default:
+            return VG_LITE_NOT_SUPPORT;
     }
 }
 
@@ -1478,6 +1480,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     uint32_t premultiply_dst = 0;
     uint32_t rgb_alphadiv = 0;
     uint32_t read_dest = 0;
+    uint32_t dst_format = 0;
 
     if (target == NULL)
         return VG_LITE_INVALID_ARGUMENT;
@@ -1573,8 +1576,12 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             return error;
 #endif
 
+        dst_format = convert_target_format(target->format, s_context.capabilities);
+        if (dst_format == VG_LITE_NOT_SUPPORT)
+            return VG_LITE_NOT_SUPPORT;
+
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
-            convert_target_format(target->format, s_context.capabilities) | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
+            dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
 
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
