@@ -1919,18 +1919,21 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
         rgb_alphadiv = 0x00000200;
 #else
-        premultiply_dst = 0x00000100;
+#if (!gcFEATURE_VG_SRC_PREMULTIPLIED && CHIPID == 0x265)
+        /* In the new version of 265, HW requirements PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication. */
+        if (s_context.blend_mode != VG_LITE_BLEND_NONE && s_context.blend_mode != VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+            premultiply_dst = 0x00000000;
+        }
+        else
+        {
+            premultiply_dst = 0x00000100;
+        }
+#else
+    premultiply_dst = 0x00000100;
+#endif 
 
 #endif
-        /* In the new version of 265, HW requirements PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication. */
-        if (!gcFEATURE_VG_SRC_PREMULTIPLIED)
-        {
-            if (CHIPID == 0x265)
-               
-            if (s_context.blend_mode != VG_LITE_BLEND_NONE && s_context.blend_mode != VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
-                premultiply_dst = 0x00000000;
-            }
-        }
+       
        
 
 #if gcFEATURE_VG_USE_DST
