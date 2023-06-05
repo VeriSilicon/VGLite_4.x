@@ -63,6 +63,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #endif
+#include "vg_lite_type.h"
 
 #define FLEXA_TIMEOUT_STATE                 BIT(21)
 #define FLEXA_HANDSHEKE_FAIL_STATE          BIT(22)
@@ -634,7 +635,7 @@ static vg_lite_error_t do_map(vg_lite_kernel_map_t * data)
     data->memory_handle = vg_lite_hal_map(data->flags, data->bytes, data->logical, data->physical, data->dma_buf_fd, &data->memory_gpu);
     if (data->memory_handle == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-    else if ((unsigned long)data->memory_handle == (unsigned long)-1)
+    else if ((vg_lite_int32_t)data->memory_handle == (vg_lite_int32_t)-1)
         return VG_LITE_NOT_SUPPORT;
     else 
         return VG_LITE_SUCCESS;
