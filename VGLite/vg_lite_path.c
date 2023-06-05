@@ -850,7 +850,7 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_buffer_t *target,
     src_bbx.width       = (int32_t)s_width;
     src_bbx.height      = (int32_t)s_height;
 
-    if (s_context.scissor_enabled) {
+    if (s_context.scissor_set) {
         clip.x = s_context.scissor[0];
         clip.y = s_context.scissor[1];
         clip.width  = s_context.scissor[2];
@@ -987,7 +987,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
         if (point_max.x > dst_align_width) point_max.x = dst_align_width;
         if (point_max.y > target->height) point_max.y = target->height;
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -1240,7 +1240,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
         point_max.x = MIN(point_max.x, dst_align_width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -1577,7 +1577,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
         point_max.x = MIN(point_max.x, dst_align_width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -2183,7 +2183,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
         point_max.x = MIN(point_max.x, dst_align_width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -2423,7 +2423,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         if (point_max.x > target->width) point_max.x = target->width;
         if (point_max.y > target->height) point_max.y = target->height;
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[2]);
@@ -2453,7 +2453,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000000 | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_rect_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000000 | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program tessellation control: for TS module. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
@@ -2980,7 +2980,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         point_max.x = MIN(point_max.x, target->width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[2]);
@@ -3012,7 +3012,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_rect_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
@@ -3529,7 +3529,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         point_max.x = MIN(point_max.x, target->width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -3556,7 +3556,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x11000002 | s_context.capabilities.cap.tiled | image_mode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_rect_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x11000002 | s_context.capabilities.cap.tiled | image_mode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000400 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
@@ -4334,7 +4334,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         point_max.x = MIN(point_max.x, target->width);
         point_max.y = MIN(point_max.y, target->height);
 
-        if (s_context.scissor_enabled) {
+        if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
             point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
@@ -4361,7 +4361,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x12000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_rect_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x12000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */

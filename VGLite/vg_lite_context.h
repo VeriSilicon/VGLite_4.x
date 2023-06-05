@@ -162,7 +162,8 @@ typedef struct vg_lite_context {
     vg_lite_buffer_t           *rtbuffer;                   /* DDRLess: this is used as composing buffer. */
     vg_lite_float_t             path_lastX;
     vg_lite_float_t             path_lastY;
-    uint32_t                    scissor_enabled;
+    uint32_t                    scissor_set;
+    uint32_t                    scissor_enable;
     uint32_t                    scissor_dirty;
     int32_t                     scissor[4];                 /* Scissor area: x, y, right, bottom. */
 
@@ -200,7 +201,6 @@ typedef struct vg_lite_context {
     uint32_t                    premultiply_dirty;
     uint32_t                    color_transform;
     uint32_t                    path_counter;
-    uint32_t                    scissor_rect_enable;
     vg_lite_filter_t            filter;
 #if (CHIPID == 0x355)
     uint8_t                     from_blit_rect;

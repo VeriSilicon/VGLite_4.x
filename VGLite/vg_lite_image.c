@@ -268,7 +268,7 @@ vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lit
 
     /* Scissor dirty. */
     s_context.scissor_dirty = 1;
-    s_context.scissor_enabled = 1;
+    s_context.scissor_set = 1;
 
     return error;
 #else
@@ -285,7 +285,7 @@ vg_lite_error_t vg_lite_enable_scissor()
 #endif
 
     /* Enable scissor Mode. */
-    s_context.scissor_rect_enable = 1 << 4;
+    s_context.scissor_enable = 1 << 4;
     s_context.scissor_dirty = 1;
 
     return VG_LITE_SUCCESS;
@@ -302,8 +302,8 @@ vg_lite_error_t vg_lite_disable_scissor()
     VGLITE_LOG("vg_lite_disable_scissor\n");
 #endif
 
-    /* disable scissor Mode. */
-    s_context.scissor_enabled = 0;
+    /* Disable scissor Mode. */
+    s_context.scissor_enable = 0;
     s_context.scissor_dirty = 1;
 
     return VG_LITE_SUCCESS;
