@@ -2540,8 +2540,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                 VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
             }
-            else
+            else {
                 VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+            }
         }
 
         if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
