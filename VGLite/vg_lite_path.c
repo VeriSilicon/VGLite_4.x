@@ -318,6 +318,9 @@ vg_lite_error_t vg_lite_clear_path(vg_lite_path_t* path)
             temp_sub_path = NULL;
         }
 
+        if(path->stroke->path_list_divide)
+            vg_lite_os_free(path->stroke->path_list_divide);
+
         vg_lite_os_free(path->stroke);
         path->stroke = NULL;
     }
