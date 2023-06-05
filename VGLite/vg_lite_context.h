@@ -200,7 +200,7 @@ typedef struct vg_lite_context {
     uint32_t                    premultiply_dirty;
     uint32_t                    color_transform;
     uint32_t                    path_counter;
-    uint32_t                    scissor_enable;
+    uint32_t                    scissor_rect_enable;
     vg_lite_filter_t            filter;
 #if (CHIPID == 0x355)
     uint8_t                     from_blit_rect;

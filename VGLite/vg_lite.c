@@ -2114,14 +2114,14 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
-        if ((!rect || (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+        if ((!rect || (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_rect_enable) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_rect_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
         }
         else
 #endif
         {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | tiled | s_context.scissor_rect_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, x, y, width, height));
         }
 
@@ -2873,7 +2873,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_rect_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -3395,7 +3395,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_rect_enable | s_context.color_transform | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
