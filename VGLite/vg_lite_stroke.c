@@ -100,6 +100,8 @@ typedef struct vg_lite_control_coord
 #define COMMANDSIZE(CoordinateCount, CoordinateType) \
     ((1+CoordinateCount) * SIZEOF(CoordinateType))
 
+extern int32_t get_data_size(vg_lite_format_t format);
+
 static uint32_t _commandSize_float[] =
 {
     COMMANDSIZE(0, vg_lite_float_t),              /*   0: END             */
