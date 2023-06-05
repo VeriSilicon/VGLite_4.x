@@ -54,7 +54,7 @@ extern "C" {
 
 #define VGLITE_API_VERSION_3_0      VGLITE_MAKE_VERSION(3, 0, 0)
 
-#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4, 0, 14)
+#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4, 0, 17)
 
 #define VGL_FALSE                   0
 #define VGL_TRUE                    1
@@ -736,7 +736,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_pointer stroke_path;            /*! Pointer to the physical description of the stroke path. */
         vg_lite_uint32_t stroke_size;           /*! Number of bytes in the stroke path data. */
         vg_lite_color_t stroke_color;           /*! The stroke path fill color. */
-        vg_lite_int8_t add_end;
+        vg_lite_int8_t add_end;                 /*! Flag that add end_path in driver. */
     } vg_lite_path_t;
 
     /* Color ramp definition. */
