@@ -1034,7 +1034,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                        push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
             }
         }
@@ -1056,7 +1056,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
                         format = convert_path_format(VG_LITE_FP32);
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                        push_data(&s_context, path->stroke_size, path->stroke_path);
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
             }
         }
@@ -1287,7 +1287,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                        push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
             }
         }
@@ -1309,7 +1309,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
                         format = convert_path_format(VG_LITE_FP32);
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                        push_data(&s_context, path->stroke_size, path->stroke_path);
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
             }
         }
@@ -1654,7 +1654,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                        push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
             }
         }
@@ -1676,7 +1676,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
                         format = convert_path_format(VG_LITE_FP32);
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                        push_data(&s_context, path->stroke_size, path->stroke_path);
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
             }
         }
@@ -2260,7 +2260,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                        push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
             }
         }
@@ -2282,7 +2282,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
                         format = convert_path_format(VG_LITE_FP32);
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                        push_data(&s_context, path->stroke_size, path->stroke_path);
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
             }
         }
@@ -2519,7 +2519,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                 VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
             }
             else
-                push_data(&s_context, path->path_length, path->path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
         }
 
         if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
@@ -2538,7 +2538,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                 format = convert_path_format(VG_LITE_FP32);
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                push_data(&s_context, path->stroke_size, path->stroke_path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
         }
     }
@@ -2570,7 +2570,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 }
                 else {
-                    push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                     s_context.path_counter++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -2601,7 +2601,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                     format = convert_path_format(VG_LITE_FP32);
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                    push_data(&s_context, path->stroke_size, path->stroke_path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                     s_context.path_counter++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -3076,12 +3076,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
             VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
         } else {
             if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
-                push_data(&s_context, path->path_length, path->path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
             if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
                 format = convert_path_format(VG_LITE_FP32);
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                push_data(&s_context, path->stroke_size, path->stroke_path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
         }
     }
@@ -3112,7 +3112,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                    push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -3142,7 +3142,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
                     format = convert_path_format(VG_LITE_FP32);
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                    push_data(&s_context, path->stroke_size, path->stroke_path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -3620,12 +3620,12 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
             VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
         } else {
             if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
-                push_data(&s_context, path->path_length, path->path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
             if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
                 format = convert_path_format(VG_LITE_FP32);
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                push_data(&s_context, path->stroke_size, path->stroke_path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
         }
     }
@@ -3656,7 +3656,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                    push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -3686,7 +3686,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
                     format = convert_path_format(VG_LITE_FP32);
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                    push_data(&s_context, path->stroke_size, path->stroke_path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -4424,12 +4424,12 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
             VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
         } else {
             if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
-                push_data(&s_context, path->path_length, path->path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
             if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
                 format = convert_path_format(VG_LITE_FP32);
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                push_data(&s_context, path->stroke_size, path->stroke_path);
+                VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
         }
     }
@@ -4460,7 +4460,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
-                    push_data(&s_context, path->path_length, path->path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -4489,7 +4489,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
                     format = convert_path_format(VG_LITE_FP32);
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                    push_data(&s_context, path->stroke_size, path->stroke_path);
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));

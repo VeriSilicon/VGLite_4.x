@@ -215,7 +215,7 @@ static vg_lite_float_t _calc_decnano_compress_ratio(
     return ratio;
 }
 
-static int has_valid_command_buffer(vg_lite_context_t *context)
+static int32_t has_valid_command_buffer(vg_lite_context_t *context)
 {
     if (context == NULL)
         return 0;
@@ -262,14 +262,14 @@ static uint8_t PackColorComponent(vg_lite_float_t value)
 }
 
 #if DUMP_IMAGE
-static void dump_img(void * memory, int width, int height, vg_lite_buffer_format_t format)
+static void dump_img(void * memory, int32_t width, int32_t height, vg_lite_buffer_format_t format)
 {
     FILE * fp;
     char imgname[255] = {'\0'};
-    int i;
-    static int num = 1;
-    unsigned int* pt = (unsigned int*) memory;
-    
+    static int32_t num = 1;
+    uint32_t* pt = (uint32_t*) memory;
+    int32_t i;
+
     sprintf(imgname, "img_pid%d_%d.txt", getpid(), num++);
     
     fp = fopen(imgname, "w");
@@ -1463,7 +1463,7 @@ static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, uint32_t size)
 #endif
 
 /* Push a rectangle command into the current command buffer. */
-static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int x, int y, int width, int height)
+static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, int32_t y, int32_t width, int32_t height)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
@@ -1510,10 +1510,10 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int x, int y,
 }
 
 /* Push a data array into the current command buffer. */
-vg_lite_error_t push_data(vg_lite_context_t * context, int size, void * data)
+vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * data)
 {
     vg_lite_error_t error;
-    int bytes = VG_LITE_ALIGN(size, 8);
+    uint32_t bytes = VG_LITE_ALIGN(size, 8);
 
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
@@ -1523,6 +1523,11 @@ vg_lite_error_t push_data(vg_lite_context_t * context, int size, void * data)
         VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
     }
 
+    if ((bytes + 8) > CMDBUF_SIZE(*context)) {
+        printf("Command buffer size needs increase for data sized %d bytes!\n", bytes);
+        return VG_LITE_OUT_OF_RESOURCES;
+    }
+
     ((uint64_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(bytes / 8)] = 0;
     ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(bytes / 8);
     ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -1530,7 +1535,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, int size, void * data)
 
 #if DUMP_COMMAND
     {
-        int loops;
+        int32_t loops;
 
         if (strncmp(filename, "Commandbuffer", 13)) {
             sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
@@ -1700,7 +1705,7 @@ uint32_t inverse(vg_lite_matrix_t * result, vg_lite_matrix_t * matrix)
 {
     vg_lite_float_t det00, det01, det02;
     vg_lite_float_t d;
-    int isAffine;
+    int32_t isAffine;
 
     /* Test for identity matrix. */
     if (matrix == NULL) {
@@ -2059,7 +2064,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     
     if (s_context.scissor_enabled)
     {
-        int right, bottom;
+        int32_t right, bottom;
         right = x + width;
         bottom = y + height;
 
@@ -2151,7 +2156,7 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     uint32_t rotation = 0;
     uint32_t conversion = 0;
     uint32_t tiled0, tiled1;
-    int left, right, bottom, top;
+    int32_t left, right, bottom, top;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit2 %p %p %p %p %p %d %d\n", target, source0, source1, matrix0, matrix1, blend, filter);
@@ -2502,13 +2507,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     vg_lite_float_t c_step[3];
     uint32_t imageMode = 0;
     uint32_t in_premult = 0;
-    int32_t stride;
     uint32_t blend_mode = blend;
     uint32_t filter_mode = 0;
     uint32_t transparency_mode = 0;
     uint32_t conversion = 0;
     uint32_t tiled_source;
-    int left, top, right, bottom;
     uint32_t tiled;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
@@ -2518,6 +2521,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
     uint32_t stripe_mode = 0;
+    int32_t  left, top, right, bottom;
+    int32_t  stride;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit %p %p %p %d 0x%08X %d\n", target, source, matrix, blend, color, filter);
@@ -2986,7 +2991,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     vg_lite_blend_t forced_blending = blend;
     uint32_t conversion = 0;
     uint32_t tiled_source;
-    int left, top, right, bottom;
+    int32_t left, top, right, bottom;
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
     uint32_t tiled;
     uint32_t yuv2rgb = 0;
