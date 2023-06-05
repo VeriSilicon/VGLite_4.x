@@ -2319,6 +2319,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     float new_matrix[6];
     float scale, bias;
     uint32_t tiled;
+    uint32_t in_premult = 0;
 #if !gcFEATURE_VG_PARALLEL_PATHS
     int y;
     int temp_height = 0;
@@ -2455,9 +2456,18 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tessellation_size = s_context.tessbuf.tessbuf_size;
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
+    in_premult = 0x10000000;
+#if !gcFEATURE_VG_SRC_PREMULTIPLIED
+#if (CHIPID == 0x265)
+    if (blend != VG_LITE_BLEND_NONE) {
+        in_premult = 0x00000000;
+    }
+#endif
+#endif
+
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000000 | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program tessellation control: for TS module. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));

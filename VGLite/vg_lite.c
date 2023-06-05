@@ -1841,15 +1841,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     if (target == NULL)
         return VG_LITE_INVALID_ARGUMENT;
 
-    /* Skip if render target and scissor are not changed. */
-    if ((s_context.rtbuffer != NULL) &&
-        !(memcmp(s_context.rtbuffer,target,sizeof(vg_lite_buffer_t))) &&
-        (s_context.scissor_dirty == 0) && (s_context.mirror_dirty == 0) &&
-        (s_context.gamma_dirty == 0) && (s_context.premultiply_dirty == 0))
-    {
-        return VG_LITE_SUCCESS;
-    }
-
 #if gcFEATURE_VG_ERROR_CHECK
 #if !gcFEATURE_VG_YUV_OUTPUT
     if ((target != NULL) &&
@@ -1923,7 +1914,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
 #if (!gcFEATURE_VG_SRC_PREMULTIPLIED && CHIPID == 0x265)
         /* In the new version of 265, HW requirements PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication. */
-        if (s_context.blend_mode != VG_LITE_BLEND_NONE && s_context.blend_mode != VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        if (s_context.blend_mode >= VG_LITE_BLEND_SRC_OVER && s_context.blend_mode <= VG_LITE_BLEND_SUBTRACT) {
             premultiply_dst = 0x00000000;
         }
 #endif
@@ -1975,6 +1966,15 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
             dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | gamma_value | premultiply_dst | rgb_alphadiv));
+
+        /* Skip if render target and scissor are not changed. */
+        if ((s_context.rtbuffer != NULL) &&
+            !(memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) &&
+            (s_context.scissor_dirty == 0) && (s_context.mirror_dirty == 0) &&
+            (s_context.gamma_dirty == 0) && (s_context.premultiply_dirty == 0))
+        {
+            return VG_LITE_SUCCESS;
+        }
 
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
@@ -3413,6 +3413,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
     if (forced_blending == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER)
         in_premult = 0x00000000;
+
+#if (CHIPID == 0x265)
+    if (blend != VG_LITE_BLEND_NONE) {
+        in_premult = 0x00000000;
+    }
+#endif
+
 #endif
 
     blend_mode = convert_blend(forced_blending);

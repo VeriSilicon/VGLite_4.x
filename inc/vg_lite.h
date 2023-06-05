@@ -414,7 +414,7 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_BLEND_DARKEN                    = 0x2007,   /*! min(SrcOver, DstOver) */
         VG_LITE_BLEND_LIGHTEN                   = 0x2008,   /*! max(SrcOver, DstOver) */
         VG_LITE_BLEND_ADDITIVE                  = 0x2009,   /*! S + D */
-        VG_LITE_BLEND_SUBTRACT                  = 0x200A,   /*! D * (1 - S) */
+        VG_LITE_BLEND_SUBTRACT                  = 0x200A,   /*! D * (1 - Sa) */
         VG_LITE_BLEND_SUBTRACT_LVGL             = 0x200B,   /*! D - S */
         VG_LITE_BLEND_NORMAL_LVGL               = 0x200C,   /*! S * Sa + (1 - Sa) * D  */
         VG_LITE_BLEND_ADDITIVE_LVGL             = 0x200D,   /*! (S + D) * Sa + D * (1 - Sa) */
