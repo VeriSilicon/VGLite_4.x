@@ -4009,10 +4009,6 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             i += _commandSize_float[cmd] / 4;
         }
         path_length *= 4;
-        if (path_data != NULL) {
-            vg_lite_os_free(path_data);
-            path_data = NULL;
-        }
         break;
 
     case VG_LITE_S16:
@@ -4034,10 +4030,6 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             i += _commandSize_float[cmd] / 2;
         }
         path_length *= 2;
-        if (path_data != NULL) {
-            vg_lite_os_free(path_data);
-            path_data = NULL;
-        }
         break;
 
     case VG_LITE_S32:
@@ -4058,11 +4050,15 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             }
             i += _commandSize_float[cmd];
         }
-        if (path_data != NULL) {
-            vg_lite_os_free(path_data);
-            path_data = NULL;
-        }
         break;
+
+    case VG_LITE_FP32: {
+        /* src_fp32, dst_fp32 */
+        bytes = path_length;
+        path_data_fp32 = vg_lite_os_malloc(bytes);
+        memcpy(path_data_fp32, path_data, bytes);
+        break;
+    }
 
     default:
         break;
