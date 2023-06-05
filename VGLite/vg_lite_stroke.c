@@ -3395,7 +3395,7 @@ vg_lite_error_t _convert_scubic(
         endX = EndX + coords->lastX;
         endY = EndY + coords->lastY;
         controlX = coords->lastX + ControlX;
-        controlY = coords->lastX + ControlY;
+        controlY = coords->lastY + ControlY;
     }
     else
     {
