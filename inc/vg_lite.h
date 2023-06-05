@@ -456,6 +456,17 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_PATTERN_REFLECT = 0x1D03,       /*! Pixel outside the bounds of sourceimage should be reflected indefinitely in all directions */
     } vg_lite_pattern_mode_t;
 
+    /* Paint type. Match OpenVG enum VGPaintType. */
+    typedef enum vg_lite_paint_type
+    {
+        /* For enum value backward compatibility */
+        VG_LITE_PAINT_ZERO            = 0,
+        VG_LITE_PAINT_COLOR           = 0x1B00,
+        VG_LITE_PAINT_LINEAR_GRADIENT = 0x1B01,
+        VG_LITE_PAINT_RADIAL_GRADIENT = 0x1B02,
+        VG_LITE_PAINT_PATTERN         = 0x1B03,
+    } vg_lite_paint_type_t;
+
     /* Radial gradient padding mode. Match OpenVG enum VGColorRampSpreadMode */
     typedef enum
     {
@@ -761,6 +772,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_fc_buffer_t fc_buffer[3];       /*! 3 fastclear buffers,reserved YUV format. */
         vg_lite_compress_mode_t compress_mode;  /*! Refer to the definition by vg_lite_compress_mode_t. */
         vg_lite_index_endian_t index_endian;    /*! Refer to the definition by vg_lite_index_endian_t. */
+        vg_lite_paint_type_t paintType;         /*! Get paintcolor from different paint types. */
     } vg_lite_buffer_t;
 
     /* Memory allocation info by kernel. */

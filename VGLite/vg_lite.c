@@ -2513,6 +2513,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
     uint32_t imageMode = 0;
+    uint32_t paintType = 0;
     uint32_t in_premult = 0;
     uint32_t blend_mode = blend;
     uint32_t filter_mode = 0;
@@ -2868,6 +2869,28 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 #endif
 
+    switch (source->paintType)
+    {
+    case VG_LITE_PAINT_COLOR:
+        paintType = 0;
+        break;
+
+    case VG_LITE_PAINT_LINEAR_GRADIENT:
+        paintType = 1 << 24;
+        break;
+
+    case VG_LITE_PAINT_RADIAL_GRADIENT:
+        paintType = 1 << 25;
+        break;
+
+    case VG_LITE_PAINT_PATTERN:
+        paintType = 1 << 24 | 1 << 25;
+        break;
+
+    default:
+        break;
+    }
+
     blend_mode = convert_blend(blend_mode);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
@@ -2885,7 +2908,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, paintType | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
