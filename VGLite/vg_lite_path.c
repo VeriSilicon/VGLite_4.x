@@ -41,6 +41,7 @@ extern uint32_t convert_uv_swizzle(vg_lite_swizzle_t swizzle);
 extern uint32_t convert_source_format(vg_lite_buffer_format_t format);
 extern vg_lite_error_t check_compress(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode, vg_lite_buffer_layout_t tiled, uint32_t width, uint32_t height);
 extern void get_format_bytes(vg_lite_buffer_format_t format, uint32_t* mul, uint32_t* div, uint32_t* bytes_align);
+extern int32_t get_data_size(vg_lite_format_t format);
 
 vg_lite_matrix_t ident_mtx = {{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
@@ -146,7 +147,7 @@ static void compute_pathbounds(float* xmin, float* ymin, float* xmax, float* yma
     }
 }
 
-static int32_t get_data_size(vg_lite_format_t format)
+int32_t get_data_size(vg_lite_format_t format)
 {
     int32_t data_size = 0;
 
@@ -740,7 +741,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
             offset += dataCount * data_size;
         }
     }
-    if (cmd[seg_count - 1] == VLC_OP_END) {
+    if (cmd[seg_count - 1] == VLC_OP_END || cmd[seg_count - 1] == VLC_OP_CLOSE) {
         path->path_length = offset;
     }
     else {

@@ -3935,6 +3935,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     int16_t* path_data_s16_ptr;
     int32_t* path_data_s32_ptr;
     float* path_data_fp32_ptr;
+    int32_t data_size, num = 0;
     memset(&coords, 0, sizeof(vg_lite_control_coord_t));
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
@@ -3945,6 +3946,44 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
 
     if (path == NULL || path_data == NULL)
         return VG_LITE_INVALID_ARGUMENT;
+
+    /* replace close to end for path_data */
+    data_size = get_data_size(data_format);
+    num = path_length / data_size;
+
+    switch (data_format)
+    {
+    case VG_LITE_S8:
+        if (path_data && (*((char*)path_data + num - 1) == VLC_OP_CLOSE))
+        {
+            *(char*)((int*)path_data + num - 1) = VLC_OP_END;
+        }
+        break;
+
+    case VG_LITE_S16:
+        if (path_data && (*(char*)((short*)path_data + num - 1) == VLC_OP_CLOSE))
+        {
+            *(char*)((short*)path_data + num - 1) = VLC_OP_END;
+        }
+        break;
+
+    case VG_LITE_S32:
+        if (path_data && (*(char*)((int*)path_data + num - 1) == VLC_OP_CLOSE))
+        {
+            *(char*)((int*)path_data + num - 1) = VLC_OP_END;
+        }
+        break;
+
+    case VG_LITE_FP32:
+        if (path_data && (*(char*)((float*)path_data + num - 1) == VLC_OP_CLOSE))
+        {
+            *(char*)((float*)path_data + num - 1) = VLC_OP_END;
+        }
+        break;
+
+    default:
+        break;
+    }
     
     /* Convert path format into float. */
     switch (data_format)
