@@ -901,7 +901,7 @@ static vg_lite_error_t _flatten_path(
 
     sx = sy = ox = oy = px = py = 0.0f;
 
-    prev_command = VLC_OP_MOVE;
+    prev_command = 0xFF;
 
     /* Select the data picker. */
     switch (path->format)
@@ -963,7 +963,7 @@ static vg_lite_error_t _flatten_path(
     data_pointer = (int8_t*)path->path;
 
     /* Add an extra gcvVGCMD_MOVE 0.0 0.0 to handle the case the first command is not gcvVGCMD_MOVE. */
-    if (*data_pointer != VLC_OP_MOVE)
+    if ((*data_pointer & 0xfe) != VLC_OP_MOVE)
     {
         /* Add first point to subpath. */
         VG_LITE_ERROR_HANDLER(_create_new_point_list(stroke_conversion, 0.f, 0.f, vgcFLATTEN_NO));
@@ -988,7 +988,29 @@ static vg_lite_error_t _flatten_path(
                 /* Continuous gcvVGCMD_CLOSE - do nothing. */
                 break;
             }
-            
+
+            if ((prev_command & 0xfe) == VLC_OP_MOVE) {
+                /* Delete the invalid path list. */
+                vg_lite_path_list_ptr path_list_divide = stroke_conversion->cur_list;
+                vg_lite_os_free(path_list_divide->path_points);
+                vg_lite_os_free(path_list_divide);
+                if (stroke_conversion->cur_list == stroke_conversion->path_list_divide) {
+                    stroke_conversion->cur_list = stroke_conversion->path_list_divide = NULL;
+                    stroke_conversion->path_end = NULL;
+                    stroke_conversion->path_points = NULL;
+                    stroke_conversion->point_count = 0;
+                }
+                else {
+                    stroke_conversion->cur_list = stroke_conversion->path_list_divide;
+                    while (stroke_conversion->cur_list->next != path_list_divide)
+                        stroke_conversion->cur_list = stroke_conversion->cur_list->next;
+                    stroke_conversion->path_end = stroke_conversion->cur_list->path_end;
+                    stroke_conversion->point_count = stroke_conversion->cur_list->point_count;
+                    stroke_conversion->cur_list->next = NULL;
+                }
+                break;
+            }
+
             if (!stroke_conversion->add_end)
             {
                 /* Check if subPath is already closed. */
@@ -1070,9 +1092,16 @@ static vg_lite_error_t _flatten_path(
             SKIPTODATA(data_pointer, data_type_size, size);
             VGSL_GETCOORDXY(x0, y0);
 
-            /* First command is gcvVGCMD_MOVE. */
-            /* Add first point to subpath. */
-            VG_LITE_ERROR_HANDLER(_create_new_point_list(stroke_conversion, x0, y0, vgcFLATTEN_NO));
+            if ((prev_command & 0xfe) == VLC_OP_MOVE) {
+                /* Continuous gcvVGCMD_MOVE draw nothing */
+                stroke_conversion->path_points->x = x0;
+                stroke_conversion->path_points->y = y0;
+            }
+            else {
+                /* First command is gcvVGCMD_MOVE. */
+                /* Add first point to subpath. */
+                VG_LITE_ERROR_HANDLER(_create_new_point_list(stroke_conversion, x0, y0, vgcFLATTEN_NO));
+            }
 
             sx = px = ox = x0;
             sy = py = oy = y0;
