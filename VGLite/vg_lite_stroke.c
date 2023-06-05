@@ -2744,7 +2744,7 @@ _create_stroke_path(
                 /* Add extra point to the beginning with end point's coordinates. */
                 point = (vg_lite_path_point_ptr)vg_lite_os_malloc(sizeof(*point));
                 if (!point)
-                    return VG_LITE_INVALID_ARGUMENT;
+                    return VG_LITE_OUT_OF_RESOURCES;
                 memset(point, 0, sizeof(*point));
 
                 point->x = last_stroke->end_point->x;
@@ -2816,7 +2816,7 @@ static vg_lite_error_t _copy_stroke_path(
         path->stroke_size += (int32_t)totalsize;
         path->stroke_path = (void *)vg_lite_os_malloc(path->stroke_size);
         if (!path->stroke_path) {
-            error = VG_LITE_INVALID_ARGUMENT;
+            error = VG_LITE_OUT_OF_RESOURCES;
             goto ErrorHandler;
         }
 
