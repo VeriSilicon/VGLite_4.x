@@ -4,7 +4,7 @@ OBJS = linux/vg_lite_hal.o vg_lite_kernel.o linux/platform/$(PLATFORM).o
 ifeq ($(DEBUG), 1)
 EXTRA_CFLAGS += -g -O1 -DDEBUG -D_DEBUG
 else
-EXTRA_CFLAGS += -O2
+EXTRA_CFLAGS += -O2 -g0
 endif
 
 ifeq ($(ENABLE_PCIE), 1)
