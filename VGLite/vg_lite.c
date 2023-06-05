@@ -3268,14 +3268,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (filter == VG_LITE_FILTER_LINEAR)
     {
         /* Compute interpolation steps. */
-        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]) / source->width;
-        x_step[1] = inverse_matrix.m[1][0] / source->height;
+        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]) / rect_w;
+        x_step[1] = inverse_matrix.m[1][0] / rect_h;
         x_step[2] = inverse_matrix.m[2][0];
-        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]) / source->width;
-        y_step[1] = inverse_matrix.m[1][1] / source->height;
+        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]) / rect_w;
+        y_step[1] = inverse_matrix.m[1][1] / rect_h;
         y_step[2] = inverse_matrix.m[2][1];
-        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]) / source->width;
-        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]) / rect_w;
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / rect_h;
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
     else if (filter == VG_LITE_FILTER_BI_LINEAR)
