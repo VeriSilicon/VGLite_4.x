@@ -451,6 +451,30 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
     path_s16 = (int16_t *)path->path;
     path_s8 = (int8_t *)path->path;
     pathc = (uint8_t *)path->path;
+    /* Set bounding box if the first opcode is VLC_OP_MOVE_* */
+    if ((cmd[0] & 0xfe) == VLC_OP_MOVE) {
+        switch (path->format)
+        {
+        case VG_LITE_S8:
+            cx = (float)data_s8[0];
+            cy = (float)data_s8[1];
+            break;
+        case VG_LITE_S16:
+            cx = (float)data_s16[0];
+            cy = (float)data_s16[1];
+            break;
+        case VG_LITE_S32:
+            cx = (float)data_s32[0];
+            cy = (float)data_s32[1];
+            break;
+        case VG_LITE_FP32:
+            cx = (float)dataf[0];
+            cy = (float)dataf[1];
+            break;
+        }
+        path->bounding_box[0] = path->bounding_box[2] = cx;
+        path->bounding_box[1] = path->bounding_box[3] = cy;
+    }
 
     /* Loop to fill path data. */
     for (i = 0; i < seg_count; i++) {
@@ -462,7 +486,12 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
         if (dataCount >= 0) {
             offset = CDALIGN(offset, data_size);
             if ((cmd[i] > VLC_OP_CLOSE) &&
+                (cmd[i] < VLC_OP_HLINE) &&
                 ((cmd[i] & 0x01) == 1)) {
+                rel = 1;
+            }
+            else if ((cmd[i] >= VLC_OP_HLINE) && 
+                ((cmd[i] & 0x01) == 0)) {
                 rel = 1;
             }
             else {

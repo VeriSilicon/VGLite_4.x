@@ -3823,8 +3823,8 @@ vg_lite_error_t _convert_arc(
         pchar = (char*)pfloat;
         *pchar = segmentCommand;
         pfloat++;
-        *pfloat++ = endX;
-        *pfloat++ = endY;
+        *pfloat++ = Relative ? EndX : endX;
+        *pfloat++ = Relative ? EndY : endY;
         *offset += (1 + 2) * SIZEOF(vg_lite_float_t);
 
     }
