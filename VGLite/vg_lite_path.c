@@ -2632,6 +2632,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
                                     vg_lite_blend_t blend,
                                     vg_lite_pattern_mode_t pattern_mode,
                                     vg_lite_color_t  pattern_color,
+                                    vg_lite_color_t  color,
                                     vg_lite_filter_t filter)
 {
 #if gcFEATURE_VG_IM_INPUT
@@ -2834,7 +2835,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
             break;
 
         case VG_LITE_MULTIPLY_IMAGE_MODE:
-            return VG_LITE_INVALID_ARGUMENT;
+            imageMode = 0x00002000;
+            break;
 
         case VG_LITE_NORMAL_IMAGE_MODE:
         case VG_LITE_ZERO:
@@ -3024,6 +3026,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program matrix. */
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A40, (void *) &new_matrix[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A41, (void *) &new_matrix[1]));
@@ -4534,5 +4537,5 @@ vg_lite_error_t vg_lite_draw_grad(vg_lite_buffer_t* target,
                                 vg_lite_blend_t blend)
 {
     return vg_lite_draw_pattern(target, path, fill_rule, matrix,
-        &grad->image, &grad->matrix, blend, VG_LITE_PATTERN_PAD, 0, VG_LITE_FILTER_LINEAR);
+        &grad->image, &grad->matrix, blend, VG_LITE_PATTERN_PAD, 0, 0, VG_LITE_FILTER_LINEAR);
 }
