@@ -477,9 +477,9 @@ typedef unsigned int        vg_lite_color_t;
     {
         /* For enum value backward compatibility */
         VG_LITE_DRAW_ZERO                       = 0,
-        VG_LITE_DRAW_STROKE_PATH                = 0b01,
-        VG_LITE_DRAW_FILL_PATH                  = 0b10,
-        VG_LITE_DRAW_FILL_STROKE_PATH           = 0b11,
+        VG_LITE_DRAW_STROKE_PATH                = (1<<0),
+        VG_LITE_DRAW_FILL_PATH                  = (1<<1),
+        VG_LITE_DRAW_FILL_STROKE_PATH           = (1<<1 | 1<<0),
     } vg_lite_path_type_t;
 
     /* End cap style. Match OpenVG enum VGCapStyle */
