@@ -29,61 +29,33 @@ CHANGES
 April 2023: vglite_4_0_18
 -------------------------
 
-	1. Refine lineargrad.
-	2. Fix G710106, G710108, G30106 bug.
-	3. Refine lineargrad and make gradient svg test more complex.
-	4. Use constant VLC_GRADIENT_BUFFER_WIDTH instead of 1023 for gradient buffer setting.
-	5. In the new version of 265, HW requirements dst PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication.
-	6. add NULL pointer check.
-
-
-
-April 2023: vglite_4_0_16
--------------------------
-
-	1. fix stroke memory leak.    
-	2. Support gamma feature, add macro switch for gamma feature and make the new gamma feature implementation compatible with the old one.  
-	3. Add VG_LITE_S8, VG_LITE_S16, VG_LITE_S32 support in vg_lite_init_arc_path and vg_lite_append_path.    
-	4. Fix VLC_OP_CLOSE bug in vg_lite_update_stroke
-    5. Reset path->stroke_size in vg_lite_clear_path   
-	6. Add VSI FLEXA interface support for VG IPs that include FLEXA feature.
-    7. Fix VLC_OP_CLOSE bug in G30116   
-	8. Fix VG_LITE_DRAW_FILL_STROKE_PATH of gcFEATURE_VG_PARALLEL_PATHS    
-	9. Path type should be binary number.    
-	10. Fix a compress bug of gc265 series.    
-	11. Fix path type setting issue.    
-	12. VG_BW_1 should have same align requirement with VG_A_1.
-    13. Fix G30251, G30235, G40101, g40102 bug    
-	14. Fix wrong return value.
-    15. Fix bounding box bug in vg_lite_append_path.    
-	16. Fix VLC_OP_xxWARC_REL bug in _convert_arc.   
-	17. Replace source->width/height with rectw/recth
-    18. Increase the command buffer size to 128KB to support drawing.svg rendering.
-    19. Correct color transform register setting.
-    20. Add error check in push_data() for insufficient command buffer size. Use VG_LITE_RETURN_ERROR() macro for all push_data() calls.   
-	21. For the new version of 265, the Src and Dst colors should are already pre_multiplied。
-    22. Fix scissor function enable
-	23. Fix a memory reported by Dr. Memory.
-	24. Fix vg_lite_scissor_rects bug
-	
-	
+    1. Make the gamma feature implementation compatible to VGLite 3.x driver.
+    2. Add VG_LITE_S8, VG_LITE_S16, VG_LITE_S32 support in vg_lite_init_arc_path and vg_lite_append_path.
+    3. Fix a VLC_OP_CLOSE bug in vg_lite_update_stroke.
+    4. VG_BW_1 should have the same alignment requirement with VG_A_1.
+    5. Fix a bounding box bug in vg_lite_append_path.
+    6. Fix a VLC_OP_xxWARC_REL bug in _convert_arc.
+    7. Change default command buffer size to 128KB to support large SVG path rendering.
+    8. Correct width computation in vg_lite_update_linear_grad() to fix the rendering error in gradient.svg.
+    9. Add error check in push_data() for insufficient command buffer size.
+    10. Set Src and Dst color pre_multiplied properly for gc265.
+    11. Correct color transform register settings.
+    12. Fix a vg_lite_scissor_rects enable/disable bug.
 
 
 March 2023: vglite_4_0_15
 -------------------------
 
     1. Add DMA buffer support for vg_lite_map/unmap APIs.
-    2. Add a new blend mode VG_LITE_BLEND_PREMULTIPLY_SRC_OVER support.
+    2. Add support for blend mode VG_LITE_BLEND_PREMULTIPLY_SRC_OVER.
 
-    
 February 2023: vglite_4_0_11
 -------------------------
 
     1. Enable GC355, GC255, GC265 support in VGLite 4.x driver.
     2. Add VGLite API trace function which can be enabled with gcFEATURE_VG_TRACE_API macro.
-	3. Add a new API vg_lite_flush_mapped_buffer for flushing mapped buffer flush.
+    3. Add a new API vg_lite_flush_mapped_buffer for flushing mapped buffer flush.
     4. Fix the pixel shift issue when an image is blit with linear filtering.
-
 
 
 October 2022: vglite_4_0_0
