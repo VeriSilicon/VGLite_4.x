@@ -1936,14 +1936,15 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         {
             s_context.gamma_dst = 1;
         }
-        else
-        {
-            s_context.gamma_dst = 0;
-        }
         else if (target->format == VG_A_8)
         {
             s_context.gamma_dst = 2;
         }
+        else
+        {
+            s_context.gamma_dst = 0;
+        }
+
         if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
         {
             gamma_value = 0x00002000;
