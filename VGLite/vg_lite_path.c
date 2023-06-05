@@ -741,7 +741,11 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
             offset += dataCount * data_size;
         }
     }
-    if (cmd[seg_count - 1] == VLC_OP_END || cmd[seg_count - 1] == VLC_OP_CLOSE) {
+    if (cmd[seg_count - 1] == VLC_OP_END
+#if gcFEATURE_VG_ARC_PATH
+        || (cmd[seg_count - 1] == VLC_OP_CLOSE  && (arc_path | h_v_path | smooth_path))
+#endif
+        ) {
         path->path_length = offset;
     }
     else {
