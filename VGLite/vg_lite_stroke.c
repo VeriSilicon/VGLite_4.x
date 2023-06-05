@@ -1038,6 +1038,9 @@ static vg_lite_error_t _flatten_path(
 
             px = ox = sx;
             py = oy = sy;
+
+            stroke_conversion->cur_list->closed = 1;
+            stroke_conversion->closed = 1;
             break;
 
         case VLC_OP_MOVE_REL:

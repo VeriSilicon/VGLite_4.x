@@ -2478,20 +2478,34 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {
-        /* Tessellate path. */
         s_context.tessbuf.tess_w_h = width | (height << 16);
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (point_min.y << 16)));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, s_context.tessbuf.tess_w_h));
+        if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+            /* Tessellate path. */
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (point_min.y << 16)));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, s_context.tessbuf.tess_w_h));
 
-        if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
-            VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
-        }
-        else {
-            if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
+            if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+            }
+            else
                 push_data(&s_context, path->path_length, path->path);
-            if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+        }
+
+        if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+            /* Tessellate path. */
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (point_min.y << 16)));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, s_context.tessbuf.tess_w_h));
+        
+            if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+            }
+            else {
                 format = convert_path_format(VG_LITE_FP32);
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
