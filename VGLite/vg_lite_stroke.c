@@ -1022,7 +1022,6 @@ static vg_lite_error_t _flatten_path(
         case VLC_OP_CLOSE:
             /* Skip the command. */
             SKIPTODATA(data_pointer, data_type_size, size);
-            VGSL_GETCOORDXY(x0, y0);
 
             if (prev_command == VLC_OP_CLOSE)
             {
@@ -1037,8 +1036,8 @@ static vg_lite_error_t _flatten_path(
                 VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, sx, sy, vgcFLATTEN_NO));
             }
 
-            px = ox = x0;
-            py = oy = y0;
+            px = ox = sx;
+            py = oy = sy;
             break;
 
         case VLC_OP_MOVE_REL:
@@ -3817,7 +3816,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     vg_lite_float_t max_x, vg_lite_float_t max_y)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t i = 0, command = 0, offset = 0;
+    uint32_t i = 0, j, command = 0, offset = 0;
     vg_lite_float_t moveToX, moveToY, lineToX, lineToY, controlX, controlY, quadToX, quadToY;
     vg_lite_float_t controlX1, controlY1, controlX2, controlY2, cubicToX, cubicToY;
     vg_lite_float_t horRadius, verRadius, rotAngle, endX, endY;
@@ -3825,6 +3824,12 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     char* cpath, * pathdata;
     vg_lite_control_coord_t coords;
     char add_end = path->add_end;
+    vg_lite_int32_t bytes;
+    vg_lite_pointer path_data_fp32 = path_data;
+    vg_lite_int8_t cmd, * path_data_s8_ptr;
+    vg_lite_int16_t* path_data_s16_ptr;
+    vg_lite_int32_t* path_data_s32_ptr;
+    vg_lite_float_t* path_data_fp32_ptr;
     memset(&coords, 0, sizeof(vg_lite_control_coord_t));
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
@@ -3833,8 +3838,90 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     VGLITE_LOG("vg_lite_init_arc_path %p %d %d %d %p %f %f %f %f\n", path, data_format, quality, path_length, path_data, min_x, min_y, max_x, max_y);
 #endif
 
-    if (path == NULL || path_data == NULL || data_format != VG_LITE_FP32)
+    if (path == NULL || path_data == NULL)
         return VG_LITE_INVALID_ARGUMENT;
+    
+    /* Convert path format into float. */
+    switch (data_format)
+    {
+    case VG_LITE_S8:
+        /* src_s8, dst_fp32 */
+        bytes = path_length * 4;
+        path_data_fp32 = malloc(bytes);
+        if (path_data_fp32 == NULL)
+            return VG_LITE_OUT_OF_MEMORY;
+        memset(path_data_fp32, 0, bytes);
+        path_data_fp32_ptr = path_data_fp32;
+        path_data_s8_ptr = (int8_t*)path_data;
+        i = 0;
+        while (i < path_length){
+            cmd = *(uint8_t*)path_data_s8_ptr++;
+            *(uint8_t*)path_data_fp32_ptr++ = cmd;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
+                *path_data_fp32_ptr++ = (float)*path_data_s8_ptr++;
+            }
+            i += _commandSize_float[cmd] / 4;
+        }
+        path_length *= 4;
+        if (path_data != NULL) {
+            vg_lite_os_free(path_data);
+            path_data = NULL;
+        }
+        break;
+
+    case VG_LITE_S16:
+        /* src_s16, dst_fp32 */
+        bytes = path_length * 2;
+        path_data_fp32 = malloc(bytes);
+        if (path_data_fp32 == NULL)
+            return VG_LITE_OUT_OF_MEMORY;
+        memset(path_data_fp32, 0, bytes);
+        path_data_fp32_ptr = path_data_fp32;
+        path_data_s16_ptr = (int16_t*)path_data;
+        i = 0;
+        while (i < path_length) {
+            cmd = *(uint8_t*)path_data_s16_ptr++;
+            *(uint8_t*)path_data_fp32_ptr++ = cmd;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
+                *path_data_fp32_ptr++ = (float)*path_data_s16_ptr++;
+            }
+            i += _commandSize_float[cmd] / 2;
+        }
+        path_length *= 2;
+        if (path_data != NULL) {
+            vg_lite_os_free(path_data);
+            path_data = NULL;
+        }
+        break;
+
+    case VG_LITE_S32:
+        /* src_s32, dst_fp32 */
+        bytes = path_length;
+        path_data_fp32 = malloc(bytes);
+        if (path_data_fp32 == NULL)
+            return VG_LITE_OUT_OF_MEMORY;
+        memset(path_data_fp32, 0, bytes);
+        path_data_fp32_ptr = path_data_fp32;
+        path_data_s32_ptr = (int32_t*)path_data;
+        i = 0;
+        while (i < path_length) {
+            cmd = *(uint8_t*)path_data_s32_ptr++;
+            *(uint8_t*)path_data_fp32_ptr++ = cmd;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
+                *path_data_fp32_ptr++ = (float)*path_data_s32_ptr++;
+            }
+            i += _commandSize_float[cmd];
+        }
+        if (path_data != NULL) {
+            vg_lite_os_free(path_data);
+            path_data = NULL;
+        }
+        break;
+
+    default:
+        break;
+    }
+    data_format = VG_LITE_FP32;
 
     if (!path_length)
     {
@@ -3864,7 +3951,8 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     pathdata = (char*)vg_lite_os_malloc(path_length);
     if (pathdata == NULL)
         return VG_LITE_OUT_OF_MEMORY;
-    pfloat = (vg_lite_float_t*)path_data;
+    pfloat = (vg_lite_float_t*)path_data_fp32;
+    i = 0;
     while (i < path_length)
     {
         cpath = (char*)pfloat;
@@ -4230,13 +4318,9 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         }
     }
 
-    path->format = data_format;
+    path->format = VG_LITE_FP32;
     path->quality = quality;
     path->path_length = offset;
-    if(path_data != NULL){
-        vg_lite_os_free(path_data);
-        path_data = NULL;
-    }
     path->path = pathdata;
     path->pdata_internal = 1;
     path->path_changed = 1;

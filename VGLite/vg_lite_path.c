@@ -467,15 +467,58 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                 rel = 0;
             }
             if (cmd[i] >= VLC_OP_HLINE && cmd[i] <= VLC_OP_VLINE_REL) {
-                pathf = (float*)(pathc + offset);
-                pathf[0] = *dataf++;
-                if (rel) {
-                    cx = px + pathf[0];
-                    cy = py + pathf[1];
-                }
-                else {
-                    cx = pathf[0];
-                    cy = pathf[1];
+                switch (path->format) {
+                case VG_LITE_S8:
+                    path_s8 = (int8_t*)(pathc + offset);
+                    path_s8[0] = *data_s8++;
+                    if (rel) {
+                        cx = px + (float)path_s8[0];
+                        cy = py + (float)path_s8[1];
+                    }
+                    else {
+                        cx = (float)path_s8[0];
+                        cy = (float)path_s8[1];
+                    }
+                    break;
+
+                case VG_LITE_S16:
+                    path_s16 = (int16_t*)(pathc + offset);
+                    path_s16[0] = *data_s16++;
+                    if (rel) {
+                        cx = px + (float)path_s16[0];
+                        cy = py + (float)path_s16[1];
+                    }
+                    else {
+                        cx = (float)path_s16[0];
+                        cy = (float)path_s16[1];
+                    }
+                    break;
+
+                case VG_LITE_S32:
+                    path_s32 = (int32_t*)(pathc + offset);
+                    path_s32[0] = *data_s32++;
+                    if (rel) {
+                        cx = px + (float)path_s32[0];
+                        cy = py + (float)path_s32[1];
+                    }
+                    else {
+                        cx = (float)path_s32[0];
+                        cy = (float)path_s32[1];
+                    }
+                    break;
+
+                case VG_LITE_FP32:
+                    pathf = (float*)(pathc + offset);
+                    pathf[0] = *dataf++;
+                    if (rel) {
+                        cx = px + (float)pathf[0];
+                        cy = py + (float)pathf[1];
+                    }
+                    else {
+                        cx = (float)pathf[0];
+                        cy = (float)pathf[1];
+                    }
+                    break;
                 }
                 h_v_path = 1;
                 /* Update path bounds. */
@@ -563,8 +606,79 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
             }
 #if gcFEATURE_VG_ARC_PATH
             else {
-                    arc_path = 1;
-                    pathf = (float *)(pathc + offset);
+                arc_path = 1;
+                switch (path->format) {
+                case VG_LITE_S8:
+                    path_s8 = (int8_t*)(pathc + offset);
+                    path_s8[0] = *data_s8++;
+                    path_s8[1] = *data_s8++;
+                    path_s8[2] = *data_s8++;
+                    path_s8[3] = *data_s8++;
+                    path_s8[4] = *data_s8++;
+
+                    if (rel) {
+                        cx = px + path_s8[3];
+                        cy = py + path_s8[4];
+                    }
+                    else {
+                        cx = path_s8[3];
+                        cy = path_s8[4];
+                    }
+                    /* Update path bounds. */
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx + 2 * path_s8[0],cy + 2 * path_s8[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px + 2 * path_s8[1],py + 2 * path_s8[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx - 2 * path_s8[0],cy - 2 * path_s8[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px - 2 * path_s8[1],py - 2 * path_s8[1]);
+                    break;
+
+                case VG_LITE_S16:
+                    path_s16 = (int16_t*)(pathc + offset);
+                    path_s16[0] = *data_s16++;
+                    path_s16[1] = *data_s16++;
+                    path_s16[2] = *data_s16++;
+                    path_s16[3] = *data_s16++;
+                    path_s16[4] = *data_s16++;
+
+                    if (rel) {
+                        cx = px + path_s16[3];
+                        cy = py + path_s16[4];
+                    }
+                    else {
+                        cx = path_s16[3];
+                        cy = path_s16[4];
+                    }
+                    /* Update path bounds. */
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx + 2 * path_s16[0],cy + 2 * path_s16[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px + 2 * path_s16[1],py + 2 * path_s16[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx - 2 * path_s16[0],cy - 2 * path_s16[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px - 2 * path_s16[1],py - 2 * path_s16[1]);
+                    break;
+
+                case VG_LITE_S32:
+                    path_s32 = (int32_t*)(pathc + offset);
+                    path_s32[0] = *data_s32++;
+                    path_s32[1] = *data_s32++;
+                    path_s32[2] = *data_s32++;
+                    path_s32[3] = *data_s32++;
+                    path_s32[4] = *data_s32++;
+
+                    if (rel) {
+                        cx = px + path_s32[3];
+                        cy = py + path_s32[4];
+                    }
+                    else {
+                        cx = path_s32[3];
+                        cy = path_s32[4];
+                    }
+                    /* Update path bounds. */
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx + 2 * path_s32[0],cy + 2 * path_s32[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px + 2 * path_s32[1],py + 2 * path_s32[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx - 2 * path_s32[0],cy - 2 * path_s32[1]);
+                    compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px - 2 * path_s32[1],py - 2 * path_s32[1]);
+                    break;
+
+                case VG_LITE_FP32:
+                    pathf = (float*)(pathc + offset);
                     pathf[0] = *dataf++;
                     pathf[1] = *dataf++;
                     pathf[2] = *dataf++;
@@ -579,12 +693,14 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                         cx = pathf[3];
                         cy = pathf[4];
                     }
-
                     /* Update path bounds. */
                     compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx + 2 * pathf[0],cy + 2 * pathf[1]);
                     compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px + 2 * pathf[1],py + 2 * pathf[1]);
                     compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx - 2 * pathf[0],cy - 2 * pathf[1]);
                     compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],px - 2 * pathf[1],py - 2 * pathf[1]);
+                    break;
+                }
+
             }
 #endif
             px = cx;
@@ -605,7 +721,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 #if gcFEATURE_VG_ARC_PATH
     if (arc_path | h_v_path | smooth_path) {
         error = vg_lite_init_arc_path(path,
-                    VG_LITE_FP32,
+                    path->format,
                     path->quality,
                     path->path_length,
                     path->path,
