@@ -3153,7 +3153,7 @@ vg_lite_error_t vg_lite_set_stroke(
     path->stroke->half_width = line_width / 2.0f;
     path->stroke->miter_square = path->stroke->miter_limit * path->stroke->miter_limit;
     path->stroke->dash_pattern = dash_pattern;
-    path->stroke->pattern_count = pattern_count;
+    path->stroke->pattern_count = (pattern_count / 2) * 2;
     path->stroke->dash_phase = dash_phase;
     path->stroke_color = stroke_color;
 
