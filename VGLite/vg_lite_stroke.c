@@ -2390,6 +2390,7 @@ _create_stroke_path(
     uint8_t dashing;
     uint8_t add_end_cap;
     uint8_t need_to_handle_swing = 1 /* (stroke_conversion->strokeCapStyle == gcvCAP_BUTT) */;
+    vg_lite_bool_t dash_phase_reset;
 
     vg_lite_path_point_ptr first_right_point = NULL;
     vg_lite_path_point_ptr last_left_point = NULL;
@@ -2406,6 +2407,7 @@ _create_stroke_path(
     dashing = stroke_conversion->pattern_count > 0 ? 1 : 0;
     dash_index = stroke_conversion->dash_index;
     dash_length = stroke_conversion->dash_length;
+    dash_phase_reset = stroke_conversion->dash_phase_reset;
 
     /* VIV: [todo] Need to check/debug closed stroke path. */
     need_to_handle_swing = (stroke_conversion->cap_style == VG_LITE_CAP_BUTT || stroke_conversion->closed);
@@ -2816,16 +2818,18 @@ _create_stroke_path(
         drawing = 0;
     }
 
-    /* Update dash index and length for next subpath. */
-    if (dashing) {
-        if (((dash_index & 0x1) == 1) && 
-            (stroke_conversion->dash_pattern[dash_index] - dash_length < FLOAT_EPSILON) ) {
-            stroke_conversion->dash_index = dash_index - 1;
-            stroke_conversion->dash_length = 0;
-        }
-        else {
-            stroke_conversion->dash_index = dash_index;
-            stroke_conversion->dash_length = dash_length;
+    if (!dash_phase_reset) {
+        /* Update dash index and length for next subpath. */
+        if (dashing) {
+            if (((dash_index & 0x1) == 1) &&
+                (stroke_conversion->dash_pattern[dash_index] - dash_length < FLOAT_EPSILON)) {
+                stroke_conversion->dash_index = dash_index - 1;
+                stroke_conversion->dash_length = 0;
+            }
+            else {
+                stroke_conversion->dash_index = dash_index;
+                stroke_conversion->dash_length = dash_length;
+            }
         }
     }
 

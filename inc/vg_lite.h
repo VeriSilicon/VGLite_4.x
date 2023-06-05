@@ -687,6 +687,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     dash_phase;
         vg_lite_float_t                     dash_length;
         vg_lite_uint32_t                    dash_index;
+        vg_lite_bool_t                      dash_phase_reset;
 
         vg_lite_float_t                     half_width;
 
