@@ -965,10 +965,10 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
         temp_transform[color_elements] = (short)(color_transformations[color_elements] * 256);
     }
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, temp_transform[0] | temp_transform[1] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, temp_transform[2] | temp_transform[3] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, temp_transform[4] | temp_transform[5] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, temp_transform[6] | temp_transform[7] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, temp_transform[0] | temp_transform[1] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, temp_transform[2] | temp_transform[3] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, temp_transform[4] | temp_transform[5] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, temp_transform[6] | temp_transform[7] << 16));
 
     return error;
 #else
