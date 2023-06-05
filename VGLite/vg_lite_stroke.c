@@ -3934,7 +3934,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     int8_t cmd, * path_data_s8_ptr;
     int16_t* path_data_s16_ptr;
     int32_t* path_data_s32_ptr;
-    float_t* path_data_fp32_ptr;
+    float* path_data_fp32_ptr;
     memset(&coords, 0, sizeof(vg_lite_control_coord_t));
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
