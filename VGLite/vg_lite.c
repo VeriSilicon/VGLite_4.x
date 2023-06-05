@@ -3652,6 +3652,11 @@ vg_lite_error_t vg_lite_close(void)
     VGLITE_LOG("vg_lite_close\n");
 #endif
 
+    if (s_context.scissor_layer && s_context.scissor_layer->handle)
+    {
+        vg_lite_free(s_context.scissor_layer);
+    }
+
     if (s_context.custom_cmdbuf)
     {
         vg_lite_kernel_unmap_memory_t unmap = {0};
@@ -3676,9 +3681,6 @@ vg_lite_error_t vg_lite_close(void)
         vg_lite_os_free(s_context.rtbuffer);
 
     submit_flag = 0;
-
-    if (s_context.scissor_layer)
-        vg_lite_free(s_context.scissor_layer);
 
     /* Reset the draw context. */
     memset(&s_context, 0, sizeof(s_context));

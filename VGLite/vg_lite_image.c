@@ -751,7 +751,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
 #if gcFEATURE_VG_MASK
     vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    vg_lite_buffer_t* scissor_layer = s_context.scissor_layer;
+    static vg_lite_buffer_t scissor_layer;
     vg_lite_rectangle_t rect_clamp, rect_draw;
     vg_lite_int32_t left_x, right_x, left_len, middle_len, right_len, stride, j, max_x, max_y;
     vg_lite_uint8_t alpha;
@@ -764,29 +764,27 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
     s_context.scissor_enable = 0;
 
     /* Allocate if scissor layer is NULL */
-    if (scissor_layer == NULL) {
-        scissor_layer = calloc(1, sizeof(vg_lite_buffer_t));
-        if (scissor_layer == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
-        scissor_layer->width = (s_context.target_width + 7) / 8;
-        scissor_layer->height = s_context.target_height;
-        scissor_layer->format = VG_LITE_A8;
-        error = vg_lite_allocate(scissor_layer);
-        s_context.scissor_layer = scissor_layer;
-        VG_LITE_RETURN_ERROR(vg_lite_clear(scissor_layer, NULL, 0xFFFFFFFF));
+    if (s_context.scissor_layer == NULL) {
+        memset(&scissor_layer, 0, sizeof(vg_lite_buffer_t));
+        scissor_layer.width = (s_context.target_width + 7) / 8;
+        scissor_layer.height = s_context.target_height;
+        scissor_layer.format = VG_LITE_A8;
+        error = vg_lite_allocate(&scissor_layer);
+        s_context.scissor_layer = &scissor_layer;
+        VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, NULL, 0xFFFFFFFF));
         vg_lite_finish();
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, scissor_layer->address));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, scissor_layer->stride));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, scissor_layer.address));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, scissor_layer.stride));
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
         vg_lite_finish();
     }
 
     /* Clear scissor layer*/
-    VG_LITE_RETURN_ERROR(vg_lite_clear(scissor_layer, NULL, 0x00000000));
+    VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, NULL, 0x00000000));
     vg_lite_finish();
 
-    max_x = scissor_layer->width * 8;
-    max_y = scissor_layer->height;
+    max_x = scissor_layer.width * 8;
+    max_y = scissor_layer.height;
 
     /* Draw rectangle to scissor layer, one bit data of scissor layer corresponds to one pixel. */
     for (i = 0; i < nums; ++i) {
@@ -815,9 +813,9 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
             rect_draw.width = 1;
             rect_draw.height = rect_clamp.height;
             alpha = (uint8_t)(((uint8_t)(0xff >> (8 - rect_clamp.width))) << (rect_clamp.x % 8));
-            stride = scissor_layer->stride;
+            stride = scissor_layer.stride;
             for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
-                ((vg_lite_uint8_t*)scissor_layer->memory)[j * stride + rect_draw.x] |= alpha;
+                ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
             }
         }
         else {
@@ -835,9 +833,9 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
                 rect_draw.width = 1;
                 rect_draw.height = rect_clamp.height;
                 alpha = (uint8_t)(0xff << (8 - left_len));
-                stride = scissor_layer->stride;
+                stride = scissor_layer.stride;
                 for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
-                    ((vg_lite_uint8_t*)scissor_layer->memory)[j * stride + rect_draw.x] |= alpha;
+                    ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
                 }
             }
 
@@ -847,7 +845,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
                 rect_draw.y = rect_clamp.y;
                 rect_draw.width = middle_len / 8;
                 rect_draw.height = rect_clamp.height;
-                VG_LITE_RETURN_ERROR(vg_lite_clear(scissor_layer, &rect_draw, 0xFFFFFFFF));
+                VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, &rect_draw, 0xFFFFFFFF));
                 vg_lite_finish();
             }
 
@@ -858,9 +856,9 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
                 rect_draw.width = 1;
                 rect_draw.height = rect_clamp.height;
                 alpha = (uint8_t)(0xff >> (8 - right_len));
-                stride = scissor_layer->stride;
+                stride = scissor_layer.stride;
                 for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
-                    ((vg_lite_uint8_t*)scissor_layer->memory)[j * stride + rect_draw.x] |= alpha;
+                    ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
                 }
         }
     }
