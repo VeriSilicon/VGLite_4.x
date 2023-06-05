@@ -578,7 +578,9 @@ vg_lite_error_t vg_lite_blend_masklayer(
 #endif
 
     vg_lite_identity(&matrix);
-
+    vg_lite_translate((vg_lite_float_t)rect->x, (vg_lite_float_t)rect->y, &matrix);
+    rect->x = 0;
+    rect->y = 0;
     switch (operation)
     {
     case VG_LITE_CLEAR_MASK:
