@@ -2038,7 +2038,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     vg_lite_error_t error;
     int32_t x, y, width, height;
     uint32_t color32;
-    uint32_t tiled;
+    uint32_t tiled = 0;
     uint32_t stripe_mode = 0;
 
 #if gcFEATURE_VG_TRACE_API
@@ -2097,10 +2097,9 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
 
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
-
-    if (target->compress_mode)
+    if (target->tiled == VG_LITE_TILED)
     {
+        tiled = 0x40;
         stripe_mode = 0x20000000;
     }
 
@@ -2520,7 +2519,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t transparency_mode = 0;
     uint32_t conversion = 0;
     uint32_t tiled_source;
-    uint32_t tiled;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     uint32_t ahb_read_split = 0;
@@ -2528,6 +2526,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
+    uint32_t tiled = 0;
     uint32_t stripe_mode = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
@@ -2893,16 +2892,18 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(blend_mode);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+
+    if (target->tiled == VG_LITE_TILED) {
+        tiled = 0x40;
+        stripe_mode = 0x20000000;
+    }
+
     if (blend_mode) {
         /* The hw bit for improve read image buffer performance when enable alpha blending. */
         ahb_read_split = 1 << 7;
     }
 
     compress_mode = (uint32_t)source->compress_mode << 25;
-    if (source->compress_mode || target->compress_mode) {
-        stripe_mode = 0x20000000;
-    }
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
@@ -3032,7 +3033,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t tiled_source;
     int32_t left, top, right, bottom;
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
-    uint32_t tiled;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     uint32_t ahb_read_split = 0;
@@ -3040,6 +3040,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
+    uint32_t tiled = 0;
     uint32_t stripe_mode = 0;
 
 #if gcFEATURE_VG_TRACE_API
@@ -3416,15 +3417,17 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(forced_blending);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+
+    if (tiled == VG_LITE_TILED) {
+        tiled = 0x40;
+        stripe_mode = 0x20000000;
+    }
+
     if (blend_mode) {
         /* The hw bit for improve read image buffer performance when enable alpha blending. */
         ahb_read_split = 1 << 7;
     }
     compress_mode = (uint32_t)source->compress_mode << 25;
-    if (source->compress_mode || target->compress_mode) {
-        stripe_mode = 0x20000000;
-    }
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
