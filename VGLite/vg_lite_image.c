@@ -970,6 +970,7 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
     vg_lite_float_t* color_transformations = (vg_lite_float_t*)values;
     int color_elements = 0;
     short temp_transform[8] = { 0 };
+    uint32_t final_transform[8] = { 0 };
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_set_color_transform %p\n", values);
@@ -980,12 +981,13 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
             return VG_LITE_INVALID_ARGUMENT;
         }
         temp_transform[color_elements] = (short)(color_transformations[color_elements] * 256);
+        final_transform[color_elements] = (uint32_t)temp_transform[color_elements] & 0x0000FFFF;
     }
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, temp_transform[0] | temp_transform[1] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, temp_transform[2] | temp_transform[3] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, temp_transform[4] | temp_transform[5] << 16));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, temp_transform[6] | temp_transform[7] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0F, final_transform[0] | final_transform[1] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0C, final_transform[2] | final_transform[3] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0D, final_transform[4] | final_transform[5] << 16));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0E, final_transform[6] | final_transform[7] << 16));
 
     return error;
 #else
