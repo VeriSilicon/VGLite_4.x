@@ -3782,7 +3782,9 @@ vg_lite_error_t _convert_arc(
 
     ax = coords->lastX - COSF(theta1) * rx;
     ay = coords->lastY - SINF(theta1) * ry;
-    if (FABSF(HorRadius) != 0 && FABSF(VerRadius) != 0) {
+    if (FABSF(HorRadius) != 0 && 
+        FABSF(VerRadius) != 0 && 
+        (endX != coords->lastX || endY != coords->lastY)) {
         /* Determine the segment command. */
         segmentCommand = Relative
             ? VLC_OP_QUAD_REL
