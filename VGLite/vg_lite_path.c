@@ -3854,8 +3854,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 
     radius = grad->radial_grad.r;
-    if (radius <= 0)
-        return VG_LITE_INVALID_ARGUMENT;
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
