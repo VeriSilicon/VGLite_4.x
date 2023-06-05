@@ -96,7 +96,7 @@ extern "C" {
 /* Gradient constants. */
 #define VLC_MAX_COLOR_RAMP_STOPS    256             /*! The max number of radial gradient stops. */
 #define VLC_MAX_GRADIENT_STOPS      16              /*! The max number of gradient stops. */
-#define VLC_GRADIENT_BUFFER_WIDTH   1024             /*! The internal buffer width.*/
+#define VLC_GRADIENT_BUFFER_WIDTH   1024            /*! The internal gradient buffer width.*/
 
 
 /* API name defines for backward compatibility to VGLite 2.0 APIs */

@@ -4976,7 +4976,7 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 
     /* Check stops validity */
     for (i = 0; i < count; i++)
-        if (stops[i] <= 1023) {
+        if (stops[i] < VLC_GRADIENT_BUFFER_WIDTH) {
             if (!grad->count || stops[i] > grad->stops[grad->count - 1]) {
                 grad->stops[grad->count] = stops[i];
                 grad->colors[grad->count] = colors[i];
@@ -5060,10 +5060,8 @@ vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
     /* If at least one valid stop has been specified, but none has been defined
     * with an offset of 255, an implicit stop is added with an offset of 255
     * and the same color as the last user-defined stop. */
-    for (i = grad->stops[grad->count - 1]; i < 1023; i++)
+    for (i = grad->stops[grad->count - 1]; i < VLC_GRADIENT_BUFFER_WIDTH; i++)
         buffer[i] = grad->colors[grad->count - 1];
-    /* Last pixel */
-    buffer[i] = grad->colors[grad->count - 1];
 
     return error;
 }
