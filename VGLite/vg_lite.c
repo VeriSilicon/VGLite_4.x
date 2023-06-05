@@ -1925,12 +1925,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         read_dest = 0x00100000;
 #endif
 
-#if (CHIPID == 0x355)
-        if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV || target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-            target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222)
-            return error;
-#endif
-
+#if gcFEATURE_VG_GAMMA
         /* Set gamma configuration of dst buffer */
         if ((target->format >= VG_sRGBX_8888 && target->format <= VG_sL_8) ||
             (target->format >= VG_sXRGB_8888 && target->format <= VG_sARGB_4444) ||
@@ -1956,6 +1951,13 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         {
             gamma_value = 0;
         }
+#endif
+
+#if (CHIPID == 0x355)
+        if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV || target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+            target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222)
+            return error;
+#endif
 
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == 0xFF) {
@@ -2653,6 +2655,21 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
+#if gcFEATURE_VG_GAMMA
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= VG_sRGBX_8888 && source->format <= VG_sL_8) ||
+        (source->format >= VG_sXRGB_8888 && source->format <= VG_sARGB_4444) ||
+        (source->format >= VG_sBGRX_8888 && source->format <= VG_sBGRA_4444) ||
+        (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
+    {
+        s_context.gamma_src = 1;
+    }
+    else
+    {
+        s_context.gamma_src = 0;
+    }
+#endif
+
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -2713,19 +2730,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* No need to draw. */
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
-
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_sRGBX_8888 && source->format <= VG_sL_8) ||
-        (source->format >= VG_sXRGB_8888 && source->format <= VG_sARGB_4444) ||
-        (source->format >= VG_sBGRX_8888 && source->format <= VG_sBGRA_4444) ||
-        (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
-    {
-        s_context.gamma_src = 1;
-    }
-    else
-    {
-        s_context.gamma_src = 0;
-    }
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
