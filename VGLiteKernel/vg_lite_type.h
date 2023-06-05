@@ -27,7 +27,9 @@
 #ifndef _vg_lite_type_h_
 #define _vg_lite_type_h_
 
+#if __KERNEL__
 #include <asm/bitsperlong.h>
+#endif
 #include "vg_lite_kernel.h"
 
 #ifdef __cplusplus
