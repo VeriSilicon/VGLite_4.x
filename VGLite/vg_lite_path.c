@@ -2384,7 +2384,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
     width = target->width;
     height = target->height;
-
+    if (s_context.scissor_set) {
+        width = s_context.scissor[0] + s_context.scissor[2];
+        height = s_context.scissor[1] + s_context.scissor[3];
+    }
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
     if ((target->width <= width) && (target->height <= height))
@@ -2544,6 +2547,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     }
 #else
     {
+        s_context.tessbuf.tess_w_h = width | (height << 16);
         height = s_context.tessbuf.tess_w_h >> 16;
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
             if (height <= 128)
@@ -2788,6 +2792,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     width = target->width;
     height = target->height;
 
+    if (s_context.scissor_set) {
+        width = s_context.scissor[0] + s_context.scissor[2];
+        height = s_context.scissor[1] + s_context.scissor[3];
+    }
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
     if ((target->width <= width) && (target->height <= height))
@@ -3087,6 +3095,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
 #else
     {
+        s_context.tessbuf.tess_w_h = width | (height << 16);
         height = s_context.tessbuf.tess_w_h >> 16;
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
             if (height <= 128)
