@@ -3668,6 +3668,9 @@ vg_lite_error_t vg_lite_close(void)
 
     submit_flag = 0;
 
+    if (s_context.scissor_layer)
+        vg_lite_free(s_context.scissor_layer);
+
     /* Reset the draw context. */
     memset(&s_context, 0, sizeof(s_context));
 

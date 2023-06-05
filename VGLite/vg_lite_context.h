@@ -166,6 +166,7 @@ typedef struct vg_lite_context {
     uint32_t                    scissor_enable;
     uint32_t                    scissor_dirty;
     int32_t                     scissor[4];                 /* Scissor area: x, y, right, bottom. */
+    vg_lite_buffer_t            *scissor_layer;
 
     uint32_t                    src_alpha_mode;
     uint32_t                    src_alpha_value;
