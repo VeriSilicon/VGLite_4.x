@@ -2826,10 +2826,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
     in_premult = 0x10000000;
-    if (CHIPID == 0x265 && blend != VG_LITE_BLEND_NONE && gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
-    {
-        in_premult = 0x00000000;
-    }
+
 #if (CHIPID==0x555 || CHIPID==0x265)
     switch (source->format) {
         case VG_LITE_A4:
@@ -2850,10 +2847,16 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             break;
     };
 #endif
-
-#if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
-    if (blend_mode == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER)
+#if !gcFEATURE_VG_SRC_PREMULTIPLIED
+#if (CHIPID == 0x265)
+    if (blend != VG_LITE_BLEND_NONE) {
         in_premult = 0x00000000;
+    }
+#else
+    if (blend_mode == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x00000000;
+    }
+#endif
 #endif
 
     blend_mode = convert_blend(blend_mode);
@@ -3374,7 +3377,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     };
 #endif
 
-#if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
+#if !gcFEATURE_VG_SRC_PREMULTIPLIED
     if (forced_blending == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER)
         in_premult = 0x00000000;
 #endif
