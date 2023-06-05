@@ -4561,7 +4561,6 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 
     /* Compute the width of the required color array. */
     width = common + 1;
-    width = (width + 15) & (~0xf);
 
     /* Allocate the color ramp surface. */
     memset(&grad->image, 0, sizeof(grad->image));
