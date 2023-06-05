@@ -1909,9 +1909,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             premultiply_dst = 0x00000100;
         }
         rgb_alphadiv = 0x00000200;
-        if (s_context.blend_mode >= VG_LITE_BLEND_SRC_OVER && s_context.blend_mode <= VG_LITE_BLEND_SUBTRACT) {
-            premultiply_dst = 0x00000000;
-        }
 #else
         premultiply_dst = 0x00000100;
 
