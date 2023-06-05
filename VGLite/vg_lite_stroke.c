@@ -4233,6 +4233,10 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     path->format = data_format;
     path->quality = quality;
     path->path_length = offset;
+    if(path_data != NULL){
+        vg_lite_os_free(path_data);
+        path_data = NULL;
+    }
     path->path = pathdata;
     path->pdata_internal = 1;
     path->path_changed = 1;

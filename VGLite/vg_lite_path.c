@@ -438,6 +438,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
         {
             return VG_LITE_OUT_OF_RESOURCES;
         }
+        path->pdata_internal = 1;
         memset(path->path, 0, data_size);
     }
 
