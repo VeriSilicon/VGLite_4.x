@@ -1036,6 +1036,24 @@ static vg_lite_error_t _flatten_path(
                 VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, sx, sy, vgcFLATTEN_NO));
             }
 
+            if (stroke_conversion->path_points != stroke_conversion->path_end)
+            {
+                /* Copy tangent data from first point to last_point. */
+                vg_lite_path_point_ptr first_point = stroke_conversion->path_points;
+                vg_lite_path_point_ptr last_point = stroke_conversion->path_end;
+                last_point->length = first_point->length;
+                last_point->tangentX = first_point->tangentX;
+                last_point->tangentY = first_point->tangentY;
+            }
+            else
+            {
+                /* Single point path. */
+                vg_lite_path_point_ptr point = stroke_conversion->path_points;
+                point->tangentX = 0.0f;
+                point->tangentY = 0.0f;
+                point->length = 0.0f;
+            }
+
             px = ox = sx;
             py = oy = sy;
 
