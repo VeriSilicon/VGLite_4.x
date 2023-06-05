@@ -624,6 +624,10 @@ static vg_lite_int32_t import_dma_buf(struct device *dev, struct mapped_memory *
         npages += (sg_dma_len(s) + PAGE_SIZE - 1) / PAGE_SIZE;
     
     dma_address_array = (vg_lite_uintptr_t *)kmalloc(npages * sizeof(*dma_address_array), GFP_KERNEL);
+    if (NULL == dma_address_array) {
+        vg_lite_kernel_error("kmalloc fail!\n");
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
+    }
     
     /* Fill page array. */
     for_each_sg(sgt->sgl, s, sgt->orig_nents, i) {
@@ -919,16 +923,17 @@ vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_
     struct page *page = NULL;
     struct page **pages = NULL;
     vg_lite_uint32_t i;
+    vg_lite_error_t error = VG_LITE_SUCCESS;
 
     if ((flags & VG_LITE_MEMORY_ALLOCATOR_FLAG) == 0) {
         vg_lite_kernel_error("allocate memory not support!\n");
-        return -1;
+        ONERROR(VG_LITE_NOT_SUPPORT);
     }
 
     sgt = kmalloc(sizeof(*sgt), GFP_KERNEL | __GFP_NOWARN);
     if (!sgt) {
         vg_lite_kernel_error("kmalloc failed!\n");
-        return -1;
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
     }
 
     physical = node->memory_gpu;
@@ -939,22 +944,24 @@ vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_
         page = pfn_to_page(physical >> PAGE_SHIFT);
 
         if (sg_alloc_table(sgt, 1, GFP_KERNEL)) {
+            kfree(sgt);
             vg_lite_kernel_error("sg_alloc_table!\n");
-            return -1;
+            ONERROR(VG_LITE_GENERIC_IO);
         }
 
         sg_set_page(sgt->sgl, page, PAGE_ALIGN(bytes), 0);
 
         *_sgt = (vg_lite_pointer)sgt;
 
-        return 0;
+        return VG_LITE_SUCCESS;
 
     } else if (flags == VG_LITE_GFP_ALLOCATOR) {
         vg_lite_kernel_hintmsg("call VG_LITE_GFP_ALLOCATOR!\n");
         pages = kmalloc_array(num_pages, sizeof(struct page *), GFP_KERNEL | __GFP_NOWARN);
         if (!pages) {
+            kfree(sgt);
             vg_lite_kernel_error("kmalloc_array failed!\n");
-            return -1;
+            ONERROR(VG_LITE_OUT_OF_MEMORY);
         }
 
         page = pfn_to_page(physical >> PAGE_SHIFT);
@@ -964,19 +971,22 @@ vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_
     } else if (flags == VG_LITE_DMA_ALLOCATOR) {
 
     } else {
+        kfree(sgt);
         vg_lite_kernel_hintmsg("allocate memory not support!\n");
-        return -1;
+        ONERROR(VG_LITE_NOT_SUPPORT);
     }
 
     /* Here we only need to get the sgt of GFP and DMA alloctor, reserved memory returned above. */
     if (sg_alloc_table_from_pages(sgt, pages, num_pages, 0, bytes, GFP_KERNEL) < 0) {
+        kfree(sgt);
         vg_lite_kernel_error("sg_alloc_table_from_pages fail!\n");
-        return -1;
+        ONERROR(VG_LITE_GENERIC_IO);
     }
 
     *_sgt = (vg_lite_pointer)sgt;
 
-    return 0;
+on_error:
+    return error;
 }
 
 /* called by dma_buf_attach() */
@@ -1090,7 +1100,7 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t allocater_flags = VG_LITE_GFP_ALLOCATOR;
 
-    memory_node = kmalloc(sizeof(memory_node), GFP_KERNEL);
+    memory_node = kmalloc(sizeof(*memory_node), GFP_KERNEL);
     if (!memory_node) {
         vg_lite_kernel_error("kmalloc failed, ");
         ONERROR(VG_LITE_OUT_OF_RESOURCES);
@@ -1152,6 +1162,9 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
 
     return error;
 on_error:
+    if (memory_node)
+        kfree(memory_node);
+    
     return error;
 #endif
 }
@@ -1160,10 +1173,11 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
 {
     struct mapped_memory * mapped;
     vg_lite_int32_t ret = -1;
+    vg_lite_error_t error = VG_LITE_SUCCESS;
    
     mapped = kmalloc(sizeof(struct mapped_memory), GFP_KERNEL);
     if (mapped == NULL) {
-        return NULL;
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
     }
     memset(mapped, 0, sizeof(struct mapped_memory));
   
@@ -1174,7 +1188,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
         dmabuf = dma_buf_get(dma_buf_fd);        
         if (IS_ERR(dmabuf)) {
             vg_lite_kernel_error("dma_buf_get invalid parameter!\n");
-            return NULL;
+            ONERROR(VG_LITE_INVALID_ARGUMENT);
         }
 
         dma_buf_put(dmabuf);
@@ -1197,7 +1211,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
             /* check argument */
             if ((memory + bytes) < memory) {
                 vg_lite_kernel_error("vg_lite_hal_map argument invalid!\n");
-                return NULL;
+                ONERROR(VG_LITE_INVALID_ARGUMENT);
             }
     
             /* Get the number of required pages. */
@@ -1214,7 +1228,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
                 /* No such memory, or across vmas. */
                 if (!vma) {
                     vg_lite_kernel_error("vg_lite_hal_map argument invalid!\n");
-                    return NULL;
+                    ONERROR(VG_LITE_INVALID_ARGUMENT);
                 }
             
 #ifdef CONFIG_ARM
@@ -1233,14 +1247,14 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
                     if (!vma) {
                         /* No such memory. */
                         vg_lite_kernel_error("vg_lite_hal_map argument invalid!\n");
-                        return NULL;
+                        ONERROR(VG_LITE_INVALID_ARGUMENT);
                     }
             
                     if ((vma->vm_flags & VM_PFNMAP) != (vm_flags & VM_PFNMAP)) {
                         /* Can not support different map type: both PFN and PAGE detected. */
                         up_read(&current_mm_mmap_sem);
                         vg_lite_kernel_error("Can not support different map type: both PFN and PAGE detected.!\n");
-                        return NULL;
+                        ONERROR(VG_LITE_NOT_SUPPORT);
                     }
             
                     vaddr = vma->vm_end;
@@ -1283,10 +1297,15 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
         vg_lite_kernel_hintmsg("vg_lite_hal_map: physical = %p\n", (vg_lite_uintptr_t *)mapped->um_desc.physical);
     } else {
         vg_lite_kernel_hintmsg("vg_lite_hal_map: this map type not support!\n");
-        return NULL;
+        ONERROR(VG_LITE_NOT_SUPPORT);
     }
 
     return mapped;
+on_error:
+    if (mapped)
+        kfree(mapped);
+    
+    return NULL;
 }
 
 void vg_lite_hal_unmap(void * handle)
