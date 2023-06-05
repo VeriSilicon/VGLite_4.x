@@ -699,8 +699,8 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                         cy = py + path_s32[4];
                     }
                     else {
-                        cx = path_s32[3];
-                        cy = path_s32[4];
+                        cx = (float)path_s32[3];
+                        cy = (float)path_s32[4];
                     }
                     /* Update path bounds. */
                     compute_pathbounds(&path->bounding_box[0], &path->bounding_box[1], &path->bounding_box[2], &path->bounding_box[3],cx + 2 * path_s32[0],cy + 2 * path_s32[1]);

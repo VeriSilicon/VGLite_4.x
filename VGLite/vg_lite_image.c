@@ -1041,10 +1041,10 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
 
     for (color_elements = 0; color_elements < 8; color_elements++) {
         if (color_elements % 2) {
-            color_transformations[color_elements] = CLAMP(color_transformations[color_elements], -1.0, 1.0);
+            color_transformations[color_elements] = CLAMP(color_transformations[color_elements], -1.0f, 1.0f);
         }
         else {
-            color_transformations[color_elements] = CLAMP(color_transformations[color_elements], -127.0, 127.0);
+            color_transformations[color_elements] = CLAMP(color_transformations[color_elements], -127.0f, 127.0f);
         }
         temp_transform[color_elements] = (short)(color_transformations[color_elements] * 256);
         final_transform[color_elements] = (uint32_t)temp_transform[color_elements] & 0x0000FFFF;

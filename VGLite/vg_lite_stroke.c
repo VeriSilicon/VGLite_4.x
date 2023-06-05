@@ -3213,11 +3213,11 @@ vg_lite_error_t vg_lite_set_stroke(
     float* dash_pattern_copy = vg_lite_os_malloc(pattern_count * sizeof(float));
     if (!path->stroke)
         return VG_LITE_OUT_OF_RESOURCES;
-    for (int i = 0; i < pattern_count; ++i)
+    for (uint32_t i = 0; i < pattern_count; ++i)
         dash_pattern_copy[i] = (dash_pattern[i] > 0.f) ? dash_pattern[i] : 0.f;
     if (dash_phase < 0.f) {
         float dash_total_length = 0.f;
-        for (int i = 0; i < pattern_count; ++i)
+        for (uint32_t i = 0; i < pattern_count; ++i)
             dash_total_length += dash_pattern_copy[i];
         if (dash_total_length > 0.f)
             dash_phase += (int)(-dash_phase / dash_total_length + 1) * dash_total_length;
