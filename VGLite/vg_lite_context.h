@@ -193,6 +193,8 @@ typedef struct vg_lite_context {
     uint32_t                    mirror_dirty;
     uint32_t                    gamma_value;
     uint32_t                    gamma_dirty;
+    uint32_t                    gamma_src;
+    uint32_t                    gamma_dst;
     uint32_t                    premultiply_src;
     uint32_t                    premultiply_dst;
     uint32_t                    premultiply_dirty;

@@ -1835,6 +1835,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     uint32_t rgb_alphadiv = 0;
     uint32_t read_dest = 0;
     uint32_t dst_format = 0;
+    uint32_t gamma_value = 0;
 
     if (target == NULL)
         return VG_LITE_INVALID_ARGUMENT;
@@ -1930,6 +1931,32 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             return error;
 #endif
 
+        /* Set gamma configuration of dst buffer */
+        if ((target->format >= VG_sRGBX_8888 && target->format <= VG_sL_8) ||
+            (target->format >= VG_sXRGB_8888 && target->format <= VG_sARGB_4444) ||
+            (target->format >= VG_sBGRX_8888 && target->format <= VG_sBGRA_4444) ||
+            (target->format >= VG_sXBGR_8888 && target->format <= VG_sABGR_4444))
+        {
+            s_context.gamma_dst = 1;
+        }
+        else
+        {
+            s_context.gamma_dst = 0;
+        }
+
+        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+        {
+            gamma_value = 0x00002000;
+        }
+        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+        {
+            gamma_value = 0x00001000;
+        }
+        else
+        {
+            gamma_value = 0;
+        }
+
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == 0xFF) {
             printf("error: Target format is not supported.\n");
@@ -1937,7 +1964,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
-            dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
+            dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | gamma_value | premultiply_dst | rgb_alphadiv));
 
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
@@ -2687,6 +2714,19 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
 
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= VG_sRGBX_8888 && source->format <= VG_sL_8) ||
+        (source->format >= VG_sXRGB_8888 && source->format <= VG_sARGB_4444) ||
+        (source->format >= VG_sBGRX_8888 && source->format <= VG_sBGRA_4444) ||
+        (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
+    {
+        s_context.gamma_src = 1;
+    }
+    else
+    {
+        s_context.gamma_src = 0;
+    }
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3193,6 +3233,19 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if (CHIPID == 0x355)
     s_context.from_blit_rect = 0;
 #endif
+
+    /* Set gamma of source buffer */
+    if ((source->format >= VG_sRGBX_8888 && source->format <= VG_sL_8) ||
+        (source->format >= VG_sXRGB_8888 && source->format <= VG_sARGB_4444) ||
+        (source->format >= VG_sBGRX_8888 && source->format <= VG_sBGRA_4444) ||
+        (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
+    {
+        s_context.gamma_src = 1;
+    }
+    else
+    {
+        s_context.gamma_src = 0;
+    }
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
