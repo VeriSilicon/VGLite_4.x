@@ -1940,7 +1940,10 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         {
             s_context.gamma_dst = 0;
         }
-
+        else if (target->format == VG_A_8)
+        {
+            s_context.gamma_dst = 2;
+        }
         if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
         {
             gamma_value = 0x00002000;
@@ -2681,6 +2684,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     {
         s_context.gamma_src = 1;
     }
+    else if (source->format == VG_A_8)
+    {
+        s_context.gamma_src = 2;
+    }
     else
     {
         s_context.gamma_src = 0;
@@ -3298,6 +3305,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
     {
         s_context.gamma_src = 1;
+    }
+    else if (source->format == VG_A_8)
+    {
+        s_context.gamma_src = 2;
     }
     else
     {
