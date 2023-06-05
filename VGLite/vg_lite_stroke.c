@@ -965,7 +965,7 @@ static vg_lite_error_t _flatten_path(
     if (*data_pointer != VLC_OP_MOVE)
     {
         /* Add first point to subpath. */
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, sx, sy, vgcFLATTEN_NO));
+        VG_LITE_ERROR_HANDLER(_create_new_point_list(stroke_conversion, 0.f, 0.f, vgcFLATTEN_NO));
     }
 
     while (size > 0)
