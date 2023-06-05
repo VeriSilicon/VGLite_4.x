@@ -4423,7 +4423,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     }
 
     if (path_data_fp32 != NULL)
-        free(path_data_fp32);
+        vg_lite_os_free(path_data_fp32);
     path->format = VG_LITE_FP32;
     path->quality = quality;
     path->path_length = offset;
