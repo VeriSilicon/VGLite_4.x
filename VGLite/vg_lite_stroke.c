@@ -3952,7 +3952,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     case VG_LITE_S8:
         /* src_s8, dst_fp32 */
         bytes = path_length * 4;
-        path_data_fp32 = malloc(bytes);
+        path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
             return VG_LITE_OUT_OF_MEMORY;
         memset(path_data_fp32, 0, bytes);
@@ -3977,7 +3977,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     case VG_LITE_S16:
         /* src_s16, dst_fp32 */
         bytes = path_length * 2;
-        path_data_fp32 = malloc(bytes);
+        path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
             return VG_LITE_OUT_OF_MEMORY;
         memset(path_data_fp32, 0, bytes);
@@ -4002,7 +4002,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     case VG_LITE_S32:
         /* src_s32, dst_fp32 */
         bytes = path_length;
-        path_data_fp32 = malloc(bytes);
+        path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
             return VG_LITE_OUT_OF_MEMORY;
         memset(path_data_fp32, 0, bytes);
@@ -4028,6 +4028,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     }
     data_format = VG_LITE_FP32;
 
+    vg_lite_clear_path(path);
     if (!path_length)
     {
         path->format = data_format;
@@ -4046,8 +4047,6 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path->uploaded.memory = NULL;
         return VG_LITE_SUCCESS;
     }
-
-    memset(path, 0, sizeof(*path));
     path->add_end = add_end;
     path->bounding_box[0] = min_x;
     path->bounding_box[1] = min_y;
@@ -4423,6 +4422,8 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         }
     }
 
+    if (path_data_fp32 != NULL)
+        free(path_data_fp32);
     path->format = VG_LITE_FP32;
     path->quality = quality;
     path->path_length = offset;
