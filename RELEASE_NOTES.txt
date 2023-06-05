@@ -26,6 +26,19 @@ LIMITATION
 CHANGES
 =======
 
+May 2023: vglite_4_0_22
+-------------------------
+
+    1. Free masklayer correctly and refine masklayer parameter.
+    2. Fix gc265 set_scissor draw path hang bug.Ts area size (A39 A3A)must less than target size(A13)
+    3. [vglite kernel]: fix memory leak issue.
+    4. Fix issue when scale/bias is negative
+    5. Adding the -g0 option to reduce ko file size. 
+    6. Add paint type enum and config related register in vg_lite_blit.
+    7. Use vg_lite_os_free() instead of free() api
+    8. Replace VLC_OP_CLOSE to VLC_OP_END in vg_lite_init_arc_path.
+    9. Add inputcolor parameter in vg_lite_draw_pattern.
+
 April 2023: vglite_4_0_18
 -------------------------
 
