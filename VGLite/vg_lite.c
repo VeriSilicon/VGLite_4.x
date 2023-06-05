@@ -4615,6 +4615,9 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
         }
         else
         {
+            if(stop == 0){
+                return VG_LITE_INVALID_ARGUMENT;
+            }
             /* Compute weight. */
             weight = (color_ramp[stop].stop - gradient)
                     / (color_ramp[stop].stop - color_ramp[stop - 1].stop);
