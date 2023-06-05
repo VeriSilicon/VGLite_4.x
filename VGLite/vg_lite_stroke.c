@@ -2801,6 +2801,19 @@ _create_stroke_path(
         drawing = 0;
     }
 
+    /* Update dash index and length for next subpath. */
+    if (dashing) {
+        if (((dash_index & 0x1) == 1) && 
+            (stroke_conversion->dash_pattern[dash_index] - dash_length < FLOAT_EPSILON) ) {
+            stroke_conversion->dash_index = dash_index - 1;
+            stroke_conversion->dash_length = 0;
+        }
+        else {
+            stroke_conversion->dash_index = dash_index;
+            stroke_conversion->dash_length = dash_length;
+        }
+    }
+
 ErrorHandler:
     return error;
 }
@@ -3176,14 +3189,31 @@ vg_lite_error_t vg_lite_set_stroke(
         path->stroke_size = 0;
     }
 
+    /* Clamp dash pattern and phase. */
+    pattern_count &= 0xFFFFFFFE;
+    float* dash_pattern_copy = vg_lite_os_malloc(pattern_count * sizeof(float));
+    if (!path->stroke)
+        return VG_LITE_OUT_OF_RESOURCES;
+    for (int i = 0; i < pattern_count; ++i)
+        dash_pattern_copy[i] = (dash_pattern[i] > 0.f) ? dash_pattern[i] : 0.f;
+    if (dash_phase < 0.f) {
+        float dash_total_length = 0.f;
+        for (int i = 0; i < pattern_count; ++i)
+            dash_total_length += dash_pattern_copy[i];
+        if (dash_total_length > 0.f)
+            dash_phase += (int)(-dash_phase / dash_total_length + 1) * dash_total_length;
+        else
+            dash_phase = 0.f;
+    }
+
     path->stroke->cap_style = cap_style;
     path->stroke->join_style = join_style;
     path->stroke->line_width = line_width;
     path->stroke->miter_limit = miter_limit;
     path->stroke->half_width = line_width / 2.0f;
     path->stroke->miter_square = path->stroke->miter_limit * path->stroke->miter_limit;
-    path->stroke->dash_pattern = dash_pattern;
-    path->stroke->pattern_count = (pattern_count / 2) * 2;
+    path->stroke->dash_pattern = dash_pattern_copy;
+    path->stroke->pattern_count = pattern_count;
     path->stroke->dash_phase = dash_phase;
     path->stroke_color = stroke_color;
 
