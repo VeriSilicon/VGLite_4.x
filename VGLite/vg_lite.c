@@ -2735,8 +2735,16 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     /* Set source region. */
     if (rect != NULL) {
-        rect_x = rect->x;
-        rect_y = rect->y;
+        if (rect->x < 0)
+            rect_x = 0;
+        else
+            rect_x = rect->x;
+
+        if (rect->y < 0)
+            rect_y = 0;
+        else
+            rect_y = rect->y;
+
 #if (CHIPID == 0x355)
         rect_w = rect->width + 1;
         s_context.from_blit_rect = 1;
