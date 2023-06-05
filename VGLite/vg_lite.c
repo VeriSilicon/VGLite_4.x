@@ -2693,6 +2693,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     {
         s_context.gamma_src = 0;
     }
+    s_context.gamma_dirty = 1;
 #endif
 
     /* Transform image (0,0) to screen. */
