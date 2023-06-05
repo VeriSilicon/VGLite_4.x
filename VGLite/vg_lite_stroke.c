@@ -2776,7 +2776,7 @@ static vg_lite_error_t _copy_stroke_path(
     sub_path = stroke_conversion->stroke_paths;
 
     if (!stroke_conversion || !path || !sub_path)
-        return VG_LITE_INVALID_ARGUMENT; 
+        return VG_LITE_SUCCESS;
 
     while (sub_path)
     {
@@ -3079,6 +3079,15 @@ vg_lite_error_t vg_lite_update_stroke(
     }
 
     VG_LITE_RETURN_ERROR(_copy_stroke_path(stroke_conversion, path));
+
+    /* add VLC_OP_END if stroke_path is empty. */
+    if (path->stroke_size == 0) {
+        path->stroke_path = vg_lite_os_malloc(_commandSize_float[VLC_OP_END]);
+        if (!path->stroke_path)
+            return VG_LITE_OUT_OF_MEMORY;
+        *(uint8_t*)path->stroke_path = VLC_OP_END;
+        path->stroke_size = _commandSize_float[VLC_OP_END];
+    }
 
     return error;
 }
