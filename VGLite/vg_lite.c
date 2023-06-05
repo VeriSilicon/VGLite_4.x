@@ -3300,7 +3300,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     {
         s_context.gamma_src = 0;
     }
-
+    /*blend input into context*/
+    s_context.blend_mode = blend;
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;

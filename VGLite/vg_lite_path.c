@@ -2370,7 +2370,8 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
     }
 #endif
-
+    /*blend input into context*/
+    s_context.blend_mode = blend;
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
