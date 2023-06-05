@@ -239,7 +239,8 @@ vg_lite_error_t vg_lite_init_path(vg_lite_path_t* path,
     path->uploaded.handle = NULL;
     path->uploaded.memory = NULL;
     path->pdata_internal = 0;
-
+    s_context.path_lastX = 0;
+    s_context.path_lastY = 0;
     /* Default FILL path type*/
     path->path_type = VG_LITE_DRAW_FILL_PATH;
 

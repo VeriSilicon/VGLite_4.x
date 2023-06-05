@@ -2120,7 +2120,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
-        if ((!rect || (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable) {
+        if ((!rect && (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
         }

@@ -580,8 +580,7 @@ vg_lite_error_t vg_lite_blend_masklayer(
 
     vg_lite_identity(&matrix);
     vg_lite_translate((vg_lite_float_t)rect->x, (vg_lite_float_t)rect->y, &matrix);
-    rect->x = 0;
-    rect->y = 0;
+
     switch (operation)
     {
     case VG_LITE_CLEAR_MASK:
@@ -591,15 +590,23 @@ vg_lite_error_t vg_lite_blend_masklayer(
         VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, rect, 0xFF << 24));
         break;
     case VG_LITE_SET_MASK:
+        rect->x = 0;
+        rect->y = 0;
         VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_NONE, 0, filter));
         break;
     case VG_LITE_UNION_MASK:
+        rect->x = 0;
+        rect->y = 0;
         VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_SCREEN, 0, filter));
         break;
     case VG_LITE_INTERSECT_MASK:
+        rect->x = 0;
+        rect->y = 0;
         VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_DST_IN, 0, filter));
         break;
     case VG_LITE_SUBTRACT_MASK:
+        rect->x = 0;
+        rect->y = 0;
         VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_SUBTRACT, 0, filter));
         break;
     default:
