@@ -577,7 +577,7 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
             return 0xF;
 
         default:
-            return VG_LITE_NOT_SUPPORT;
+            return 0xFF;
     }
 }
 
@@ -1577,9 +1577,9 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 #endif
 
         dst_format = convert_target_format(target->format, s_context.capabilities);
-        if (dst_format == VG_LITE_NOT_SUPPORT) {
+        if (dst_format == 0xFF) {
             printf("error: Target format is not supported.\n");
-            return VG_LITE_SUCCESS;
+            return VG_LITE_INVALID_ARGUMENT;
         }
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
