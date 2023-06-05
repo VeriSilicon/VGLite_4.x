@@ -3835,10 +3835,10 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     char add_end = path->add_end;
     vg_lite_int32_t bytes;
     vg_lite_pointer path_data_fp32 = path_data;
-    vg_lite_int8_t cmd, * path_data_s8_ptr;
-    vg_lite_int16_t* path_data_s16_ptr;
-    vg_lite_int32_t* path_data_s32_ptr;
-    vg_lite_float_t* path_data_fp32_ptr;
+    int8_t cmd, * path_data_s8_ptr;
+    int16_t* path_data_s16_ptr;
+    int32_t* path_data_s32_ptr;
+    float_t* path_data_fp32_ptr;
     memset(&coords, 0, sizeof(vg_lite_control_coord_t));
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
