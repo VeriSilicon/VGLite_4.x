@@ -633,11 +633,11 @@ static vg_lite_error_t do_map(vg_lite_kernel_map_t * data)
 {
     data->memory_handle = vg_lite_hal_map(data->flags, data->bytes, data->logical, data->physical, data->dma_buf_fd, &data->memory_gpu);
     if (data->memory_handle == NULL)
-    {
         return VG_LITE_OUT_OF_RESOURCES;
-    }
-
-    return VG_LITE_SUCCESS;
+    else if ((vg_lite_uintptr_t)data->memory_handle == (vg_lite_uintptr_t)-1)
+        return VG_LITE_NOT_SUPPORT;
+    else 
+        return VG_LITE_SUCCESS;
 }
 
 static vg_lite_error_t do_unmap(vg_lite_kernel_unmap_t * data)

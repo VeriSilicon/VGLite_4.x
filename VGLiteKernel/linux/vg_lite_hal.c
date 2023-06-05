@@ -1270,6 +1270,11 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
                 vg_lite_kernel_hintmsg("import_pages: \n");
                 ret = import_pages(mapped, memory, page_count, offset, bytes, vm_flags);
             }
+            if (mapped->um_desc.physical >= 0xFFFFFFFF) {
+                vg_lite_kernel_error("VG can not support physical over 4G!\n");
+                vg_lite_hal_unmap(mapped);
+                return (vg_lite_pointer)-1;
+            }
             *gpu = mapped->um_desc.physical;
         }
 
