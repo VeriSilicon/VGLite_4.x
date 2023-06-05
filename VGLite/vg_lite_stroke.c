@@ -944,6 +944,7 @@ static vg_lite_error_t _flatten_path(
             memset(data_pointer_use, 0, path->path_length);
             memcpy((int8_t*)data_pointer_use, (int8_t*)path->path, path->path_length - data_type_size);
             path->path = data_pointer_use;
+            path->pdata_internal = 1;
         }
         if (path->add_end == 1)
         {
