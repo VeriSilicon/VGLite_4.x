@@ -2031,6 +2031,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     int32_t x, y, width, height;
     uint32_t color32;
     uint32_t tiled;
+    uint32_t stripe_mode = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
@@ -2090,6 +2091,11 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
+    if (target->compress_mode)
+    {
+        stripe_mode = 0x20000000;
+    }
+
 #if gcFEATURE_VG_IM_FASTCLEAR
     if ((rect == NULL) ||
         ((x == 0) && (y == 0)  &&
@@ -2108,13 +2114,13 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect || (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
         }
         else
 #endif
         {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, x, y, width, height));
         }
 
@@ -2854,6 +2860,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
     compress_mode = (uint32_t)source->compress_mode << 25;
+    if (source->compress_mode || target->compress_mode) {
+        stripe_mode = 0x20000000;
+    }
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
@@ -3373,6 +3382,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         ahb_read_split = 1 << 7;
     }
     compress_mode = (uint32_t)source->compress_mode << 25;
+    if (source->compress_mode || target->compress_mode) {
+        stripe_mode = 0x20000000;
+    }
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
