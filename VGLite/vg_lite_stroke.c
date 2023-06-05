@@ -1616,7 +1616,10 @@ _convert_circle_arc(
         last_point = point;
     }
 
-    last_point->next = NULL;
+    if (last_point)
+    {
+        last_point->next = NULL;
+    }
     *point_list = start_point;
 
     return error;
@@ -1787,7 +1790,11 @@ _draw_swing_pie_area(
                 point->next = prev_point;
                 count++;
             }
-            end_point->next = start_point->prev;
+
+            if (end_point)
+            {
+                end_point->next = start_point->prev;
+            }
             start_point->prev->prev = end_point;
             start_point->prev = NULL;
             stroke_conversion->left_point = start_point;
@@ -1802,7 +1809,10 @@ _draw_swing_pie_area(
 
             if (end_at_prev_point)
             {
-                real_end_point->next = stroke_conversion->left_point;
+                if (real_end_point)
+                {
+                    real_end_point->next = stroke_conversion->left_point;
+                }
                 stroke_conversion->left_point->prev = real_end_point;
                 stroke_conversion->left_point = real_end_point;
             }
@@ -2726,12 +2736,15 @@ _create_stroke_path(
 
             if (! dashing)
             {
-                /* Handle line joint style for the first/last point in closed path. */
-                VG_LITE_ERROR_HANDLER(_close_stroke_sub_path(
-                    stroke_conversion, point,
-                    first_length, prev_length, swing_handling,
-                    stroke_sub_path->point_list, stroke_sub_path->end_point
+                if (stroke_sub_path)
+                {
+                    /* Handle line joint style for the first/last point in closed path. */
+                    VG_LITE_ERROR_HANDLER(_close_stroke_sub_path(
+                        stroke_conversion, point,
+                        first_length, prev_length, swing_handling,
+                        stroke_sub_path->point_list, stroke_sub_path->end_point
                     ));
+                }
             }
             else
             {
