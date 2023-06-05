@@ -576,6 +576,150 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
         case VG_LITE_AYUY2_TILED:
             return 0xF;
 
+        /* OpenVG VGImageFormat */
+
+        case VG_sRGBX_8888:
+            return 0x12;
+            break;
+
+        case VG_sRGBA_8888:
+        case VG_sRGBA_8888_PRE:
+            return 0x13;
+            break;
+
+        case VG_sRGB_565:
+            return 0x1;
+            break;
+
+        case VG_sRGBA_5551:
+            return 0x15;
+            break;
+
+        case VG_sRGBA_4444:
+            return 0x14;
+            break;
+
+        case VG_sL_8:
+            return 0x6;
+            break;
+
+        case VG_lRGBX_8888:
+            return 0x12;
+            break;
+
+        case VG_lRGBA_8888:
+        case VG_lRGBA_8888_PRE:
+            return 0x13;
+            break;
+
+        case VG_lL_8:
+            return 0x6;
+            break;
+
+        case VG_A_8:
+            return 0x0;
+            break;
+
+        case VG_sXRGB_8888:
+            return 0x2;
+            break;
+
+        case VG_sARGB_8888:
+            return 0x3;
+            break;
+
+        case VG_sARGB_8888_PRE:
+            return 0x3;
+            break;
+
+        case VG_sARGB_1555:
+            return 0x5;
+            break;
+
+        case VG_sARGB_4444:
+            return 0x4;
+            break;
+
+        case VG_lXRGB_8888:
+            return 0x2;
+            break;
+
+        case VG_lARGB_8888:
+            return 0x3;
+            break;
+
+        case VG_lARGB_8888_PRE:
+            return 0x3;
+            break;
+
+        case VG_sBGRX_8888:
+            return 0x32;
+            break;
+
+        case VG_sBGRA_8888:
+            return 0x33;
+            break;
+
+        case VG_sBGRA_8888_PRE:
+            return 0x33;
+            break;
+
+        case VG_sBGR_565:
+            return 0x21;
+            break;
+
+        case VG_sBGRA_5551:
+            return 0x35;
+            break;
+
+        case VG_sBGRA_4444:
+            return 0x34;
+            break;
+
+        case VG_lBGRX_8888:
+            return 0x32;
+            break;
+
+        case VG_lBGRA_8888:
+            return 0x33;
+            break;
+
+        case VG_lBGRA_8888_PRE:
+            return 0x33;
+            break;
+
+        case VG_sXBGR_8888:
+            return 0x22;
+            break;
+
+        case VG_sABGR_8888:
+            return 0x23;
+            break;
+
+        case VG_sABGR_8888_PRE:
+            return 0x23;
+            break;
+
+        case VG_sABGR_1555:
+            return 0x5;
+            break;
+
+        case VG_sABGR_4444:
+            return 0x24;
+            break;
+
+        case VG_lXBGR_8888:
+            return 0x22;
+            break;
+
+        case VG_lABGR_8888:
+            return 0x23;
+            break;
+
+        case VG_lABGR_8888_PRE:
+            return 0x23;
+            break;
+
         default:
             return 0xFF;
     }
@@ -813,6 +957,160 @@ uint32_t convert_source_format(vg_lite_buffer_format_t format)
 
         case VG_LITE_BGRA5658_PLANAR:
             return 0x60000000;
+
+    /* OpenVG VGImageFormat */
+        case VG_sRGBX_8888:
+            return 0x16;
+            break;
+
+        case VG_sRGBA_8888:
+        case VG_sRGBA_8888_PRE:
+            return 0x17;
+            break;
+
+        case VG_sRGB_565:
+            return 0x5;
+            break;
+
+        case VG_sRGBA_5551:
+            return 0x14;
+            break;
+
+        case VG_sRGBA_4444:
+            return 0x13;
+            break;
+
+        case VG_sL_8:
+            return 0x0;
+            break;
+
+        case VG_lRGBX_8888:
+            return 0x16;
+            break;
+
+        case VG_lRGBA_8888:
+        case VG_lRGBA_8888_PRE:
+            return 0x17;
+            break;
+
+        case VG_lL_8:
+            return 0x0;
+            break;
+
+        case VG_A_8:
+            return 0x2;
+            break;
+
+        case VG_BW_1:
+            return 0x200;
+            break;
+
+        case VG_A_1:
+            return 0x1;
+            break;
+
+        case VG_A_4:
+            return 0x1;
+            break;
+
+        case VG_sXRGB_8888:
+            return 0x6;
+            break;
+
+        case VG_sARGB_8888:
+            return 0x7;
+            break;
+
+        case VG_sARGB_8888_PRE:
+            return 0x7;
+            break;
+
+        case VG_sARGB_1555:
+            return 0x4;
+            break;
+
+        case VG_sARGB_4444:
+            return 0x3;
+            break;
+
+        case VG_lXRGB_8888:
+            return 0x6;
+            break;
+
+        case VG_lARGB_8888:
+            return 0x7;
+            break;
+        case VG_lARGB_8888_PRE:
+            return 0x7;
+            break;
+
+        case VG_sBGRX_8888:
+            return 0x36;
+            break;
+
+        case VG_sBGRA_8888:
+            return 0x37;
+            break;
+
+        case VG_sBGRA_8888_PRE:
+            return 0x37;
+            break;
+
+        case VG_sBGR_565:
+            return 0x25;
+            break;
+
+        case VG_sBGRA_5551:
+            return 0x34;
+            break;
+
+        case VG_sBGRA_4444:
+            return 0x33;
+            break;
+
+        case VG_lBGRX_8888:
+            return 0x36;
+            break;
+
+        case VG_lBGRA_8888:
+            return 0x37;
+            break;
+
+        case VG_lBGRA_8888_PRE:
+            return 0x37;
+            break;
+
+        case VG_sXBGR_8888:
+            return 0x26;
+            break;
+
+        case VG_sABGR_8888:
+            return 0x27;
+            break;
+
+        case VG_sABGR_8888_PRE:
+            return 0x27;
+            break;
+
+        case VG_sABGR_1555:
+            return 0x24;
+            break;
+
+        case VG_sABGR_4444:
+            return 0x23;
+            break;
+
+        case VG_lXBGR_8888:
+            return 0x26;
+            break;
+
+        case VG_lABGR_8888:
+            return 0x27;
+            break;
+
+        case VG_lABGR_8888_PRE:
+            return 0x27;
+            break;
 
         default:
             return 0;
