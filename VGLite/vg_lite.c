@@ -1933,7 +1933,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         {
             s_context.gamma_dst = 1;
         }
-        else if (target->format == VG_A_8)
+        else if (target->format == VG_A_8 || target->format == VG_LITE_A8)
         {
             s_context.gamma_dst = 2;
         }
