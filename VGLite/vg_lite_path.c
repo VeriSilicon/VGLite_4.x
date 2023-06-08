@@ -2688,7 +2688,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     uint32_t compress_mode;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
-    uint32_t in_premult = 0;
 #if !gcFEATURE_VG_PARALLEL_PATHS
     int y;
     int temp_height = 0;
@@ -2793,8 +2792,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 #endif
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
-    /*blend input into context*/
-    s_context.blend_mode = blend;
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3036,21 +3034,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     tessellation_size = s_context.tessbuf.tessbuf_size;
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
-    in_premult = 0x10000002;
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
-#if (CHIPID == 0x265)
-    if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000002;
-    }
-#endif
-#endif
-
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
