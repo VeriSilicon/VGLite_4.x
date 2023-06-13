@@ -2864,6 +2864,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         default:
             break;
     };
+    if (s_context.gamma_src != s_context.gamma_dst) {
+        in_premult = 0x00000000;
+    }
 #endif
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
 #if (CHIPID == 0x265)
@@ -2942,8 +2945,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_HW_PREMULTIPLY
     if (s_context.premultiply_src) {
         src_premultiply_enable = 0x01000100;
-    } else {
+        if (s_context.gamma_src != s_context.gamma_dst) {
+            src_premultiply_enable = 0x00000100;
+        }
+    }
+    else {
         src_premultiply_enable = 0x01000000;
+        if (s_context.gamma_src != s_context.gamma_dst) {
+            src_premultiply_enable = 0x00000000;
+        }
     }
 #else
     src_premultiply_enable = 0x01000000;
