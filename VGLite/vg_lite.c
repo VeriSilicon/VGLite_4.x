@@ -1909,6 +1909,10 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             premultiply_dst = 0x00000100;
         }
         rgb_alphadiv = 0x00000200;
+        /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, it is equivalent to copy image,all pre registers set to 1.*/
+        if ((s_context.premultiply_dst == s_context.premultiply_src) && (s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) && s_context.gamma_src == s_context.gamma_dst) {
+            premultiply_dst = 0x00000100;
+        }
 #else
         premultiply_dst = 0x00000100;
 
@@ -2955,6 +2959,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             src_premultiply_enable = 0x00000000;
         }
     }
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, no gamma, it is equivalent to copy image,all pre registers set to 1.*/
+    if ((s_context.premultiply_dst == s_context.premultiply_src) && (s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&  s_context.gamma_src == s_context.gamma_dst) {
+        src_premultiply_enable = 0x01000100;
+    }
 #else
     src_premultiply_enable = 0x01000000;
 #endif
@@ -3433,7 +3441,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             break;
     };
 #endif
-
+    if (s_context.gamma_src != s_context.gamma_dst) {
+        in_premult = 0x00000000;
+    }
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
     if (forced_blending == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER)
         in_premult = 0x00000000;
@@ -3496,8 +3506,19 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_HW_PREMULTIPLY
     if (s_context.premultiply_src) {
         src_premultiply_enable = 0x01000100;
-    } else {
+        if (s_context.gamma_src != s_context.gamma_dst) {
+            src_premultiply_enable = 0x00000100;
+        }
+        }
+    else {
         src_premultiply_enable = 0x01000000;
+        if (s_context.gamma_src != s_context.gamma_dst) {
+            src_premultiply_enable = 0x00000000;
+        }
+    }
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, no gamma, it is equivalent to copy image,all pre registers set to 1.*/
+    if ((s_context.premultiply_dst == s_context.premultiply_src) && (s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) && s_context.gamma_src == s_context.gamma_dst) {
+        src_premultiply_enable = 0x01000100;
     }
 #else
     src_premultiply_enable = 0x01000000;
@@ -3683,14 +3704,14 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
 
     s_context.path_counter = 0;
 
-    s_context.premultiply_dst = 1;
+    s_context.premultiply_dst = 0;
 
 #if (CHIPID==0x355 || CHIPID==0x255)
     s_context.mirror_orient = VG_LITE_ORIENTATION_BOTTOM_TOP;
     s_context.premultiply_src = 0;
 #else
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
-    s_context.premultiply_src = 1;
+    s_context.premultiply_src = 0;
 #endif
 
 #if DUMP_CAPTURE
