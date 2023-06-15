@@ -183,14 +183,6 @@ struct mapped_memory {
     };
 };
 
-/* Struct definitions. */
-struct heap_node {
-    struct list_head list;
-    uint32_t offset;
-    unsigned long size;
-    int32_t status;
-};
-
 struct client_data {
     struct vg_lite_device *device;
     struct vm_area_struct *vm;
@@ -264,6 +256,67 @@ static vg_lite_error_t sync_param(vg_module_parameters_t *param)
     return VG_LITE_SUCCESS;
 }
 
+void vg_lite_hal_print(char *format, ...)
+{
+    static char buffer[128];
+    va_list args;
+    va_start(args, format);
+
+    vsnprintf(buffer, sizeof(buffer) - 1, format, args);
+    buffer[sizeof(buffer) - 1] = 0;
+    printk(buffer);
+    va_end(args);
+}
+
+void vg_lite_hal_trace(char *format, ...)
+{
+    static char buffer[128];
+    va_list args;
+    va_start(args, format);
+
+#ifdef VGL_DEBUG
+    vsnprintf(buffer, sizeof(buffer) - 1, format, args);
+    buffer[sizeof(buffer) - 1] = 0;
+    printk(buffer);
+#endif
+
+    va_end(args);
+}
+
+const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
+{
+    switch (status) {
+    case VG_LITE_SUCCESS:
+        return "VG_LITE_SUCCESS";
+    case VG_LITE_INVALID_ARGUMENT:
+        return "VG_LITE_INVALID_ARGUMENT";
+    case VG_LITE_OUT_OF_MEMORY:
+        return "VG_LITE_OUT_OF_MEMORY";
+    case VG_LITE_NO_CONTEXT:
+        return "VG_LITE_NO_CONTEXT";
+    case VG_LITE_TIMEOUT:
+        return "VG_LITE_TIMEOUT";
+    case VG_LITE_OUT_OF_RESOURCES:
+        return "VG_LITE_OUT_OF_RESOURCES";
+    case VG_LITE_GENERIC_IO:
+        return "VG_LITE_GENERIC_IO";
+    case VG_LITE_NOT_SUPPORT:
+        return "VG_LITE_NOT_SUPPORT";
+    case VG_LITE_ALREADY_EXISTS:
+        return "VG_LITE_ALREADY_EXISTS";
+    case VG_LITE_NOT_ALIGNED:
+        return "VG_LITE_NOT_ALIGNED";
+    case VG_LITE_FLEXA_TIME_OUT:
+        return "VG_LITE_FLEXA_TIME_OUT";
+    case VG_LITE_FLEXA_HANDSHAKE_FAIL:
+        return "VG_LITE_FLEXA_HANDSHAKE_FAIL";
+    case VG_LITE_SYSTEM_CALL_FAIL:
+        return "VG_LITE_SYSTEM_CALL_FAIL";
+    default:
+        return "nil";
+    }
+}
+
 void vg_lite_hal_delay(uint32_t milliseconds)
 {
     /* Delay the requested amount. */
@@ -327,6 +380,195 @@ static int split_node(struct heap_node * node, unsigned long size)
     
     /* No error. */
     return 0;
+}
+
+vg_lite_error_t
+static unmap_to_user(vg_lite_pointer logical, vg_lite_uint32_t size)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_pointer _logical = NULL;
+    vg_lite_uint32_t bytes;
+    vg_lite_uint32_t offset = (vg_lite_uintptr_t)logical & (PAGE_SIZE - 1);
+
+    if (unlikely(!current->mm))
+        return error;
+
+    _logical = (vg_lite_pointer)((vg_lite_uint8_t *)logical - offset);
+    bytes = size + offset + PAGE_SIZE -1;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
+    if (vm_munmap((vg_lite_uintptr_t)_logical, bytes) < 0)
+        vg_lite_kernel_error("%s: vm_munmap failed\n", __func__);
+#else
+    down_write(&current_mm_mmap_sem);
+    if (do_munmap(current->mm, (vg_lite_uintptr_t)_logical, bytes) < 0)
+        vg_lite_kernel_error("%s: do_munmap failed\n", __func__);
+
+    up_write(&current_mm_mmap_sem);
+#endif
+
+    return error;
+}
+
+static vg_lite_error_t
+map_to_user(vg_lite_uint64_t physical, vg_lite_pointer klogical,
+            vg_lite_uint32_t size, vg_lite_uint32_t flag, vg_lite_pointer *logical)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    struct device *dev = (struct device*)&device->pdev->dev;
+    vg_lite_pointer _logical = NULL;
+    vg_lite_uint32_t offset = 0;
+    vg_lite_uint32_t bytes = 0;
+    vg_lite_uint32_t num_pages = 0;
+
+    offset = physical & (PAGE_SIZE - 1);
+    bytes = size + offset;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+    _logical = (vg_lite_pointer)vm_mmap(NULL, 0L, bytes, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, 0);
+#else
+    down_write(&current_mm_mmap_sem);
+    _logical = (vg_lite_pointer)do_mmap_pgoff(NULL, 0L, bytes,
+                PROT_READ | PROT_WRITE, MAP_SHARED, 0);
+    up_write(&current_mm_mmap_sem);
+#endif
+
+    if (IS_ERR(_logical)) {
+        logical = NULL;
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
+    }
+
+    down_write(&current_mm_mmap_sem);
+
+    do {
+        struct vm_area_struct *vma = find_vma(current->mm, (unsigned long)_logical);
+        if (vma == NULL)
+            ONERROR(VG_LITE_OUT_OF_RESOURCES);
+
+        num_pages = (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
+        vma->vm_flags |= (VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_RESERVED);
+#else
+        vma->vm_flags |= (VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_DONTDUMP);
+#endif
+
+        if (!cached)
+#if defined (__arm64__) || defined (__aarch64__)
+            vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+#else
+            vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+#endif
+
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64
+            if (dma_mmap_coherent(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
+#else
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+            if (dma_mmap_wc(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
+# else
+            if (dma_mmap_writecombine(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
+# endif
+#endif
+                error = VG_LITE_OUT_OF_MEMORY;
+    } while (VG_FALSE);
+
+    up_write(&current_mm_mmap_sem);
+
+    if (VG_IS_SUCCESS(error))
+        *logical = (vg_lite_pointer)((vg_lite_uint8_t *)_logical + offset);
+
+on_error:
+    if (VG_IS_ERROR(error) && _logical)
+        unmap_to_user(_logical, size);
+
+    return error;
+}
+
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_uint32_t _size = *size;
+    vg_lite_uint32_t gfp = GFP_KERNEL | __GFP_NOWARN;
+    struct device *dev = (struct device*)&device->pdev->dev;
+    vg_lite_pointer _klogical = NULL;
+    vg_lite_pointer _logical = NULL;
+    dma_addr_t dma_addr = 0;
+    vg_lite_uint32_t num_pages = 0;
+
+#if defined(CONFIG_X86)
+    vg_lite_uint32_t ret = 0;
+#endif
+
+    /* Get the number of required pages. */
+    num_pages = (_size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    if (flag & VG_LITE_HAL_ALLOC_4G)
+        gfp |= __GFP_DMA32;
+
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64
+    _klogical = dma_alloc_coherent(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
+#else
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+    _klogical = dma_alloc_wc(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
+# else
+    _klogical = dma_alloc_writecombine(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
+# endif
+#endif
+
+    if (!dma_addr)
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
+
+#if defined(CONFIG_X86)
+# if NANO2D_ENABLE_WRITEBUFFER
+    ret = set_memory_wc((vg_lite_long_t)_klogical, num_pages);
+    if (ret != 0)
+        vg_lite_kernel_error("%s(%d): failed to set_memory_wc, ret = %d\n", __func__, __LINE__, ret);
+# else
+    if (set_memory_uc((vg_lite_long_t)_klogical, num_pages) != 0)
+        vg_lite_kernel_error("%s(%d): failed to set_memory_uc\n", __func__, __LINE__);
+# endif
+#endif
+
+    error = map_to_user(dma_addr, _klogical, num_pages * PAGE_SIZE, VG_LITE_DMA_ALLOCATOR, &_logical);
+    if (VG_IS_ERROR(error)) {
+        vg_lite_kernel_error("%s(%d) map_to_user fail!\n", __func__, __LINE__);
+        ONERROR(error);
+    }
+
+    *klogical = _klogical;
+    *logical  = _logical;
+    *physical = dma_addr;
+    *size = num_pages * PAGE_SIZE;
+
+    return VG_LITE_SUCCESS;
+on_error:
+    return error;
+}
+
+vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    struct device *dev = (struct device*)&device->pdev->dev;
+    vg_lite_uint32_t num_pages = 0;
+
+    num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 ||     \
+    defined CONFIG_PPC || defined CONFIG_ARM64
+    dma_free_coherent(dev, num_pages * PAGE_SIZE, kvaddr, physical);
+#else
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+    dma_free_wc(dev, num_pages * PAGE_SIZE, klogical, physical);
+# else
+    dma_free_writecombine(dev, num_pages * PAGE_SIZE, klogical, physical);
+# endif
+#endif
+
+    error = unmap_to_user(logical, num_pages * PAGE_SIZE);
+    if (VG_IS_ERROR(error))
+        vg_lite_kernel_error("%s(%d) unmap_to_user fail!\n", __func__, __LINE__);
+
+    return error;
 }
 
 vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void **klogical, uint32_t * physical,void ** node)

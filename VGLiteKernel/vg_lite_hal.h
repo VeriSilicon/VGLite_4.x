@@ -280,6 +280,31 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
  */
 vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd);
 
+/*!
+ @brief print message
+ */
+void vg_lite_hal_print(char *format, ...);
+
+/*!
+ @brief trace message
+ */
+void vg_lite_hal_trace(char *format, ...);
+
+/*!
+ @brief error number to string
+ */
+const char* vg_lite_hal_Status2Name(vg_lite_error_t status);
+
+/*!
+ @brief allocate contiguous video memory by dma allocater
+ */
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical);
+
+/*!
+ @brief free contiguous video memory by dma allocater
+ */
+vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical);
+
 #ifdef __cplusplus
 }
 #endif

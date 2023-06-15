@@ -63,7 +63,6 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #endif
-#include "vg_lite_type.h"
 
 #define FLEXA_TIMEOUT_STATE                 BIT(21)
 #define FLEXA_HANDSHEKE_FAIL_STATE          BIT(22)
@@ -288,7 +287,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
                 do_terminate(&terminate);
                 
                 /* Out of memory. */
-                return error;
+                ONERROR(error);
             }
             
             /* Return command buffer logical pointer and GPU address. */
@@ -311,7 +310,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
             do_terminate(&terminate);
 
             /* Out of memory. */
-            return error;
+            ONERROR(error);
         }
 
         /* init power context buffer to 0x8000000 */
@@ -395,7 +394,9 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
             /* Free any allocated memory. */
             vg_lite_kernel_terminate_t terminate = { context };
             do_terminate(&terminate);
-            return error;
+
+            /* Out of memory. */
+            ONERROR(error);
         }
 
         /* Return the tessellation buffer pointers and GPU addresses. */
@@ -418,6 +419,8 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
       return VG_LITE_NO_CONTEXT;
     }
 #endif
+
+on_error:
     return error;
 }
 
@@ -510,18 +513,73 @@ static vg_lite_error_t do_terminate(vg_lite_kernel_terminate_t * data)
     return VG_LITE_SUCCESS;
 }
 
+static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t *flags, void **memory, void **kmemory, uint32_t *memory_gpu, void **handle)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    struct heap_node * memory_handle = NULL;
+
+    error = vg_lite_hal_allocate_contiguous(*bytes, memory, kmemory, memory_gpu, handle);
+    if (VG_IS_SUCCESS(error)) {
+        *flags = VG_LITE_RESERVED_ALLOCATOR;
+        memory_handle = *handle;
+        memory_handle->flags = *flags;
+    } else if (error == VG_LITE_OUT_OF_MEMORY) {
+        ONERROR(vg_lite_hal_dma_alloc(bytes, *flags, memory, kmemory, memory_gpu));
+        *flags = VG_LITE_DMA_ALLOCATOR;
+        memory_handle = *handle;
+        memory_handle->offset = *memory_gpu;
+        memory_handle->size = *bytes;
+        memory_handle->memory = *memory;
+        memory_handle->kmemory = *kmemory;
+        memory_handle->flags = *flags;
+    } else if (error == VG_LITE_OUT_OF_MEMORY) {
+        *flags = VG_LITE_GFP_ALLOCATOR;
+        memory_handle = *handle;
+        memory_handle->flags = *flags;
+        ONERROR(VG_LITE_NOT_SUPPORT);
+    } else {
+        ONERROR(error);
+    }
+
+    return error;
+on_error:
+    return error;
+}
+
+static vg_lite_error_t vg_lite_kernel_vidmem_free(void *handle)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    struct heap_node * memory_handle = handle;
+
+    if (memory_handle->flags & VG_LITE_RESERVED_ALLOCATOR)
+        vg_lite_hal_free_contiguous(memory_handle);
+    else if (memory_handle->flags & VG_LITE_DMA_ALLOCATOR)
+        ONERROR(vg_lite_hal_dma_free(memory_handle->size, memory_handle->memory, memory_handle->kmemory, memory_handle->offset));
+    else if (memory_handle->flags & VG_LITE_GFP_ALLOCATOR)
+        ONERROR(VG_LITE_NOT_SUPPORT);
+    else
+        ONERROR(VG_LITE_INVALID_ARGUMENT);
+
+on_error:
+    return error;
+}
+
 static vg_lite_error_t do_allocate(vg_lite_kernel_allocate_t * data)
 {
-    vg_lite_error_t error;
-    error = vg_lite_hal_allocate_contiguous(data->bytes, &data->memory, &data->kmemory, &data->memory_gpu, &data->memory_handle);
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    error = vg_lite_kernel_vidmem_allocate(&data->bytes, &data->flags, &data->memory, &data->kmemory, &data->memory_gpu, &data->memory_handle);
+
     return error;
 }
 
 static vg_lite_error_t do_free(vg_lite_kernel_free_t * data)
 {
-    vg_lite_hal_free_contiguous(data->memory_handle);
+    vg_lite_error_t error = VG_LITE_SUCCESS;
 
-    return VG_LITE_SUCCESS;
+    error = vg_lite_kernel_vidmem_free(data->memory_handle);
+
+    return error;
 }
 
 static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
@@ -592,7 +650,7 @@ static vg_lite_error_t do_reset(void)
     /* Disable and enable the GPU. */
     gpu(1);
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
-    
+
 #ifdef BACKUP_COMMAND
     power_context_klogical[0x00000AD2].command = 0x00000000;
     power_context_klogical[0x00000AD2].data    = 0x00000000;

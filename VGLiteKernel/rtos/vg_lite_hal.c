@@ -107,11 +107,6 @@ void vg_lite_init_mem(uint32_t register_mem_base,
 }
 
 /* Implementation of list. ****************************************/
-typedef struct list_head {
-    struct list_head *next;
-    struct list_head *prev;
-}list_head_t;
-
 #define INIT_LIST_HEAD(entry) \
         (entry)->next = (entry);\
         (entry)->prev = (entry);
@@ -149,13 +144,6 @@ static inline void _memset(void *mem, unsigned char value, int size)
         ((unsigned char*)mem)[i] = value;
     }
 }
-
-typedef struct heap_node {
-    list_head_t list; /* TODO: Linux specific, needs to rewrite. */
-    uint32_t offset;
-    unsigned long size;
-    uint32_t status;
-}heap_node_t;
 
 struct memory_heap {
     uint32_t free;
@@ -275,6 +263,76 @@ static int split_node(heap_node_t * node, unsigned long size)
     /* Adjust the size of the current node. */
     node->size = size;
     return 0;
+}
+
+void vg_lite_hal_print(char *format, ...)
+{
+    static char buffer[128];
+    va_list args;
+    va_start(args, format);
+
+    vsnprintf(buffer, sizeof(buffer) - 1, format, args);
+    buffer[sizeof(buffer) - 1] = 0;
+    printf(buffer);
+    va_end(args);
+}
+
+void vg_lite_hal_trace(char *format, ...)
+{
+    static char buffer[128];
+    va_list args;
+    va_start(args, format);
+
+#ifdef VGL_DEBUG
+    vsnprintf(buffer, sizeof(buffer) - 1, format, args);
+    buffer[sizeof(buffer) - 1] = 0;
+    printf(buffer);
+#endif
+    va_end(args);
+}
+
+const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
+{
+    switch (status) {
+    case VG_LITE_SUCCESS:
+        return "VG_LITE_SUCCESS";
+    case VG_LITE_INVALID_ARGUMENT:
+        return "VG_LITE_INVALID_ARGUMENT";
+    case VG_LITE_OUT_OF_MEMORY:
+        return "VG_LITE_OUT_OF_MEMORY";
+    case VG_LITE_NO_CONTEXT:
+        return "VG_LITE_NO_CONTEXT";
+    case VG_LITE_TIMEOUT:
+        return "VG_LITE_TIMEOUT";
+    case VG_LITE_OUT_OF_RESOURCES:
+        return "VG_LITE_OUT_OF_RESOURCES";
+    case VG_LITE_GENERIC_IO:
+        return "VG_LITE_GENERIC_IO";
+    case VG_LITE_NOT_SUPPORT:
+        return "VG_LITE_NOT_SUPPORT";
+    case VG_LITE_ALREADY_EXISTS:
+        return "VG_LITE_ALREADY_EXISTS";
+    case VG_LITE_NOT_ALIGNED:
+        return "VG_LITE_NOT_ALIGNED";
+    case VG_LITE_FLEXA_TIME_OUT:
+        return "VG_LITE_FLEXA_TIME_OUT";
+    case VG_LITE_FLEXA_HANDSHAKE_FAIL:
+        return "VG_LITE_FLEXA_HANDSHAKE_FAIL";
+    case VG_LITE_SYSTEM_CALL_FAIL:
+        return "VG_LITE_SYSTEM_CALL_FAIL";
+    default:
+        return "nil";
+    }
+}
+
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
+vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical)
+{
+    return VG_LITE_NOT_SUPPORT;
 }
 
 vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical,void ** node)

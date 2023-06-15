@@ -86,6 +86,7 @@
 /* vg_lite_kernel_map_t flag type */
 #define VG_LITE_HAL_MAP_DMABUF          0x00000004
 #define VG_LITE_HAL_MAP_USER_MEMORY     0x00000008
+#define VG_LITE_HAL_ALLOC_4G            0x00000010
 
 /* vg_lite_kernel_allocate_t flag type */
 #define VG_LITE_RESERVED_ALLOCATOR      0x10000000

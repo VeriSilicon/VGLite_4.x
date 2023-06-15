@@ -75,6 +75,17 @@
 
 #define VG_DEVICE_NAME "vg_lite"
 
+/* Struct definitions. */
+struct heap_node {
+    struct list_head list;
+    uint32_t offset;        /* physical in DMA allocator or offset in Reserved memory */
+    unsigned long size;     /* allocate bytes in DMA allocator */
+    int32_t status;
+    uint32_t flags;         /* allocate memory from DMA or Reserved region */
+    void *memory;           /* DMA allocator: user logical */
+    void *kmemory;          /* DMA allocator: kernel logical  */
+};
+
 struct memory_heap {
     uint32_t free;
     struct list_head list;

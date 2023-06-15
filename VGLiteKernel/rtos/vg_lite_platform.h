@@ -57,8 +57,27 @@
 
 #include "stdint.h"
 #include "stdlib.h"
+#include <stdio.h>
+#include "../vg_lite_debug.h"
+#include "../vg_lite_type.h"
 
 #define _BAREMETAL 0
+
+/* Implementation of list. ****************************************/
+typedef struct list_head {
+    struct list_head *next;
+    struct list_head *prev;
+}list_head_t;
+
+typedef struct heap_node {
+    list_head_t list;
+    uint32_t offset;        /* physical in DMA allocator or offset in Reserved memory */
+    unsigned long size;     /* allocate bytes in DMA allocator */
+    int32_t status;
+    uint32_t flags;         /* allocate memory from DMA or Reserved region */
+    void* memory;           /* DMA allocator: user logical */
+    void* kmemory;          /* DMA allocator: kernel logical  */
+}heap_node_t;
 
 /*!
 @brief Initialize the hardware mem setting.
