@@ -70,6 +70,10 @@
 #include <asm/io.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-buf.h>
+#if defined(CONFIG_X86) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0))
+#include <asm/set_memory.h>
+#endif
+#include <asm/cacheflush.h>
 
 MODULE_LICENSE("Dual MIT/GPL");
 
@@ -505,7 +509,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** log
     if (flag & VG_LITE_HAL_ALLOC_4G)
         gfp |= __GFP_DMA32;
 
-#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !VGLITE_ENABLE_WRITEBUFFER
     _klogical = dma_alloc_coherent(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
 #else
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
@@ -519,7 +523,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** log
         ONERROR(VG_LITE_OUT_OF_MEMORY);
 
 #if defined(CONFIG_X86)
-# if NANO2D_ENABLE_WRITEBUFFER
+# if VGLITE_ENABLE_WRITEBUFFER
     ret = set_memory_wc((vg_lite_long_t)_klogical, num_pages);
     if (ret != 0)
         vg_lite_kernel_error("%s(%d): failed to set_memory_wc, ret = %d\n", __func__, __LINE__, ret);

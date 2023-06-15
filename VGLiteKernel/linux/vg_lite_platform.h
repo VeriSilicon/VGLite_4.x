@@ -69,6 +69,7 @@
 #include "vg_lite_hal.h"
 #include "vg_lite_debug.h"
 #include "vg_lite_type.h"
+#include "vg_lite_option.h"
 #ifdef ENABLE_PCIE
 #include <linux/pci.h>
 #endif
