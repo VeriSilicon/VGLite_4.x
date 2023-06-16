@@ -529,7 +529,7 @@ static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t 
     void *handle = NULL;
     vg_lite_kernel_vidmem_node_t *vidmem_node = NULL;
 
-    ONERROR(vg_lite_hal_allocate(sizeof(vg_lite_kernel_vidmem_node_t), &vidmem_node));
+    ONERROR(vg_lite_hal_allocate(sizeof(vg_lite_kernel_vidmem_node_t), (void **)&vidmem_node));
 
     error = vg_lite_hal_allocate_contiguous(*bytes, memory, kmemory, memory_gpu, &handle);
     if (VG_IS_SUCCESS(error)) {
@@ -568,7 +568,7 @@ static vg_lite_error_t vg_lite_kernel_vidmem_free(void *handle)
     if (memory_handle->flags & VG_LITE_RESERVED_ALLOCATOR)
         vg_lite_hal_free_contiguous(memory_handle->handle);
     else if (memory_handle->flags & VG_LITE_DMA_ALLOCATOR)
-        ONERROR(vg_lite_hal_dma_free(memory_handle->size, memory_handle->memory, memory_handle->kmemory, memory_handle->offset));
+        ONERROR(vg_lite_hal_dma_free(memory_handle->size, memory_handle->memory, memory_handle->kmemory, memory_handle->physical));
     else if (memory_handle->flags & VG_LITE_GFP_ALLOCATOR)
         ONERROR(VG_LITE_NOT_SUPPORT);
     else
