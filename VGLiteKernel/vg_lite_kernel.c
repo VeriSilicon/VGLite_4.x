@@ -79,6 +79,16 @@ static vg_lite_kernel_context_t global_power_context = {0};
 static power_context_command_t *power_context_klogical = NULL;
 #endif
 
+typedef struct vg_lite_kernel_vidmem_node {
+    uint32_t      flags;         /* allocate memory from DMA or Reserved region */
+    uint32_t      physical;      /* physical in DMA allocator */
+    void         *memory;        /* DMA allocator: user logical */
+    void         *kmemory;       /* DMA allocator: kernel logical  */
+    unsigned long size;          /* allocate bytes in DMA allocator */
+
+    void         *handle;        /* reserved memory handle */
+} vg_lite_kernel_vidmem_node_t;
+
 static int s_reference = 0;
 
 static vg_lite_error_t do_terminate(vg_lite_kernel_terminate_t * data);
@@ -513,33 +523,37 @@ static vg_lite_error_t do_terminate(vg_lite_kernel_terminate_t * data)
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t *flags, void **memory, void **kmemory, uint32_t *memory_gpu, void **handle)
+static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t *flags, void **memory, void **kmemory, uint32_t *memory_gpu, void **memory_handle)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    struct heap_node * memory_handle = NULL;
+    void *handle = NULL;
+    vg_lite_kernel_vidmem_node_t *vidmem_node = NULL;
 
-    error = vg_lite_hal_allocate_contiguous(*bytes, memory, kmemory, memory_gpu, handle);
+    ONERROR(vg_lite_hal_allocate(sizeof(vg_lite_kernel_vidmem_node_t), &vidmem_node));
+
+    error = vg_lite_hal_allocate_contiguous(*bytes, memory, kmemory, memory_gpu, &handle);
     if (VG_IS_SUCCESS(error)) {
         *flags = VG_LITE_RESERVED_ALLOCATOR;
-        memory_handle = *handle;
-        memory_handle->flags = *flags;
+        vidmem_node->handle = handle;
+        vidmem_node->flags = *flags;
     } else if (error == VG_LITE_OUT_OF_MEMORY) {
         ONERROR(vg_lite_hal_dma_alloc(bytes, *flags, memory, kmemory, memory_gpu));
         *flags = VG_LITE_DMA_ALLOCATOR;
-        memory_handle = *handle;
-        memory_handle->offset = *memory_gpu;
-        memory_handle->size = *bytes;
-        memory_handle->memory = *memory;
-        memory_handle->kmemory = *kmemory;
-        memory_handle->flags = *flags;
+        vidmem_node->handle = handle;
+        vidmem_node->physical = *memory_gpu;
+        vidmem_node->size = *bytes;
+        vidmem_node->memory = *memory;
+        vidmem_node->kmemory = *kmemory;
+        vidmem_node->flags = *flags;
     } else if (error == VG_LITE_OUT_OF_MEMORY) {
         *flags = VG_LITE_GFP_ALLOCATOR;
-        memory_handle = *handle;
-        memory_handle->flags = *flags;
+        vidmem_node->flags = *flags;
         ONERROR(VG_LITE_NOT_SUPPORT);
     } else {
         ONERROR(error);
     }
+
+    *memory_handle = vidmem_node;
 
     return error;
 on_error:
@@ -549,16 +563,18 @@ on_error:
 static vg_lite_error_t vg_lite_kernel_vidmem_free(void *handle)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    struct heap_node * memory_handle = handle;
+    vg_lite_kernel_vidmem_node_t *memory_handle = handle;
 
     if (memory_handle->flags & VG_LITE_RESERVED_ALLOCATOR)
-        vg_lite_hal_free_contiguous(memory_handle);
+        vg_lite_hal_free_contiguous(memory_handle->handle);
     else if (memory_handle->flags & VG_LITE_DMA_ALLOCATOR)
         ONERROR(vg_lite_hal_dma_free(memory_handle->size, memory_handle->memory, memory_handle->kmemory, memory_handle->offset));
     else if (memory_handle->flags & VG_LITE_GFP_ALLOCATOR)
         ONERROR(VG_LITE_NOT_SUPPORT);
     else
         ONERROR(VG_LITE_INVALID_ARGUMENT);
+
+    ONERROR(vg_lite_hal_free(memory_handle));
 
 on_error:
     return error;

@@ -575,6 +575,37 @@ vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogica
     return error;
 }
 
+vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    if (size == 0 || NULL == memory) 
+    {
+        ONERROR(VG_LITE_INVALID_ARGUMENT);
+    }
+
+    *memory = kmalloc(size, GFP_KERNEL);
+    if (NULL == memory)
+    {
+        ONERROR(VG_LITE_OUT_OF_MEMORY);
+    }
+
+on_error:
+    return error;
+}
+
+vg_lite_error_t vg_lite_hal_free(void* memory)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    if (memory)
+    {
+        kfree(memory);
+    }
+
+    return error;
+}
+
 vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void **klogical, uint32_t * physical,void ** node)
 {
     unsigned long aligned_size;

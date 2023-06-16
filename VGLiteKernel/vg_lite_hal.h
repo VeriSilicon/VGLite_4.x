@@ -305,6 +305,16 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** log
  */
 vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical);
 
+/*!
+ @brief allocate virtual memory from os
+ */
+vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void** memory);
+
+/*!
+ @brief free virtual memory
+ */
+vg_lite_error_t vg_lite_hal_free(void* memory);
+
 #ifdef __cplusplus
 }
 #endif
