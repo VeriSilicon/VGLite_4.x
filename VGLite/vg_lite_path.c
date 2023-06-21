@@ -2392,8 +2392,8 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     width = target->width;
     height = target->height;
     if (s_context.scissor_set) {
-        width = s_context.scissor[0] + s_context.scissor[2];
-        height = s_context.scissor[1] + s_context.scissor[3];
+        width = s_context.scissor[2] - s_context.scissor[0];
+        height = s_context.scissor[3] - s_context.scissor[1];
     }
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
@@ -2814,8 +2814,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     height = target->height;
 
     if (s_context.scissor_set) {
-        width = s_context.scissor[0] + s_context.scissor[2];
-        height = s_context.scissor[1] + s_context.scissor[3];
+        width = s_context.scissor[2] - s_context.scissor[0];
+        height = s_context.scissor[3] - s_context.scissor[1];
     }
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
@@ -3564,8 +3564,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
-            point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
-            point_max.y = MIN(point_max.y, s_context.scissor[1] + s_context.scissor[3]);
+            point_max.x = MIN(point_max.x, s_context.scissor[2]);
+            point_max.y = MIN(point_max.y, s_context.scissor[3]);
         }
     }
 
@@ -4367,8 +4367,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         if (s_context.scissor_set) {
             point_min.x = MAX(point_min.x, s_context.scissor[0]);
             point_min.y = MAX(point_min.y, s_context.scissor[1]);
-            point_max.x = MIN(point_max.x, s_context.scissor[0] + s_context.scissor[2]);
-            point_max.y = MIN(point_max.y, s_context.scissor[1] + s_context.scissor[3]);
+            point_max.x = MIN(point_max.x, s_context.scissor[2]);
+            point_max.y = MIN(point_max.y, s_context.scissor[3]);
         }
     }
 
