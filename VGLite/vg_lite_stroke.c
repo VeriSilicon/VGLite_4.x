@@ -3210,7 +3210,11 @@ vg_lite_error_t vg_lite_set_stroke(
 
     /* Clamp dash pattern and phase. */
     pattern_count &= 0xFFFFFFFE;
-    float* dash_pattern_copy = vg_lite_os_malloc(pattern_count * sizeof(float));
+    float* dash_pattern_copy = NULL;
+    if (pattern_count > 0)
+    {
+        dash_pattern_copy = vg_lite_os_malloc(pattern_count * sizeof(float));
+    }
     if (!path->stroke)
         return VG_LITE_OUT_OF_RESOURCES;
     for (uint32_t i = 0; i < pattern_count; ++i)
