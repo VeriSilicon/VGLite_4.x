@@ -1320,6 +1320,9 @@ typedef unsigned int        vg_lite_color_t;
     /* Set flexa stop flag after the last frame. */
     vg_lite_error_t vg_lite_flexa_stop_frame();
 
+    /* Dump command buffer */
+    vg_lite_error_t vg_lite_dump_command_buffer();
+
 #endif /* VGLITE_VERSION_3_0 */
 
 #ifdef __cplusplus
