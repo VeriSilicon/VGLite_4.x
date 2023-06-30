@@ -937,7 +937,7 @@ static vg_lite_error_t _flatten_path(
     {
         if (path->path_length % (3 * data_type_size) == 0)
         {
-            /* add EMD_PATH if path_data have no END_PATH */
+            /* add END_PATH if path_data have no END_PATH */
             stroke_conversion->add_end = 1;
             path->path_length = path->path_length + data_type_size;
             data_pointer_use = (int8_t*)vg_lite_os_malloc(path->path_length);
@@ -945,6 +945,7 @@ static vg_lite_error_t _flatten_path(
                 return VG_LITE_OUT_OF_RESOURCES;
             memset(data_pointer_use, 0, path->path_length);
             memcpy((int8_t*)data_pointer_use, (int8_t*)path->path, path->path_length - data_type_size);
+            vg_lite_os_free(path->path);
             path->path = data_pointer_use;
             path->pdata_internal = 1;
         }
