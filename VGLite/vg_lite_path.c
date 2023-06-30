@@ -2465,9 +2465,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
     in_premult = 0x10000000;
+#if 0
     if (s_context.blend_mode >= VG_LITE_BLEND_SRC_OVER && s_context.blend_mode <= VG_LITE_BLEND_SUBTRACT) {
         in_premult = 0x00000000;
     }
+#endif
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
 #if (CHIPID == 0x265)
     if (blend != VG_LITE_BLEND_NONE) {
