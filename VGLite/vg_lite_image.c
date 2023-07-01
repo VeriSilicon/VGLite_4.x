@@ -573,6 +573,7 @@ vg_lite_error_t vg_lite_blend_masklayer(
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_matrix_t matrix;
     vg_lite_filter_t filter = VG_LITE_FILTER_POINT;
+    vg_lite_rectangle_t area = *rect;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blend_masklayer %p %p %d %p\n", dst_masklayer, src_masklayer, operation, rect);
@@ -584,30 +585,30 @@ vg_lite_error_t vg_lite_blend_masklayer(
     switch (operation)
     {
     case VG_LITE_CLEAR_MASK:
-        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, rect, 0x0));
+        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, &area, 0x0));
         break;
     case VG_LITE_FILL_MASK:
-        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, rect, 0xFF << 24));
+        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, &area, 0xFF << 24));
         break;
     case VG_LITE_SET_MASK:
-        rect->x = 0;
-        rect->y = 0;
-        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_NONE, 0, filter));
+        area.x = 0;
+        area.y = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, &area, &matrix, VG_LITE_BLEND_NONE, 0, filter));
         break;
     case VG_LITE_UNION_MASK:
-        rect->x = 0;
-        rect->y = 0;
-        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_SCREEN, 0, filter));
+        area.x = 0;
+        area.y = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, &area, &matrix, VG_LITE_BLEND_SCREEN, 0, filter));
         break;
     case VG_LITE_INTERSECT_MASK:
-        rect->x = 0;
-        rect->y = 0;
-        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_DST_IN, 0, filter));
+        area.x = 0;
+        area.y = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, &area, &matrix, VG_LITE_BLEND_DST_IN, 0, filter));
         break;
     case VG_LITE_SUBTRACT_MASK:
-        rect->x = 0;
-        rect->y = 0;
-        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, rect, &matrix, VG_LITE_BLEND_SUBTRACT, 0, filter));
+        area.x = 0;
+        area.y = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_blit_rect(dst_masklayer, src_masklayer, &area, &matrix, VG_LITE_BLEND_SUBTRACT, 0, filter));
         break;
     default:
         break;
