@@ -2893,6 +2893,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 #endif
+#else
+    if (blend_mode == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x10000000;
+    }
 #endif
 
     switch (source->paintType)
