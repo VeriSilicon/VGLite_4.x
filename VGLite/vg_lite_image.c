@@ -653,8 +653,7 @@ vg_lite_error_t vg_lite_render_masklayer(
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_render_masklayer %p %d %p %d %d %p\n", masklayer, operation, path, fill_rule, color, matrix);
 #endif
-    vg_lite_buffer_t temp_masklayer;
-    vg_lite_matrix_t matrix1;
+
     switch (operation)
     {
     case VG_LITE_CLEAR_MASK:
@@ -664,71 +663,16 @@ vg_lite_error_t vg_lite_render_masklayer(
         VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, 0xFF << 24));
         break;
     case VG_LITE_SET_MASK:
-        vg_lite_identity(&matrix1);
-        if (s_context.scissor_enable) {
-            vg_lite_disable_scissor();
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            vg_lite_enable_scissor();
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_disable_scissor();
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_NONE, 0, VG_LITE_FILTER_POINT);
-            vg_lite_enable_scissor();
-        }
-        else {
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_NONE, 0, VG_LITE_FILTER_POINT);
-        }
-        vg_lite_finish();
-        vg_lite_free(&temp_masklayer);
-        //VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
+        VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
         break;
     case VG_LITE_UNION_MASK:
         VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_SCREEN, color << 24));
         break;
     case VG_LITE_INTERSECT_MASK:
-        vg_lite_identity(&matrix1);
-        if (s_context.scissor_enable) {
-            vg_lite_disable_scissor();
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            vg_lite_enable_scissor();
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_disable_scissor();
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_DST_IN, 0, VG_LITE_FILTER_POINT);
-            vg_lite_enable_scissor();
-        }
-        else {
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_DST_IN, 0, VG_LITE_FILTER_POINT);
-        }
-        vg_lite_finish();
-        vg_lite_free(&temp_masklayer);
+        VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_DST_IN, color << 24));
         break;
     case VG_LITE_SUBTRACT_MASK:
-        vg_lite_identity(&matrix1);
-        if (s_context.scissor_enable) {
-            vg_lite_disable_scissor();
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            vg_lite_enable_scissor();
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_disable_scissor();
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_SUBTRACT, 0, VG_LITE_FILTER_POINT);
-            vg_lite_enable_scissor();
-        }
-        else {
-            vg_lite_create_masklayer(&temp_masklayer, masklayer->width, masklayer->height);
-            vg_lite_fill_masklayer(&temp_masklayer, NULL, 0x0);
-            VG_LITE_RETURN_ERROR(vg_lite_draw(&temp_masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
-            vg_lite_blit(masklayer, &temp_masklayer, &matrix1, VG_LITE_BLEND_SUBTRACT, 0, VG_LITE_FILTER_POINT);
-        }
-        vg_lite_finish();
-        vg_lite_free(&temp_masklayer);
+        VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_SUBTRACT, color << 24));
         break;
     default:
         break;
