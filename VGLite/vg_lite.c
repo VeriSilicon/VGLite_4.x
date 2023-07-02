@@ -1936,7 +1936,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
 #endif
 #if gcFEATURE_VG_HW_PREMULTIPLY
-        if (s_context.premultiply_dst) {
+        if (s_context.premultiply_dst || s_context.dst_alpha_mode) {
             premultiply_dst = 0x00000100;
         }
         rgb_alphadiv = 0x00000200;
@@ -2952,7 +2952,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
-    if (s_context.premultiply_src) {
+    if (s_context.premultiply_src || s_context.src_alpha_mode) {
         src_premultiply_enable = 0x00000100;
     }
     else {
