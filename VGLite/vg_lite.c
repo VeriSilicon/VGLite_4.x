@@ -4041,7 +4041,13 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 #endif
 
     if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC &&
-       (buffer->width % 16 || buffer->height % 4)) {
+#if (CHIPID == 0x555)
+       (buffer->width % 16 || buffer->height % 4)
+#else
+        (buffer->width % 4 || buffer->height % 4)
+#endif
+        )
+    {
         return VG_LITE_INVALID_ARGUMENT;
     }
 
