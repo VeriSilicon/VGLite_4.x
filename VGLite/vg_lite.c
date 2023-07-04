@@ -2958,7 +2958,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
     if (s_context.premultiply_src || s_context.src_alpha_mode) {
-        src_premultiply_enable = 0x00000100;
+        src_premultiply_enable = 0x01000100;
+        if (source->compress_mode) {
+            src_premultiply_enable = 0x00000100;
+        }
     }
     else {
         src_premultiply_enable = 0x00000000;
@@ -3523,7 +3526,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
     if (s_context.premultiply_src || s_context.src_alpha_mode) {
-        src_premultiply_enable = 0x00000100;
+        src_premultiply_enable = 0x01000100;
+        if (source->compress_mode) {
+            src_premultiply_enable = 0x00000100;
+        }
     }
     else {
         src_premultiply_enable = 0x00000000;
@@ -3724,7 +3730,7 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
 
     s_context.path_counter = 0;
 
-    s_context.premultiply_dst = 0;
+    s_context.premultiply_dst = 1;
 
 #if (CHIPID==0x355 || CHIPID==0x255)
     s_context.mirror_orient = VG_LITE_ORIENTATION_BOTTOM_TOP;
