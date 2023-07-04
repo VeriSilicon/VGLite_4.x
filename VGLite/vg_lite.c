@@ -2077,6 +2077,11 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         height += y;
         y = 0;
     }
+
+    if (width <= 0 || height <= 0)
+    {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
     
     if (s_context.scissor_set)
     {
