@@ -3517,7 +3517,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
-    if (s_context.premultiply_src) {
+    if (s_context.premultiply_src || s_context.src_alpha_mode) {
         src_premultiply_enable = 0x00000100;
     }
     else {
@@ -3726,7 +3726,7 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
     s_context.premultiply_src = 0;
 #else
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
-    s_context.premultiply_src = 0;
+    s_context.premultiply_src = 1;
 #endif
 
 #if DUMP_CAPTURE

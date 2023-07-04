@@ -2955,15 +2955,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
-#if (CHIPID == 0x555)
-    src_premultiply_enable = 0x01000100;
-#else
     if (s_context.premultiply_src) {
         src_premultiply_enable = 0x01000100;
     } else {
         src_premultiply_enable = 0x01000000;
     }
-#endif
 #else
     src_premultiply_enable = 0x01000000;
 #endif
