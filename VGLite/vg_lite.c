@@ -4092,9 +4092,16 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         buffer->stride = buffer->width * mul / div;
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
-        buffer->stride = VG_LITE_ALIGN(buffer->stride, (16 * mul / div));
+        int tmp_align = 16 * mul / div;
+        if ((mul / div) % 2 != 0) {
+            if (buffer->stride % tmp_align != 0) {
+                buffer->stride = (buffer->stride + tmp_align) / tmp_align * tmp_align;
+            }
+        }
+        else {
+            buffer->stride = VG_LITE_ALIGN(buffer->stride, tmp_align);
+        }
 #endif
-
         /* Allocate the buffer. */
         if (buffer->compress_mode)
             ratio = _calc_decnano_compress_ratio(buffer->format, buffer->compress_mode);
