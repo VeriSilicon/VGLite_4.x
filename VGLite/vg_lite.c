@@ -2861,6 +2861,23 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x10000000;
     }
     switch (source->format) {
+        case VG_LITE_RGBA8888:
+        case VG_LITE_BGRA8888:
+        case VG_LITE_ABGR8888:
+        case VG_LITE_ARGB8888:
+        case VG_LITE_RGBA8888_ETC2_EAC:
+        case VG_LITE_ABGR8565:
+        case VG_LITE_BGRA5658:
+        case VG_LITE_ARGB8565:
+        case VG_LITE_RGBA5658:
+        case VG_LITE_RGBA4444:
+        case VG_LITE_BGRA4444:
+        case VG_LITE_ABGR4444:
+        case VG_LITE_ARGB4444:
+        case VG_LITE_ABGR8565_PLANAR:
+        case VG_LITE_BGRA5658_PLANAR:
+        case VG_LITE_ARGB8565_PLANAR:
+        case VG_LITE_RGBA5658_PLANAR:
         case VG_A_8:
             in_premult = 0x10000000;
             break;
@@ -3444,6 +3461,23 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         in_premult = 0x10000000;
     }
     switch (source->format) {
+        case VG_LITE_RGBA8888:
+        case VG_LITE_BGRA8888:
+        case VG_LITE_ABGR8888:
+        case VG_LITE_ARGB8888:
+        case VG_LITE_RGBA8888_ETC2_EAC:
+        case VG_LITE_ABGR8565:
+        case VG_LITE_BGRA5658:
+        case VG_LITE_ARGB8565:
+        case VG_LITE_RGBA5658:
+        case VG_LITE_RGBA4444:
+        case VG_LITE_BGRA4444:
+        case VG_LITE_ABGR4444:
+        case VG_LITE_ARGB4444:
+        case VG_LITE_ABGR8565_PLANAR:
+        case VG_LITE_BGRA5658_PLANAR:
+        case VG_LITE_ARGB8565_PLANAR:
+        case VG_LITE_RGBA5658_PLANAR:
         case VG_A_8:
             in_premult = 0x10000000;
             break;
