@@ -3845,6 +3845,7 @@ vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size)
 
 vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
+# ifdef __linux__
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
@@ -3899,10 +3900,16 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
     s_context.custom_cmdbuf = 1;
 
     return error;
+
+# else
+    return VG_LITE_NOT_SUPPORT;
+
+# endif
 }
 
 vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
+# ifdef __linux__
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
@@ -3948,6 +3955,11 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
 
     s_context.custom_tessbuf = 1;
     return error;
+
+# else
+    return VG_LITE_NOT_SUPPORT;
+
+# endif
 }
 
 vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
