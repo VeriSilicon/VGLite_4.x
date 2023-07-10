@@ -2775,6 +2775,47 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_INVALID_ARGUMENT;
 
+#if gcFEATURE_VG_MATH_PRECISION_FIX
+    if (filter == VG_LITE_FILTER_LINEAR)
+    {
+        /* Compute interpolation steps. */
+        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[1] = inverse_matrix.m[1][0];
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[1] = inverse_matrix.m[1][1];
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+    else if (filter == VG_LITE_FILTER_BI_LINEAR)
+    {
+        /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
+        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[1] = (inverse_matrix.m[1][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[1] = (inverse_matrix.m[1][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[1][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+    else
+    {
+        /* Compute interpolation steps. */
+        x_step[0] = inverse_matrix.m[0][0];
+        x_step[1] = inverse_matrix.m[1][0];
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = inverse_matrix.m[0][1];
+        y_step[1] = inverse_matrix.m[1][1];
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+#else
     if (filter == VG_LITE_FILTER_LINEAR)
     {
         /* Compute interpolation steps. */
@@ -2814,6 +2855,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
+#endif
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -3375,6 +3417,47 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_INVALID_ARGUMENT;
 
+#if gcFEATURE_VG_MATH_PRECISION_FIX
+    if (filter == VG_LITE_FILTER_LINEAR)
+    {
+        /* Compute interpolation steps. */
+        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[1] = inverse_matrix.m[1][0];
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[1] = inverse_matrix.m[1][1];
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+    else if (filter == VG_LITE_FILTER_BI_LINEAR)
+    {
+        /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
+        x_step[0] = (inverse_matrix.m[0][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[1] = (inverse_matrix.m[1][0] - 0.5f * inverse_matrix.m[2][0]);
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = (inverse_matrix.m[0][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[1] = (inverse_matrix.m[1][1] - 0.5f * inverse_matrix.m[2][1]);
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[0][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) - 0.25f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[1][2] - 0.5f * inverse_matrix.m[2][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+    else
+    {
+        /* Compute interpolation steps. */
+        x_step[0] = inverse_matrix.m[0][0];
+        x_step[1] = inverse_matrix.m[1][0];
+        x_step[2] = inverse_matrix.m[2][0];
+        y_step[0] = inverse_matrix.m[0][1];
+        y_step[1] = inverse_matrix.m[1][1];
+        y_step[2] = inverse_matrix.m[2][1];
+        c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
+        c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+        c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+    }
+#else
     if (filter == VG_LITE_FILTER_LINEAR)
     {
         /* Compute interpolation steps. */
@@ -3414,6 +3497,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / rect_h;
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
+#endif
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {

@@ -2699,11 +2699,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
     in_premult = 0x10000000;
-#if 0
-    if (s_context.blend_mode >= VG_LITE_BLEND_SRC_OVER && s_context.blend_mode <= VG_LITE_BLEND_SUBTRACT) {
-        in_premult = 0x00000000;
-    }
-#endif
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
 #if (CHIPID == 0x265)
     if (blend != VG_LITE_BLEND_NONE) {
@@ -3077,7 +3072,19 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_INVALID_ARGUMENT;
-    
+
+#if gcFEATURE_VG_MATH_PRECISION_FIX
+    /* Compute interpolation steps. */
+    x_step[0] = inverse_matrix.m[0][0];
+    x_step[1] = inverse_matrix.m[1][0];
+    x_step[2] = inverse_matrix.m[2][0];
+    y_step[0] = inverse_matrix.m[0][1];
+    y_step[1] = inverse_matrix.m[1][1];
+    y_step[2] = inverse_matrix.m[2][1];
+    c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
+    c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+    c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#else
     /* Compute interpolation steps. */
     x_step[0] = inverse_matrix.m[0][0] / source->width;
     x_step[1] = inverse_matrix.m[1][0] / source->height;
@@ -3088,6 +3095,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / source->width;
     c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
     c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#endif
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -3732,6 +3740,18 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_INVALID_ARGUMENT;
 
+#if gcFEATURE_VG_MATH_PRECISION_FIX
+    /* Compute interpolation steps. */
+    x_step[0] = inverse_matrix.m[0][0];
+    x_step[1] = inverse_matrix.m[1][0];
+    x_step[2] = inverse_matrix.m[2][0];
+    y_step[0] = inverse_matrix.m[0][1];
+    y_step[1] = inverse_matrix.m[1][1];
+    y_step[2] = inverse_matrix.m[2][1];
+    c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
+    c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+    c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#else
     /* Compute interpolation steps. */
     x_step[0] = inverse_matrix.m[0][0] / source->width;
     x_step[1] = inverse_matrix.m[1][0] / source->height;
@@ -3742,6 +3762,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / source->width;
     c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
     c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#endif
 
     /* Setup the command buffer. */
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
@@ -4535,6 +4556,18 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_INVALID_ARGUMENT;
 
+#if gcFEATURE_VG_MATH_PRECISION_FIX
+    /* Compute interpolation steps. */
+    x_step[0] = inverse_matrix.m[0][0];
+    x_step[1] = inverse_matrix.m[1][0];
+    x_step[2] = inverse_matrix.m[2][0];
+    y_step[0] = inverse_matrix.m[0][1];
+    y_step[1] = inverse_matrix.m[1][1];
+    y_step[2] = inverse_matrix.m[2][1];
+    c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
+    c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
+    c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#else
     /* Compute interpolation steps. */
     x_step[0] = inverse_matrix.m[0][0] / source->width;
     x_step[1] = inverse_matrix.m[1][0] / source->height;
@@ -4545,6 +4578,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / source->width;
     c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
     c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+#endif
 
     /* Setup the command buffer. */
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
