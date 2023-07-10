@@ -588,14 +588,14 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
     }
 
     /* Initialize command buffer prefix. */
-    ((uint32_t *) buffer->memory)[0] = 0x40000000 | ((path->path_length + 7) / 8);
+    ((uint32_t *) buffer->memory)[0] = VG_LITE_DATA((path->path_length + 7) / 8);
     ((uint32_t *) buffer->memory)[1] = 0;
     
     /* Copy the path data. */
     memcpy((uint32_t *) buffer->memory + 2, path->path, path->path_length);
     
     /* Initialize command buffer postfix. */
-    ((uint32_t *) buffer->memory)[bytes / 4 - 2] = 0x70000000;
+    ((uint32_t *) buffer->memory)[bytes / 4 - 2] = VG_LITE_RETURN();
     ((uint32_t *) buffer->memory)[bytes / 4 - 1] = 0;
     
     /* Mark path as uploaded. */
