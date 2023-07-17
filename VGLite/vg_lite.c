@@ -1175,27 +1175,28 @@ uint32_t convert_blend(vg_lite_blend_t blend)
 {
     switch (blend) {
         case VG_LITE_BLEND_SRC_OVER:
+        case VG_LITE_BLEND_NORMAL_LVGL:
         case VG_LITE_BLEND_PREMULTIPLY_SRC_OVER:
             return 0x00000100;
-            
+
         case VG_LITE_BLEND_DST_OVER:
             return 0x00000200;
-            
+
         case VG_LITE_BLEND_SRC_IN:
             return 0x00000300;
-            
+
         case VG_LITE_BLEND_DST_IN:
             return 0x00000400;
-            
+
         case VG_LITE_BLEND_SCREEN:
             return 0x00000600;
-            
+
         case VG_LITE_BLEND_MULTIPLY:
             return 0x00000500;
-            
+
         case VG_LITE_BLEND_ADDITIVE:
             return 0x00000900;
-            
+
         case VG_LITE_BLEND_SUBTRACT:
             return 0x00000A00;
 
@@ -1207,9 +1208,6 @@ uint32_t convert_blend(vg_lite_blend_t blend)
 
         case VG_LITE_BLEND_SUBTRACT_LVGL:
             return 0x00000C00;
-
-        case VG_LITE_BLEND_NORMAL_LVGL:
-            return 0x00000100;
 
         case VG_LITE_BLEND_ADDITIVE_LVGL:
             return 0x00000900;
@@ -2222,12 +2220,6 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
-
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -2626,11 +2618,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -2944,12 +2931,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 #endif
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
 #else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
-        in_premult = 0x10000000;
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
     }
 #endif
 
@@ -3226,11 +3213,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -3586,12 +3568,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 #endif
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
 #else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
-        in_premult = 0x10000000;
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
     }
 #endif
 

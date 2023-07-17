@@ -2606,11 +2606,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         matrix = &ident_mtx;
     }
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
     /*blend input into context*/
     s_context.blend_mode = blend;
     error = set_render_target(target);
@@ -3018,11 +3013,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
     }
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -3562,12 +3552,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
     }
 
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
-
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -4102,9 +4086,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     if ((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
         return VG_LITE_NOT_SUPPORT;
     }
-#else
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
 #endif
 #if !gcFEATURE_VG_24BIT
     if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
@@ -4142,12 +4123,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
     }
-
-#if gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xFF);
-    }
-#endif
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 
