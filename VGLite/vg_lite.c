@@ -1935,21 +1935,18 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             gamma_value = s_context.gamma_value;
         }
 #endif
-
 #if gcFEATURE_VG_HW_PREMULTIPLY
-        rgb_alphadiv = 0x00000200;
-
         if (s_context.premultiply_dst || s_context.dst_alpha_mode) {
             premultiply_dst = 0x00000100;
         }
-#if (CHIPID == 0x555)
-        /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
+        rgb_alphadiv = 0x00000200;
+        /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, it is equivalent to copy image,all pre registers set to 1.*/
         if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
             s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
             premultiply_dst = 0x00000100;
         }
-#endif
 #else
+
         premultiply_dst = 0x00000100;
 
 #if (!gcFEATURE_VG_SRC_PREMULTIPLIED && CHIPID == 0x265)
@@ -2898,25 +2895,13 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         break;
     }
 
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
-    if (blend == VG_LITE_BLEND_NONE) {
-        in_premult = 0x10000000;
-    }
-    else {
-        in_premult = 0x00000000;
-    }
-#else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
-        in_premult = 0x10000000;
-    }
-#endif
-#if (CHIPID==0x555)
-    /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
+    in_premult = 0x00000000;
+#if (CHIPID==0x555 || CHIPID==0x265)
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, it is equivalent to copy image,all pre registers set to 1.*/
     if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
         s_context.dst_alpha_mode ==0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         in_premult = 0x10000000;
     }
-#endif
     switch (source->format) {
         case VG_LITE_RGBA8888:
         case VG_LITE_BGRA8888:
@@ -2931,10 +2916,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         case VG_LITE_BGRA4444:
         case VG_LITE_ABGR4444:
         case VG_LITE_ARGB4444:
-        case VG_LITE_RGBA2222:
-        case VG_LITE_BGRA2222:
-        case VG_LITE_ABGR2222:
-        case VG_LITE_ARGB2222:
         case VG_LITE_ABGR8565_PLANAR:
         case VG_LITE_BGRA5658_PLANAR:
         case VG_LITE_ARGB8565_PLANAR:
@@ -2955,6 +2936,22 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         default:
             break;
     };
+#endif
+
+#if !gcFEATURE_VG_SRC_PREMULTIPLIED
+#if (CHIPID == 0x265)
+    if (blend != VG_LITE_BLEND_NONE) {
+        in_premult = 0x00000000;
+    }
+#endif
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x00000000;
+    }
+#else
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x10000000;
+    }
+#endif
 
     switch (source->paintType)
     {
@@ -3035,13 +3032,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x01000100;
     }
 
-#if (CHIPID==0x555)
-    /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, no gamma, it is equivalent to copy image,all pre registers set to 1.*/
     if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         src_premultiply_enable = 0x01000100;
     }
-#endif
 #else
     src_premultiply_enable = 0x01000000;
 #endif
@@ -3542,25 +3537,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         break;
     }
 
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
-    if (blend == VG_LITE_BLEND_NONE) {
-        in_premult = 0x10000000;
-    }
-    else {
-        in_premult = 0x00000000;
-    }
-#else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
-        in_premult = 0x10000000;
-    }
-#endif
-#if (CHIPID==0x555)
-    /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
+    in_premult = 0x00000000;
+#if (CHIPID==0x555 || CHIPID==0x265)
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, it is equivalent to copy image,all pre registers set to 1.*/
     if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
         s_context.dst_alpha_mode ==0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         in_premult = 0x10000000;
     }
-#endif
     switch (source->format) {
         case VG_LITE_RGBA8888:
         case VG_LITE_BGRA8888:
@@ -3575,10 +3558,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         case VG_LITE_BGRA4444:
         case VG_LITE_ABGR4444:
         case VG_LITE_ARGB4444:
-        case VG_LITE_RGBA2222:
-        case VG_LITE_BGRA2222:
-        case VG_LITE_ABGR2222:
-        case VG_LITE_ARGB2222:
         case VG_LITE_ABGR8565_PLANAR:
         case VG_LITE_BGRA5658_PLANAR:
         case VG_LITE_ARGB8565_PLANAR:
@@ -3599,6 +3578,22 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         default:
             break;
     };
+#endif
+
+#if !gcFEATURE_VG_SRC_PREMULTIPLIED
+#if (CHIPID == 0x265)
+    if (blend != VG_LITE_BLEND_NONE) {
+        in_premult = 0x00000000;
+    }
+#endif
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x00000000;
+    }
+#else
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER) {
+        in_premult = 0x10000000;
+    }
+#endif
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
@@ -3664,13 +3659,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x01000100;
     }
 
-#if (CHIPID==0x555)
-    /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
+    /* GC555 unique copy image path,when src and dst are in same pre mode and no bleding, no gamma, it is equivalent to copy image,all pre registers set to 1.*/
     if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         src_premultiply_enable = 0x01000100;
     }
-#endif
 #else
     src_premultiply_enable = 0x01000000;
 #endif
