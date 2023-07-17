@@ -2701,6 +2701,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     }
 #endif
 #endif
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
+    }
 
     /* Setup the command buffer. */
     /* Program color register. */
@@ -3276,21 +3279,24 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     tessellation_size = s_context.tessbuf.tessbuf_size;
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
-    in_premult = 0x10000002;
+    in_premult = 0x10000000;
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
 #if (CHIPID == 0x265)
     if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000002;
+        in_premult = 0x00000000;
     }
 #endif
 #endif
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
+    }
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
