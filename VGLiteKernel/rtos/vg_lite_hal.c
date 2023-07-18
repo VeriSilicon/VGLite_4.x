@@ -632,7 +632,6 @@ static int vg_lite_init(void)
     /* Allocate the contiguous memory. */
     device->heap_size = heap_size;
     device->contiguous = (volatile void *)contiguousMem;
-    _memset((void *)device->contiguous, 0, heap_size);
     /* Make 64byte aligned. */
     while ((((uint32_t)device->contiguous) & 63) != 0)
     {
