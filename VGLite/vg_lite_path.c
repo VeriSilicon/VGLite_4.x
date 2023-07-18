@@ -3016,6 +3016,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
     }
 
+    if (!matrix0) {
+        matrix0 = &ident_mtx;
+    }
+
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -3556,6 +3560,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
+    }
+
+    if (!path_matrix)
+    {
+        path_matrix = &ident_mtx;
     }
 
     error = set_render_target(target);
@@ -4128,6 +4137,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
+    }
+
+    if (!path_matrix)
+    {
+        path_matrix = &ident_mtx;
     }
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
