@@ -1946,15 +1946,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
 #endif
 #else
-
         premultiply_dst = 0x00000100;
-
-#if (!gcFEATURE_VG_SRC_PREMULTIPLIED && CHIPID == 0x265)
-        /* In the new version of 265, HW requirements PRE_MULTIPLED to be set to 0 to achieve HW internal premultiplication. */
-        if (s_context.blend_mode >= VG_LITE_BLEND_SRC_OVER && s_context.blend_mode <= VG_LITE_BLEND_SUBTRACT) {
-            premultiply_dst = 0x00000000;
-        }
-#endif
 #endif
 
 #if gcFEATURE_VG_USE_DST
@@ -2932,11 +2924,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     };
 
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
-#if (CHIPID == 0x265)
-    if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000000;
-    }
-#endif
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
@@ -3033,7 +3020,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #else
-    src_premultiply_enable = 0x01000000;
+    src_premultiply_enable = 0x01000100;
 #endif
 
 #if gcFEATURE_VG_IM_FASTCLEAR
@@ -3575,11 +3562,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     };
 
 #if !gcFEATURE_VG_SRC_PREMULTIPLIED
-#if (CHIPID == 0x265)
-    if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000000;
-    }
-#endif
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
@@ -3661,7 +3643,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 #else
-    src_premultiply_enable = 0x01000000;
+    src_premultiply_enable = 0x01000100;
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
