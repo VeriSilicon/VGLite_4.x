@@ -3907,7 +3907,6 @@ vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size)
 
 vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
-# ifdef __linux__
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
@@ -3923,7 +3922,7 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
 
     if (s_context.command_buffer[0])
     {
-        vg_lite_kernel_unmap_memory_t unmap = { 0 };
+        
         if (submit_flag)
             VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
         if (!s_context.custom_cmdbuf)
@@ -3937,12 +3936,17 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
             s_context.context.command_buffer[1] = 0;
         }
-        unmap.bytes = s_context.command_buffer_size;
-        unmap.logical = s_context.command_buffer[0];
-        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
-        unmap.bytes = s_context.command_buffer_size;
-        unmap.logical = s_context.command_buffer[1];
-        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+        else
+        {
+            vg_lite_kernel_unmap_memory_t unmap = { 0 };
+            
+            unmap.bytes = s_context.command_buffer_size;
+            unmap.logical = s_context.command_buffer[0];
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+            unmap.bytes = s_context.command_buffer_size;
+            unmap.logical = s_context.command_buffer[1];
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+        }
     }
 
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP_MEMORY, &map));
@@ -3962,16 +3966,10 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
     s_context.custom_cmdbuf = 1;
 
     return error;
-
-# else
-    return VG_LITE_NOT_SUPPORT;
-
-# endif
 }
 
 vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
-# ifdef __linux__
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
@@ -3987,7 +3985,6 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
 
     if (s_context.tessbuf.logical_addr)
     {
-        vg_lite_kernel_unmap_memory_t unmap = { 0 };
         if (submit_flag)
             VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
         if (!s_context.custom_tessbuf)
@@ -3997,9 +3994,14 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
             s_context.context.tess_buffer = 0;
         }
-        unmap.bytes = s_context.tessbuf.tessbuf_size + s_context.tessbuf.countbuf_size;
-        unmap.logical = s_context.tessbuf.logical_addr;
-        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+        else
+        {
+            vg_lite_kernel_unmap_memory_t unmap = { 0 };
+        
+            unmap.bytes = s_context.tessbuf.tessbuf_size + s_context.tessbuf.countbuf_size;
+            unmap.logical = s_context.tessbuf.logical_addr;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+        }
     }
 
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP_MEMORY, &map));
@@ -4016,12 +4018,8 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACC, s_context.tessbuf.countbuf_size));
 
     s_context.custom_tessbuf = 1;
+    
     return error;
-
-# else
-    return VG_LITE_NOT_SUPPORT;
-
-# endif
 }
 
 vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
