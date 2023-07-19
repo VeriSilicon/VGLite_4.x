@@ -2795,6 +2795,36 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
         c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+
+        // For FL32 rounding trick
+        uint32_t datax[2], datay[2], datac[2];
+        for (int idx = 0; idx < 2; idx++)
+        {
+            datax[idx] = *(uint32_t*)((void*)&x_step[idx]);
+            datay[idx] = *(uint32_t*)((void*)&y_step[idx]);
+            datac[idx] = *(uint32_t*)((void*)&c_step[idx]);
+        }
+        for (int i = 0; i < 2; i++)
+        {
+            int aSign = (datax[i] & 0x80000000) >> 31;
+            int bSign = (datay[i] & 0x80000000) >> 31;
+            int cSign = (datac[i] & 0x80000000) >> 31;
+            int aIn = (datax[i] & 0x20) >> 5;
+            int bIn = (datay[i] & 0x20) >> 5;
+            if ((aSign ==0 ) && (bSign == 0) && (aIn == bIn))
+            {
+                int cIn = (aSign ^ cSign) ^ ((~aIn) & 0x1);
+                if (cIn == 0)
+                {
+                    datac[i] &= 0xFFFFFFDF;
+                }
+                else
+                {
+                    datac[i] |= 0x00000020;
+                }
+                c_step[i] = *(vg_lite_float_t*)((void*)&datac[i]);
+            }
+        }
     }
 #else
     if (filter == VG_LITE_FILTER_LINEAR)

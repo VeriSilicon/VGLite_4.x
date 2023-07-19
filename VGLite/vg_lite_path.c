@@ -3675,7 +3675,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     dx = grad->linear_grad.X1 - grad->linear_grad.X0;
     dy = grad->linear_grad.Y1 - grad->linear_grad.Y0;
 #if gcFEATURE_VG_MATH_PRECISION_FIX
-    dxdx_dydy = (dx * dx + dy * dy) * (dx + 1);
+    dxdx_dydy = (dx * dx + dy * dy) / (dx + 1);
 #else
     dxdx_dydy = dx * dx + dy * dy;
 #endif
@@ -4293,8 +4293,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     r2_fx2_2     = 2.0f * r2_fx2;
     r2_fy2_2     = 2.0f * r2_fy2;
 #if gcFEATURE_VG_MATH_PRECISION_FIX
-    r2_fx2_fy2   = (r2_fx2  - fy * fy) * source->width;
-    r2_fx2_fy2sq = (r2_fx2_fy2 * r2_fx2_fy2) *  source->width * source->width;
+    r2_fx2_fy2   = (r2_fx2  - fy * fy) / source->width;
+    r2_fx2_fy2sq = (r2_fx2_fy2 * r2_fx2_fy2);
 #else
     r2_fx2_fy2   = r2_fx2  - fy * fy;
     r2_fx2_fy2sq = r2_fx2_fy2 * r2_fx2_fy2;
