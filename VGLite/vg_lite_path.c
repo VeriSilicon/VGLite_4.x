@@ -159,7 +159,7 @@ void quad_bezier(float* x, float* y, const float curve[6], float t) {
     t2 = t * t;
     mt2 = mt * mt;
 
-    for (char i = 0; i < 2; ++i) {
+    for (uint8_t i = 0; i < 2; ++i) {
         res[i] = v0[i] * mt2 + 2 * v1[i] * mt * t + v2[i] * t2;
     }
 
@@ -182,7 +182,7 @@ void cubic_bezier(float* x, float* y, const float curve[8], float t) {
     mt2 = mt * mt;
     mt3 = mt2 * mt;
 
-    for (char i = 0; i < 2; ++i) {
+    for (uint8_t i = 0; i < 2; ++i) {
         res[i] = v0[i] * mt3 + 3 * v1[i] * mt2 * t + 3 * v2[i] * mt * t2 + v3[i] * t3;
     }
 
@@ -273,7 +273,7 @@ void split_quad(float out1[6], float out2[6], float curve[6], float split) {
             ms2, 2 * ms * s, s2
         };
         /* C = A ¡Á B */
-        for (char i = 0; i < 2; ++i) {
+        for (uint8_t i = 0; i < 2; ++i) {
             for (size_t y = 0; y < 3; ++y)
                 for (size_t x = 0; x < 1; ++x)
                     for (size_t z = 0; z < 3; ++z) {
@@ -295,7 +295,7 @@ void split_quad(float out1[6], float out2[6], float curve[6], float split) {
             0, 0, 1
         };
         /* C = A ¡Á B */
-        for (char i = 0; i < 2; ++i) {
+        for (uint8_t i = 0; i < 2; ++i) {
             for (size_t y = 0; y < 3; ++y)
                 for (size_t x = 0; x < 1; ++x)
                     for (size_t z = 0; z < 3; ++z) {
@@ -340,7 +340,7 @@ void split_cubic(float out1[8], float out2[8], float curve[8], float split) {
             ms3, 3 * s * ms2, 3 * s2 * ms, s3
         };
         /* C = A ¡Á B */
-        for (char i = 0; i < 2; ++i) {
+        for (uint8_t i = 0; i < 2; ++i) {
             for (size_t y = 0; y < 4; ++y)
                 for (size_t x = 0; x < 1; ++x)
                     for (size_t z = 0; z < 4; ++z) {
@@ -364,7 +364,7 @@ void split_cubic(float out1[8], float out2[8], float curve[8], float split) {
             0, 0, 0, 1
         };
         /* C = A ¡Á B */
-        for (char i = 0; i < 2; ++i) {
+        for (uint8_t i = 0; i < 2; ++i) {
             for (size_t y = 0; y < 4; ++y)
                 for (size_t x = 0; x < 1; ++x)
                     for (size_t z = 0; z < 4; ++z) {

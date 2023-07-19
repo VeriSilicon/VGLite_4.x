@@ -516,10 +516,10 @@ static vg_lite_error_t _flatten_quad_bezier(
     if (d1 * d1 < 0.25 * (dx2 * dx2 + dy2 * dy2)) {
         float bound[4];
 
-        bound[0] = min(v0[0], v2[0]);
-        bound[1] = min(v0[1], v2[1]);
-        bound[2] = max(v0[0], v2[0]);
-        bound[3] = max(v0[1], v2[1]);
+        bound[0] = MIN(v0[0], v2[0]);
+        bound[1] = MIN(v0[1], v2[1]);
+        bound[2] = MAX(v0[0], v2[0]);
+        bound[3] = MAX(v0[1], v2[1]);
 
         if (!(v1[0] >= bound[0] && v1[0] <= bound[2] && v1[1] >= bound[1] && v1[1] <= bound[3])) {
             /* Compute root. */
@@ -620,16 +620,16 @@ static vg_lite_error_t _flatten_cubic_bezier(
     if ((d1 + d2) * (d1 + d2) < 0.25f * (dx3 * dx3 + dy3 * dy3)) {
         float bound[4];
 
-        bound[0] = min(v0[0], v3[0]);
-        bound[1] = min(v0[1], v3[1]);
-        bound[2] = max(v0[0], v3[0]);
-        bound[3] = max(v0[1], v3[1]);
+        bound[0] = MIN(v0[0], v3[0]);
+        bound[1] = MIN(v0[1], v3[1]);
+        bound[2] = MAX(v0[0], v3[0]);
+        bound[3] = MAX(v0[1], v3[1]);
         if (!(v1[0] >= bound[0] && v1[0] <= bound[2] && v1[1] >= bound[1] && v1[1] <= bound[3]) ||
             !(v2[0] >= bound[0] && v2[0] <= bound[2] && v2[1] >= bound[1] && v2[1] <= bound[3])) {
             /* Compute root. */
             float alignedCurve[8];
             float a, b, c, b2ac, root[2], t, pt[2];
-            char rootNum;
+            uint8_t rootNum;
 
             get_aligned_cubic(alignedCurve, curve);
 
@@ -662,7 +662,7 @@ static vg_lite_error_t _flatten_cubic_bezier(
                 root[1] = tmp;
             }
 
-            for (char i = 0; i < rootNum; ++i) {
+            for (uint8_t i = 0; i < rootNum; ++i) {
                 cubic_bezier(&pt[0], &pt[1], curve, root[i]);
                 VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
             }
