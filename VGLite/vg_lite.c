@@ -2936,7 +2936,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         case VG_LITE_BGRA5658_PLANAR:
         case VG_LITE_ARGB8565_PLANAR:
         case VG_LITE_RGBA5658_PLANAR:
-        case VG_A_8:
+#if (CHIPID == 0x255)
+        case VG_LITE_A8:
+        case VG_LITE_A4:
+#endif
             in_premult = 0x10000000;
             break;
         default:
@@ -3050,7 +3053,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #else
+#if (CHIPID == 0x255)
+    src_premultiply_enable = 0x00000000;
+#else
     src_premultiply_enable = 0x01000100;
+#endif
 #endif
 
 #if gcFEATURE_VG_IM_FASTCLEAR
@@ -3574,7 +3581,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         case VG_LITE_BGRA5658_PLANAR:
         case VG_LITE_ARGB8565_PLANAR:
         case VG_LITE_RGBA5658_PLANAR:
-        case VG_A_8:
+#if (CHIPID == 0x255)
+        case VG_LITE_A8:
+        case VG_LITE_A4:
+#endif
             in_premult = 0x10000000;
             break;
         default:
@@ -3673,7 +3683,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 #else
+#if (CHIPID == 0x255)
+    src_premultiply_enable = 0x00000000;
+#else
     src_premultiply_enable = 0x01000100;
+#endif
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));

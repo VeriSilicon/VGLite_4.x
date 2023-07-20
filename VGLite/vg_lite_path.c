@@ -2694,13 +2694,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
     in_premult = 0x10000000;
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
-#if (CHIPID == 0x265)
-    if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000000;
-    }
-#endif
-#endif
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
@@ -3284,13 +3277,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
     in_premult = 0x10000000;
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
-#if (CHIPID == 0x265)
-    if (blend != VG_LITE_BLEND_NONE) {
-        in_premult = 0x00000000;
-    }
-#endif
-#endif
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
