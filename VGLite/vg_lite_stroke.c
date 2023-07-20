@@ -101,14 +101,14 @@ typedef struct vg_lite_control_coord
     ((1+CoordinateCount) * SIZEOF(CoordinateType))
 
 extern int32_t get_data_size(vg_lite_format_t format);
-#if gcFEATURE_VG_SIMPLYFIED_BEZIER
+
 extern void quad_bezier(float* x, float* y, const float curve[6], float t);
 extern void cubic_bezier(float* x, float* y, const float curve[8], float t);
 extern void get_aligned_quad(float out[6], float curve[6]);
 extern void get_aligned_cubic(float out[8], float curve[8]);
 extern void split_quad(float out1[6], float out2[6], float curve[6], float split);
 extern void split_cubic(float out1[8], float out2[8], float curve[8], float split);
-#endif
+
 
 static uint32_t _commandSize_float[] =
 {
@@ -476,7 +476,6 @@ ErrorHandler:
     return status;
 }
 
-#if gcFEATURE_VG_SIMPLYFIED_BEZIER
 static vg_lite_error_t _flatten_quad_bezier(
     vg_lite_stroke_t* stroke_conversion,
     vg_lite_float_t curve[6],
@@ -710,394 +709,6 @@ static vg_lite_error_t _flatten_cubic_bezier(
 ErrorHandler:
     return error;
 }
-#else
-static vg_lite_error_t
-_flatten_quad_bezier(
-    vg_lite_stroke_t * stroke_conversion,
-    vg_lite_float_t X0,
-    vg_lite_float_t Y0,
-    vg_lite_float_t X1,
-    vg_lite_float_t Y1,
-    vg_lite_float_t X2,
-    vg_lite_float_t Y2
-    )
-{
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t n;
-    vg_lite_path_point_ptr point0, point1;
-    vg_lite_float_t x, y;
-    vg_lite_float_t a1x, a1y, a2x, a2y;
-    vg_lite_float_t f1, f2, t1, t2, upper_bound;
-
-    if (!stroke_conversion)
-        return VG_LITE_INVALID_ARGUMENT;
-
-    /* Formula.
-    * f(t) = (1 - t)^2 * p0 + 2 * t * (1 - t) * p1 + t^2 * p2
-    *      = a0 + a1 * t + a2 * t^2
-    *   a0 = p0
-    *   a1 = 2 * (-p0 + p1)
-    *   a2 = p0 - 2 * p1 + p2
-    */
-    x = X1 - X0;
-    a1x = x + x;
-    y = Y1 - Y0;
-    a1y = y + y;
-    a2x = X0 - X1 - X1 + X2;
-    a2y = Y0 - Y1 - Y1 + Y2;
-
-    /* Step 1: Calculate N. */
-    /* Lefan's method. */
-    /* dist(t) = ...
-    * t2 = ...
-    * if 0 <= t2 <= 1
-    *    upper_bound = dist(t2)
-    * else
-    *    upper_bound = max(dist(0), dist(1))
-    * N = ceil(sqrt(upper_bound / epsilon / 8))
-    */
-    /* Prepare dist(t). */
-    f1 = a1x * a2y - a2x * a1y;
-    if (f1 != 0.0f)
-    {
-        if (f1 < 0.0f) f1 = -f1;
-
-        /* Calculate t2. */
-        t1 = a2x * a2x + a2y * a2y;
-        t2 = -(x * a2x + y * a2y) / t1;
-        /* Calculate upper_bound. */
-        if (t2 >= 0.0f && t2 <= 1.0f)
-        {
-            f2 = x + a2x * t2;
-            f2 *= f2;
-            t1 = y + a2y * t2;
-            t1 *= t1;
-            upper_bound = t1 + f2;
-        }
-        else
-        {
-            f2 = x + a2x;
-            f2 *= f2;
-            t1 = y + a2y;
-            t1 *= t1;
-            t2 = t1 + f2;
-            t1 = x * x + y * y;
-            upper_bound = t1 < t2 ? t1 : t2;
-        }
-        /* Calculate n. */
-        upper_bound = f1 / SQRTF(upper_bound);
-        upper_bound = SQRTF(upper_bound);
-        if (stroke_conversion->fattened)
-        {
-            upper_bound *= stroke_conversion->line_width;
-        }
-        n = (uint32_t) ceil(upper_bound);
-    }
-    else
-    {
-        /* n = 0 => n = 256. */
-        n = 256;
-    }
-
-    if (n == 0 || n > 256)
-    {
-        n = 256;
-    }
-
-    /* Add extra P0 for incoming tangent. */
-    point0 = stroke_conversion->path_end;
-    /* First add P1 to calculate incoming tangent, which is saved in P0. */
-    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X1, Y1, vgcFLATTEN_START)); 
-
-    point1 = stroke_conversion->path_end;
-    /* Change the point1's coordinates back to P0. */
-    point1->x = X0;
-    point1->y = Y0;
-    point0->length = 0.0f;
-
-    if (n > 1)
-    {
-        vg_lite_float_t d, dsquare, dx, dy, ddx, ddy;
-        vg_lite_float_t ratioX, ratioY;
-        uint32_t i;
-
-        /* Step 2: Calculate deltas. */
-        /*   Df(t) = f(t + d) - f(t)
-        *         = a1 * d + a2 * d^2 + 2 * a2 * d * t
-        *  DDf(t) = Df(t + d) - Df(t)
-        *         = 2 * a2 * d^2
-        *    f(0) = a0
-        *   Df(0) = a1 * d + a2 * d^2
-        *  DDf(0) = 2 * a2 * d^2
-        */
-        d = 1.0f / (vg_lite_float_t) n;
-        dsquare = d * d;
-        ddx = a2x * dsquare;
-        ddy = a2y * dsquare;
-        dx  = a1x * d + ddx;
-        dy  = a1y * d + ddy;
-        ddx += ddx;
-        ddy += ddy;
-
-        /* Step 3: Add points. */
-        ratioX = dx / X0;
-        if (ratioX < 0.0f) ratioX = -ratioX;
-        ratioY = dy / Y0;
-        if (ratioY < 0.0f) ratioY = -ratioY;
-        if (ratioX > 1.0e-6f && ratioY > 1.0e-6f)
-        {
-            x = X0;
-            y = Y0;
-            for (i = 1; i < n; i++)
-            {
-                x += dx;
-                y += dy;
-
-                /* Add a point to subpath. */
-                VG_LITE_ERROR_HANDLER(_add_point_to_point_list_wdelta(stroke_conversion, x, y, dx, dy, vgcFLATTEN_MIDDLE));             
-
-                dx += ddx;
-                dy += ddy;
-            }
-
-        }
-        else
-        {
-            for (i = 1; i < n; i++)
-            {
-                vg_lite_float_t t = (vg_lite_float_t) i / (vg_lite_float_t) n;
-                vg_lite_float_t u = 1.0f - t;
-                vg_lite_float_t a0 = u * u;
-                vg_lite_float_t a1 = 2.0f * t * u;
-                vg_lite_float_t a2 = t * t;
-
-                x  = a0 * X0 + a1 * X1 + a2 * X2;
-                y  = a0 * Y0 + a1 * Y1 + a2 * Y2;
-
-                /* Add a point to subpath. */
-                VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, x, y, vgcFLATTEN_MIDDLE));                
-            }
-        }
-    }
-
-    /* Add point 2 separately to avoid cumulative errors. */
-    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X2, Y2, vgcFLATTEN_END));
-
-    /* Add extra P2 for outgoing tangent. */
-    /* First change P2(point0)'s coordinates to P1. */
-    point0 = stroke_conversion->path_end;
-    point0->x = X1;
-    point0->y = Y1;
-
-    /* Add P2 to calculate outgoing tangent. */
-    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X2, Y2, vgcFLATTEN_NO)); 
-
-    point1 = stroke_conversion->path_end;
-
-    /* Change point0's coordinates back to P2. */
-    point0->x = X2;
-    point0->y = Y2;
-    point0->length = 0.0f;
-
-ErrorHandler:
-    return error;
-}
-
-static vg_lite_error_t
-_flatten_cubic_bezier(
-    vg_lite_stroke_t *  stroke_conversion,
-    vg_lite_float_t X0,
-    vg_lite_float_t Y0,
-    vg_lite_float_t X1,
-    vg_lite_float_t Y1,
-    vg_lite_float_t X2,
-    vg_lite_float_t Y2,
-    vg_lite_float_t X3,
-    vg_lite_float_t Y3
-    )
-{
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t n;
-    vg_lite_path_point_ptr point0, point1;
-    vg_lite_float_t x, y;
-    vg_lite_float_t a1x, a1y, a2x, a2y, a3x, a3y;
-    vg_lite_float_t ddf0, ddf1, t1, t2, upper_bound;
-
-    if (!stroke_conversion)
-        return VG_LITE_INVALID_ARGUMENT;
-
-    /* Formula.
-    * f(t) = (1 - t)^3 * p0 + 3 * t * (1 - t)^2 * p1 + 3 * t^2 * (1 - t) * p2 + t^3 * p3
-    *      = a0 + a1 * t + a2 * t^2 + a3 * t^3
-    */
-    x = X1 - X0;
-    a1x = x + x + x;
-    y = Y1 - Y0;
-    a1y = y + y + y;
-    x = X0 - X1 - X1 + X2;
-    a2x = x + x + x;
-    y = Y0 - Y1 - Y1 + Y2;
-    a2y = y + y + y;
-    x = X1 - X2;
-    a3x = x + x + x + X3 - X0;
-    y = Y1 - Y2;
-    a3y = y + y + y + Y3 - Y0;
-
-    /* Step 1: Calculate N. */
-    /* Lefan's method. */
-    /*  df(t)/dt  = a1 + 2 * a2 * t + 3 * a3 * t^2
-    * d2f(t)/dt2 = 2 * a2 + 6 * a3 * t
-    * N = ceil(sqrt(max(ddfx(0)^2 + ddfy(0)^2, ddfx(1)^2 + ddyf(1)^2) / epsilon / 8))
-    */
-
-    ddf0 = a2x * a2x + a2y * a2y;
-    t1 = a2x + a3x + a3x + a3x;
-    t2 = a2y + a3y + a3y + a3y;
-    ddf1 = t1 * t1 + t2 * t2;
-    upper_bound = ddf0 > ddf1 ? ddf0: ddf1;
-    upper_bound = SQRTF(upper_bound);
-    upper_bound += upper_bound;
-    upper_bound = SQRTF(upper_bound);
-    if (stroke_conversion->fattened)
-    {
-        upper_bound *= stroke_conversion->line_width;
-    }
-    n = (uint32_t) ceil(upper_bound);
-
-    if (n == 0 || n > 256)
-    {
-        n = 256;
-    }
-
-    /* Add extra P0 for incoming tangent. */
-    point0 = stroke_conversion->path_end;
-    /* First add P1/P2/P3 to calculate incoming tangent, which is saved in P0. */
-    if (X0 != X1 || Y0 != Y1)
-    {
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X1, Y1, vgcFLATTEN_START));
-    }
-    else if (X0 != X2 || Y0 != Y2)
-    {
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X2, Y2, vgcFLATTEN_START));
-    }
-    else
-    {
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X3, Y3, vgcFLATTEN_START));
-    }
-    point1 = stroke_conversion->path_end;
-    /* Change the point1's coordinates back to P0. */
-    point1->x = X0;
-    point1->y = Y0;
-    point0->length = 0.0f;
-
-    if (n > 1)
-    {
-        vg_lite_float_t d, dsquare, dcube, dx, dy, ddx, ddy, dddx, dddy;
-        vg_lite_float_t ratioX, ratioY;
-        uint32_t i;
-
-        /* Step 2: Calculate deltas */
-        /*   Df(t) = f(t + d) - f(t)
-        *  DDf(t) = Df(t + d) - Df(t)
-        * DDDf(t) = DDf(t + d) - DDf(t)
-        *    f(0) = a0
-        *   Df(0) = a1 * d + a2 * d^2 + a3 * d^3
-        *  DDf(0) = 2 * a2 * d^2 + 6 * a3 * d^3
-        * DDDf(0) = 6 * a3 * d^3
-        */
-        d = 1.0f / (vg_lite_float_t) n;
-        dsquare   = d * d;
-        dcube     = dsquare * d;
-        ddx  = a2x * dsquare;
-        ddy  = a2y * dsquare;
-        dddx = a3x * dcube;
-        dddy = a3y * dcube;
-        dx   = a1x * d + ddx + dddx;
-        dy   = a1y * d + ddy + dddy;
-        ddx  += ddx;
-        ddy  += ddy;
-        dddx *= 6.0f;
-        dddy *= 6.0f;
-        ddx  += dddx;
-        ddy  += dddy;
-
-        /* Step 3: Add points. */
-        ratioX = dx / X0;
-        if (ratioX < 0.0f) ratioX = -ratioX;
-        ratioY = dy / Y0;
-        if (ratioY < 0.0f) ratioY = -ratioY;
-        if (ratioX > 1.0e-6f && ratioY > 1.0e-6f)
-        {
-            x = X0;
-            y = Y0;
-            for (i = 1; i < n; i++)
-            {
-                x += dx;
-                y += dy;
-
-                /* Add a point to subpath. */
-                VG_LITE_ERROR_HANDLER(_add_point_to_point_list_wdelta(stroke_conversion, x, y, dx, dy, vgcFLATTEN_MIDDLE));
-                dx += ddx; ddx += dddx;
-                dy += ddy; ddy += dddy;
-            }
-        }
-        else
-        {
-            for (i = 1; i < n; i++)
-            {
-                vg_lite_float_t t = (vg_lite_float_t) i / (vg_lite_float_t) n;
-                vg_lite_float_t tSquare = t * t;
-                vg_lite_float_t tCube = tSquare * t;
-                vg_lite_float_t a0 =  1.0f -  3.0f * t + 3.0f * tSquare -        tCube;
-                vg_lite_float_t a1 =          3.0f * t - 6.0f * tSquare + 3.0f * tCube;
-                vg_lite_float_t a2 =                     3.0f * tSquare - 3.0f * tCube;
-                vg_lite_float_t a3 =                                             tCube;
-
-                x  = a0 * X0 + a1 * X1 + a2 * X2 + a3 * X3;
-                y  = a0 * Y0 + a1 * Y1 + a2 * Y2 + a3 * Y3;
-
-                /* Add a point to subpath. */
-                VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, x, y, vgcFLATTEN_MIDDLE));
-            }
-        }
-    }
-
-    /* Add point 3 separately to avoid cumulative errors. */
-    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X3, Y3, vgcFLATTEN_END));
-
-    /* Add extra P3 for outgoing tangent. */
-    /* First change P3(point0)'s coordinates to P0/P1/P2. */
-    point0 = stroke_conversion->path_end;
-    if (X3 != X2 || Y3 != Y2)
-    {
-        point0->x = X2;
-        point0->y = Y2;
-    }
-    else if (X3 != X1 || Y3 != Y1)
-    {
-        point0->x = X1;
-        point0->y = Y1;
-    }
-    else
-    {
-        point0->x = X0;
-        point0->y = Y0;
-    }
-
-    /* Add P3 to calculate outgoing tangent. */
-    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, X3, Y3, vgcFLATTEN_NO));
-
-    point1 = stroke_conversion->path_end;
-
-    /* Change point0's coordinates back to P3. */
-    point0->x = X3;
-    point0->y = Y3;
-    point0->length = 0.0f;
-
-ErrorHandler:
-    return error;
-}
-#endif /* gcFEATURE_VG_SIMPLYFIED_BEZIER */
 
 #define GETINCREMENT(pointer, datatype_size) \
     (datatype_size - (PTR2SIZE(pointer) & (datatype_size - 1)))
@@ -1390,12 +1001,8 @@ static vg_lite_error_t _flatten_path(
             }
             else
             {
-#if gcFEATURE_VG_SIMPLYFIED_BEZIER
                 vg_lite_float_t curve[6] = { ox, oy, x0, y0, x1, y1 };
                 VG_LITE_ERROR_HANDLER(_flatten_quad_bezier(stroke_conversion, curve, 0));
-#else
-                VG_LITE_ERROR_HANDLER(_flatten_quad_bezier(stroke_conversion, ox, oy, x0, y0, x1, y1));
-#endif
             }
 
             px = x0;
@@ -1421,12 +1028,8 @@ static vg_lite_error_t _flatten_path(
             }
             else
             {
-#if gcFEATURE_VG_SIMPLYFIED_BEZIER
                 vg_lite_float_t curve[8] = { ox, oy, x0, y0, x1, y1, x2, y2 };
                 VG_LITE_ERROR_HANDLER(_flatten_cubic_bezier(stroke_conversion, curve, 0));
-#else
-                VG_LITE_ERROR_HANDLER(_flatten_cubic_bezier(stroke_conversion, ox, oy, x0, y0, x1, y1, x2, y2));
-#endif
             }
 
             px = x1;
