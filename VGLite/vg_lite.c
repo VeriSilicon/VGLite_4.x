@@ -2074,8 +2074,8 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     {
         return VG_LITE_INVALID_ARGUMENT;
     }
-    
-    if (s_context.scissor_set)
+
+    if (s_context.scissor_set && !target->is_scissor_layer)
     {
         int32_t right, bottom;
         right = x + width;

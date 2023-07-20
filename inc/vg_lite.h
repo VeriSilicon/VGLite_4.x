@@ -774,6 +774,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_compress_mode_t compress_mode;  /*! Refer to the definition by vg_lite_compress_mode_t. */
         vg_lite_index_endian_t index_endian;    /*! Refer to the definition by vg_lite_index_endian_t. */
         vg_lite_paint_type_t paintType;         /*! Get paintcolor from different paint types. */
+        vg_lite_bool_t is_scissor_layer;         /*! Get paintcolor from different paint types. */
     } vg_lite_buffer_t;
 
     /* Memory allocation info by kernel. */
