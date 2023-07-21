@@ -74,7 +74,8 @@
 #include <linux/pci.h>
 #endif
 
-#define VG_DEVICE_NAME "vg_lite"
+#define VG_DEVICE_NAME          "vg_lite"
+#define VG_SYSTEM_RESERVE_COUNT 2
 
 /* Struct definitions. */
 struct heap_node {
@@ -95,13 +96,16 @@ struct vg_lite_device {
     uint register_mem_size;
     ulong contiguous_base;
     uint contiguous_size;
+    ulong contiguous_bases[VG_SYSTEM_RESERVE_COUNT];
+    void *contiguous_bases_logical[VG_SYSTEM_RESERVE_COUNT];
+    uint contiguous_sizes[VG_SYSTEM_RESERVE_COUNT];
     uint irq_line;
     struct page *pages;
     unsigned int order;
-    void *virtual;
-    uint64_t physical;
-    uint32_t size;
-    struct memory_heap heap;
+    void *virtual[VG_SYSTEM_RESERVE_COUNT];
+    uint64_t physical[VG_SYSTEM_RESERVE_COUNT];
+    uint32_t size[VG_SYSTEM_RESERVE_COUNT];
+    struct memory_heap heap[VG_SYSTEM_RESERVE_COUNT];
     int irq_enabled;
     volatile uint32_t int_flags;
     wait_queue_head_t int_queue;
@@ -127,6 +131,9 @@ typedef struct vg_module_parameters
 
     ulong    contiguous_base;
     uint     contiguous_size;
+
+    ulong    contiguous_bases[VG_SYSTEM_RESERVE_COUNT];
+    uint     contiguous_sizes[VG_SYSTEM_RESERVE_COUNT];
 }
 vg_module_parameters_t;
 

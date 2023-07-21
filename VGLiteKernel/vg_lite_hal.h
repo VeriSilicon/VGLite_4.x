@@ -108,6 +108,9 @@ void vg_lite_hal_deinitialize(void);
  @param size
  The number of bytes to allocate.
 
+ @param pool
+ select the reserved memory pool
+
  @param logical
  A pointer to a variable that will receive the logical address of the allocated memory for the CPU.
 
@@ -118,7 +121,7 @@ void vg_lite_hal_deinitialize(void);
  A pointer to an opaque structure that will be used as the memory handle. NULL should be returned if there is not
  enough memory.
  */
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical, void ** node);
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void ** klogical, uint32_t * physical, void ** node);
 
 /*!
  @brief Free contiguous video memory.
@@ -130,7 +133,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logi
  @param memory_handle
  A pointer to an opaque structure returned by {@link vg_lite_hal_allocate_contiguous}.
  */
-void vg_lite_hal_free_contiguous(void * memory_handle);
+void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool);
 
 /*!
  @brief remove unfree node when continuously allocate buffer without free buffer.

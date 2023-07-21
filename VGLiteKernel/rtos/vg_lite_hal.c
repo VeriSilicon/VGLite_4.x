@@ -335,7 +335,7 @@ vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogica
     return VG_LITE_NOT_SUPPORT;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical,void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void ** klogical, uint32_t * physical, void ** node)
 {
     unsigned long aligned_size;
     heap_node_t * pos;
@@ -377,7 +377,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logi
     return VG_LITE_OUT_OF_MEMORY;
 }
 
-void vg_lite_hal_free_contiguous(void * memory_handle)
+void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
 {
     /* TODO: no list available in RTOS. */
     heap_node_t * pos, * node;

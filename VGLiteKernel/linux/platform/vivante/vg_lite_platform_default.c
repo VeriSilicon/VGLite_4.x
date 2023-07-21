@@ -101,6 +101,12 @@ int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args)
     pcie_platform->base.vg_device->p_dev = pcie_platform->pcie_info.p_dev;
     pcie_platform->base.vg_device->pci_registered = pcie_platform->pcie_info.pci_registered;
 #endif
+    args->contiguous_bases[0] =  args->contiguous_base;
+    args->contiguous_sizes[0] =  (args->contiguous_size > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : args->contiguous_size;
+  
+    args->contiguous_bases[1] =  args->contiguous_base + args->contiguous_sizes[0];
+    args->contiguous_sizes[1] =  args->contiguous_sizes[0];
+
     return 0;
 }
 
@@ -149,7 +155,7 @@ static int drv_probe(struct pci_dev *p_dev, const struct pci_device_id *ent)
         vg_lite_kernel_error("Failed to pci_irq_vector.\n");
         goto err3;
     }
-    
+
     default_platform.pcie_info.p_dev    = p_dev;
     default_platform.pcie_info.irq_line = irq_line;
 

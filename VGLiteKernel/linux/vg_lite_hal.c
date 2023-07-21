@@ -90,11 +90,21 @@ module_param(registerMemSize, uint, 0644);
 static uint irqLine         = 0;
 module_param(irqLine, uint, 0644);
 
-static uint contiguousSize = 0x02000000;
+static uint contiguousSize = 0x01000000;
 module_param(contiguousSize, uint, 0644);
 
 static ulong contiguousBase = 0x38000000;
 module_param(contiguousBase, ulong, 0644);
+
+static uint contiguousSizes[VG_SYSTEM_RESERVE_COUNT] = {
+    [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = 0
+};
+module_param_array(contiguousSizes, uint, NULL,  0644);
+
+static ulong contiguousBases[VG_SYSTEM_RESERVE_COUNT] = {
+    [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = 0
+};
+module_param_array(contiguousBases, ulong, NULL, 0644);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 # if gcdIRQ_SHARED
@@ -190,8 +200,8 @@ struct mapped_memory {
 struct client_data {
     struct vg_lite_device *device;
     struct vm_area_struct *vm;
-    void                  *contiguous_mapped;
-    void                  *contiguous_klogical;
+    void                  *contiguous_mapped[VG_SYSTEM_RESERVE_COUNT];
+    void                  *contiguous_klogical[VG_SYSTEM_RESERVE_COUNT];
 };
 
 /* Data and objects declarations. */
@@ -214,6 +224,8 @@ static vg_lite_uint32_t global_flags = 0;
 
 static vg_lite_error_t init_param(vg_module_parameters_t *param)
 {
+    int32_t i = 0;
+
     if (!param)
         return VG_LITE_INVALID_ARGUMENT;
 
@@ -225,11 +237,18 @@ static vg_lite_error_t init_param(vg_module_parameters_t *param)
     param->contiguous_base = 0;
     param->contiguous_size = 0;
 
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        param->contiguous_bases[i] = 0;
+        param->contiguous_sizes[i] = 0;
+    }
+
     return VG_LITE_SUCCESS;
 }
 
 static vg_lite_error_t sync_input_param(vg_module_parameters_t *param)
 {
+    int32_t i = 0;
+
     if (!param)
         return VG_LITE_INVALID_ARGUMENT;
 
@@ -241,11 +260,18 @@ static vg_lite_error_t sync_input_param(vg_module_parameters_t *param)
     param->contiguous_base = contiguousBase;
     param->contiguous_size = contiguousSize;
 
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        param->contiguous_bases[i] = contiguousBases[i];
+        param->contiguous_sizes[i] = contiguousSizes[i];
+    }
+
     return VG_LITE_SUCCESS;
 }
 
 static vg_lite_error_t sync_param(vg_module_parameters_t *param)
 {
+    int32_t i;
+
     if (device == NULL || param == NULL)
         return VG_LITE_INVALID_ARGUMENT;
 
@@ -257,7 +283,33 @@ static vg_lite_error_t sync_param(vg_module_parameters_t *param)
     device->contiguous_base = param->contiguous_base;
     device->contiguous_size = param->contiguous_size;
 
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        device->contiguous_bases[i] = param->contiguous_bases[i];
+        device->contiguous_sizes[i] = param->contiguous_sizes[i];
+    }
+
     return VG_LITE_SUCCESS;
+}
+
+static void dump_param(void)
+{
+    vg_lite_uint32_t size, i;
+    vg_lite_int8_t ch;
+
+    pr_warn("vg_lite options:\n");
+
+    pr_warn("registerMemBase      = 0x%08lx\n", device->register_mem_base);
+    pr_warn("registerMemSize      = 0x%08x\n", device->register_mem_size);
+
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        size = (device->size[i] >> 20) ? (device->size[i] >> 20) : (device->size[i] >> 10);
+        ch = (device->size[i] >> 20) ? 'M' : 'k';
+        pr_warn("allocated a %u%cB heap at 0x%08llx\n", size, ch, device->physical[i]);
+#ifndef USE_RESERVE_MEMORY
+        break;
+#endif
+    }
+    pr_warn("vg_lite: enabled ISR for interrupt %d\n", device->irq_line);
 }
 
 void vg_lite_hal_print(char *format, ...)
@@ -606,7 +658,7 @@ vg_lite_error_t vg_lite_hal_free(void* memory)
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void **klogical, uint32_t * physical,void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void **klogical, uint32_t * physical,void ** node)
 {
     unsigned long aligned_size;
     struct heap_node * pos;
@@ -615,12 +667,12 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logi
     aligned_size = VG_LITE_ALIGN(size, VGLITE_MEM_ALIGNMENT);
 
     /* Check if there is enough free memory available. */
-    if (aligned_size > device->heap.free) {
+    if (aligned_size > device->heap[pool].free) {
         return VG_LITE_OUT_OF_MEMORY;
     }
 
     /* Walk the heap backwards. */
-    list_for_each_entry_reverse(pos, &device->heap.list, list) {
+    list_for_each_entry_reverse(pos, &device->heap[pool].list, list) {
         /* Check if the current node is free and is big enough. */
         if (pos->status == 0 && pos->size >= aligned_size) {
             /* See if we the current node is big enough to split. */
@@ -636,12 +688,12 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logi
             pos->status = HEAP_NODE_USED;
 
             /* Return the logical/physical address. */
-            *logical  = (uint8_t *)private_data->contiguous_mapped + pos->offset;
-            *klogical = (uint8_t *)private_data->contiguous_klogical + pos->offset;
-            *physical = vg_lite_hal_cpu_to_gpu(device->physical) + pos->offset;
+            *logical  = (uint8_t *)private_data->contiguous_mapped[pool] + pos->offset;
+            *klogical = (uint8_t *)private_data->contiguous_klogical[pool] + pos->offset;
+            *physical = vg_lite_hal_cpu_to_gpu(device->physical[pool]) + pos->offset;
 
             /* Update the heap free size. */
-            device->heap.free -= aligned_size;
+            device->heap[pool].free -= aligned_size;
 
             *node = pos;
             return VG_LITE_SUCCESS;
@@ -652,7 +704,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logi
     return VG_LITE_OUT_OF_MEMORY;
 }
 
-void vg_lite_hal_free_contiguous(void * memory_handle)
+void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
 {
     struct heap_node * pos, * node;
 
@@ -669,11 +721,11 @@ void vg_lite_hal_free_contiguous(void * memory_handle)
     node->status = 0;
 
     /* Add node size to free count. */
-    device->heap.free += node->size;
+    device->heap[pool].free += node->size;
 
     /* Check if next node is free. */
     pos = node;
-    list_for_each_entry_continue(pos, &device->heap.list, list) {
+    list_for_each_entry_continue(pos, &device->heap[pool].list, list) {
         if (pos->status == 0) {
             /* Merge the nodes. */
             node->size += pos->size;
@@ -687,7 +739,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle)
 
     /* Check if the previous node is free. */
     pos = node;
-    list_for_each_entry_continue_reverse(pos, &device->heap.list, list) {
+    list_for_each_entry_continue_reverse(pos, &device->heap[pool].list, list) {
         if (pos->status == 0) {
             /* Merge the nodes. */
             pos->size += node->size;
@@ -723,7 +775,7 @@ void vg_lite_hal_poke(uint32_t address, uint32_t data)
 vg_lite_error_t vg_lite_hal_query_mem(vg_lite_kernel_mem_t *mem)
 {
     if(device != NULL){
-        mem->bytes = device->heap.free;
+        mem->bytes = device->heap[mem->pool].free;
         return VG_LITE_SUCCESS;
     }
     mem->bytes = 0;
@@ -1406,7 +1458,7 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
         memory_node->bytes = PAGE_SIZE;
         memory_node->flags = VG_LITE_RESERVED_ALLOCATOR;
   
-        vg_lite_hal_allocate_contiguous(memory_node->bytes, &memory_node->memory, &memory_node->kmemory, &memory_node->memory_gpu, &memory_node->memory_handle);
+        vg_lite_hal_allocate_contiguous(memory_node->bytes, memory_node->pool, &memory_node->memory, &memory_node->kmemory, &memory_node->memory_gpu, &memory_node->memory_handle);
         
         sprintf(memory_node->kmemory, "dma_buf reserve test!");
         offset = (vg_lite_uintptr_t)memory_node->kmemory & (PAGE_SIZE - 1);
@@ -1752,14 +1804,18 @@ static void unmap_contiguous_memory_from_kernel(void *klogical, uint64_t physica
 int drv_open(struct inode * inode, struct file * file)
 {
     struct client_data * data;
+    vg_lite_uint32_t i = 0;
 
     data = kmalloc(sizeof(struct client_data), GFP_KERNEL);
     if (data == NULL)
         return -1;
 
     data->device = device;
-    data->contiguous_mapped   = NULL;
-    data->contiguous_klogical = NULL;
+
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        data->contiguous_mapped[i]   = NULL;
+        data->contiguous_klogical[i] = NULL;
+    }
 
     file->private_data = data;
 
@@ -1850,8 +1906,9 @@ int drv_mmap(struct file * file, struct vm_area_struct * vm)
 {
     vg_lite_long_t size;
     struct client_data * private = (struct client_data *) file->private_data;
-    vg_lite_uint32_t offset = private->device->physical & (PAGE_SIZE - 1);
+    vg_lite_uint32_t offset = private->device->physical[0] & (PAGE_SIZE - 1);
     vg_lite_uint32_t num_pages = 0;
+    vg_lite_uint32_t i = 0;
 
     if (!cached)
 #if defined (__arm64__) || defined (__aarch64__)
@@ -1868,20 +1925,26 @@ int drv_mmap(struct file * file, struct vm_area_struct * vm)
     vm->vm_pgoff = 0;
 
     size = vm->vm_end - vm->vm_start;
-    if (size > (private->device->size + offset))
-        size = private->device->size + offset;
+    if (size > (private->device->size[0] + offset))
+        size = private->device->size[0] + offset;
 
     num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     vg_lite_kernel_hintmsg("offset = %d, size = %ld, num_pages << PAGE_SHIFT = %d\n", offset, size, num_pages << PAGE_SHIFT);
 
-    if (remap_pfn_range(vm, vm->vm_start, private->device->physical >> PAGE_SHIFT, num_pages << PAGE_SHIFT, vm->vm_page_prot) < 0) {
+    if (remap_pfn_range(vm, vm->vm_start, private->device->physical[0] >> PAGE_SHIFT, num_pages << PAGE_SHIFT, vm->vm_page_prot) < 0) {
         vg_lite_kernel_error("remap_pfn_range failed\n");
         return -1;
     }
 
     private->vm = vm;
-    private->contiguous_mapped   = (vg_lite_pointer) ((vg_lite_uint8_t *)vm->vm_start + offset);
-    private->contiguous_klogical = private->device->virtual;
+    private->contiguous_mapped[0]   = (vg_lite_pointer) ((vg_lite_uint8_t *)vm->vm_start + offset);
+    private->device->contiguous_bases_logical[0] = private->contiguous_mapped[0];
+    private->contiguous_klogical[0] = private->device->virtual[0];
+
+    for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        private->contiguous_mapped[i] = private->device->contiguous_bases_logical[i];
+        private->contiguous_klogical[i] = private->device->virtual[i];
+    }
 
     if (verbose)
         vg_lite_kernel_hintmsg("mapped %scached contiguous memory to %p\n", cached ? "" : "non-", private->contiguous_mapped);
@@ -1910,6 +1973,7 @@ static void vg_lite_exit(void)
 {
     struct heap_node * pos;
     struct heap_node * n;
+    vg_lite_uint32_t i = 0;
 
     /* Check for valid device. */
     if (device != NULL) {
@@ -1919,23 +1983,26 @@ static void vg_lite_exit(void)
             device->register_base_mapped = NULL;
         }
 
+#ifndef USE_RESERVE_MEMORY
         if (device->pages != NULL) {
             /* Free the contiguous memory. */
             __free_pages(device->pages, device->order);
         }
-
+#endif
         if (device->irq_enabled) {
             /* Free the IRQ. */
             free_irq(device->irq_line/*GPU_IRQ*/, device);
         }
 
         /* Process each node. */
-        list_for_each_entry_safe(pos, n, &device->heap.list, list) {
-            /* Remove it from the linked list. */
-            list_del(&pos->list);
+        for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+            list_for_each_entry_safe(pos, n, &device->heap[i].list, list) {
+                /* Remove it from the linked list. */
+                list_del(&pos->list);
 
-            /* Free up the memory. */
-            kfree(pos);
+                /* Free up the memory. */
+                kfree(pos);
+            }
         }
 
         if (device->created) {
@@ -1954,8 +2021,10 @@ static void vg_lite_exit(void)
         }
 
 #ifdef USE_RESERVE_MEMORY
-        if (device->virtual != NULL) {
-            unmap_contiguous_memory_from_kernel(device->virtual, device->physical, device->size);  
+        for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+            if (device->virtual[i] != NULL) {
+                unmap_contiguous_memory_from_kernel(device->virtual[i], device->physical[i], device->size[i]);  
+            }
         }
 #endif
 
@@ -1988,9 +2057,9 @@ static irqreturn_t irq_hander(int irq, void * context)
 static vg_lite_error_t vg_lite_init(struct platform_device * pdev)
 {
     struct heap_node * node;
-    vg_lite_uint32_t size;
-    vg_lite_int8_t ch;
+    vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_kernel_map_memory_t map_memory = {0};
 
     device->pdev = pdev;
 
@@ -2024,33 +2093,42 @@ static vg_lite_error_t vg_lite_init(struct platform_device * pdev)
     }
 
     /* Save contiguous memory. */
-    device->virtual = page_address(device->pages);
-    device->physical = virt_to_phys(device->virtual);
-    device->size = ((1 << (device->order + PAGE_SHIFT)) > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : (1 << (device->order + PAGE_SHIFT));
+    device->virtual[0] = page_address(device->pages);
+    device->physical[0] = virt_to_phys(device->virtual[0]);
+    device->size[0] = ((1 << (device->order + PAGE_SHIFT)) > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : (1 << (device->order + PAGE_SHIFT));
 #else
-    device->physical = device->contiguous_base;
-    device->size = (device->contiguous_size > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : device->contiguous_size;
-    device->virtual = map_contiguous_memory_to_kernel(device->physical, device->size);
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        device->physical[i] = device->contiguous_bases[i];
+        device->size[i] = (device->contiguous_sizes[i] > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : device->contiguous_sizes[i];
+        device->virtual[i] = map_contiguous_memory_to_kernel(device->physical[i], device->size[i]);
+    }
 #endif
 
-    size = (device->size >> 20) ? (device->size >> 20) : (device->size >> 10);
-    ch = (device->size >> 20) ? 'M' : 'k';
-    vg_lite_kernel_hintmsg("allocated a %u%cB heap at 0x%08llx\n", size, ch, device->physical);
+    dump_param();
 
-    /* Create the heap. */
-    INIT_LIST_HEAD(&device->heap.list);
-    device->heap.free = device->size;
-
-    node = kmalloc(sizeof(struct heap_node), GFP_KERNEL);
-    if (node == NULL) {
-        vg_lite_kernel_error("kmalloc failed, ");
-        vg_lite_exit();
-        ONERROR(VG_LITE_OUT_OF_RESOURCES);
+    for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        map_memory.physical = device->physical[i];
+        map_memory.bytes    = device->size[i];
+        ONERROR(vg_lite_hal_map_memory(&map_memory));
+        device->contiguous_bases_logical[i] = map_memory.logical;
     }
-    node->offset = 0;
-    node->size = device->size;
-    node->status = 0;
-    list_add(&node->list, &device->heap.list);
+
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
+        /* Create the heap. */
+        INIT_LIST_HEAD(&device->heap[i].list);
+        device->heap[i].free = device->size[i];
+
+        node = kmalloc(sizeof(struct heap_node), GFP_KERNEL);
+        if (node == NULL) {
+            vg_lite_kernel_error("kmalloc failed, ");
+            vg_lite_exit();
+            ONERROR(VG_LITE_OUT_OF_RESOURCES);
+        }
+        node->offset = 0;
+        node->size = device->size[i];
+        node->status = 0;
+        list_add(&node->list, &device->heap[i].list);
+    }
 
     /* Initialize the wait queue. */
     init_waitqueue_head(&device->int_queue);
@@ -2062,7 +2140,6 @@ static vg_lite_error_t vg_lite_init(struct platform_device * pdev)
         ONERROR(VG_LITE_OUT_OF_RESOURCES);
     }
     device->irq_enabled = 1;
-    printk("vg_lite: enabled ISR for interrupt %d\n", device->irq_line/*GPU_IRQ*/);
 
     /* Register device. */
     device->major = register_chrdev(0, "vg_lite", &file_operations);
