@@ -707,6 +707,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
 {
     struct heap_node * pos, * node;
+    unsigned long free_size;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -720,8 +721,8 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
     /* Mark node as free. */
     node->status = 0;
 
-    /* Add node size to free count. */
-    device->heap[pool].free += node->size;
+    /* record current node free size */
+    free_size = node->size;
 
     /* Check if next node is free. */
     pos = node;
@@ -729,6 +730,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             node->size += pos->size;
+            free_size += pos->size;
 
             /* Delete the next node from the list. */
             list_del(&pos->list);
@@ -743,6 +745,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             pos->size += node->size;
+            free_size += pos->size;
 
             /* Delete the current node from the list. */
             list_del(&node->list);
@@ -750,6 +753,9 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         }
         break;
     }
+
+    /* Add node size to free count. */
+    device->heap[pool].free += free_size;
     /* TODO:the memory manager still have problem,we will refine it later.*/
     /*if(node->list.next == &device->heap.list && node->list.prev == &device->heap.list)
         kfree(node);*/

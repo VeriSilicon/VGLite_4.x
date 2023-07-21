@@ -192,23 +192,32 @@ struct client_data {
 
 static struct vg_lite_device Device, * device;
 
-void * vg_lite_hal_alloc(unsigned long size)
+vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
 {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
 #if _BAREMETAL
     /* Alloc is not supported in BAREMETAL / DDRLESS. */
-    return NULL;
+    *memory = NULL;
+    error  = VG_LITE_NOT_SUPPORT;
 #else
     /* TODO: Allocate some memory. No more kernel mode in RTOS. */
-    return pvPortMalloc(size);
+    *memory = pvPortMalloc(size);
 #endif
+
+    return error;
 }
 
-void vg_lite_hal_free(void * memory)
+vg_lite_error_t vg_lite_hal_free(void * memory)
 {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    
 #if !_BAREMETAL
     /* TODO: Free some memory. No more kernel mode in RTOS. */
     vPortFree(memory);
 #endif
+
+    return error;
 }
 
 void vg_lite_hal_delay(uint32_t ms)
@@ -248,7 +257,7 @@ static int split_node(heap_node_t * node, unsigned long size)
     heap_node_t * split;
 
     /* Allocate a new node. */
-    split = vg_lite_hal_alloc(sizeof(heap_node_t));
+    vg_lite_hal_allocate(sizeof(heap_node_t), (void **)&split);
     if (split == NULL)
         return -1;
 
@@ -381,6 +390,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
 {
     /* TODO: no list available in RTOS. */
     heap_node_t * pos, * node;
+    unsigned long free_size;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -393,7 +403,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
     node->status = 0;
 
     /* Add node size to free count. */
-    device->heap.free += node->size;
+    free_size = node->size;
 
     /* Check if next node is free. */
     pos = node;
@@ -403,6 +413,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             node->size += pos->size;
+            free_size += pos->size;
             if(node->offset > pos->offset)
                 node->offset = pos->offset;
             /* Delete the next node from the list. */
@@ -420,6 +431,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             pos->size += node->size;
+            free_size += pos->size;
             if(pos->offset > node->offset)
                 pos->offset = node->offset;
             /* Delete the current node from the list. */
@@ -428,11 +440,13 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         }
         break;
     }
+
+    device->heap.free += free_size;
     /* when release command buffer node and ts buffer node to exit,release the linked list*/
-    if(device->heap.list.next == device->heap.list.prev) {
+    /* if(device->heap.list.next == device->heap.list.prev) {
         delete_list(&pos->list);
         vg_lite_hal_free(pos);
-    }
+    }*/
 }
 
 void vg_lite_hal_free_os_heap(void)
@@ -653,7 +667,7 @@ static int vg_lite_init(void)
     INIT_LIST_HEAD(&device->heap.list);
     device->heap.free = device->size;
 
-    node = vg_lite_hal_alloc(sizeof(heap_node_t));
+    vg_lite_hal_allocate(sizeof(heap_node_t), (void **)&node);
     if (node == NULL) {
         vg_lite_exit();
         return -1;
