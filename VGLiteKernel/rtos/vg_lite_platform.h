@@ -62,6 +62,7 @@
 #include "../vg_lite_type.h"
 
 #define _BAREMETAL 0
+#define VG_SYSTEM_RESERVE_COUNT 2
 
 /* Implementation of list. ****************************************/
 typedef struct list_head {
@@ -76,13 +77,21 @@ typedef struct heap_node {
     int32_t status;
 }heap_node_t;
 
+typedef struct vg_module_parameters
+{
+
+    uint32_t        register_mem_base;
+    uint32_t        gpu_mem_base[VG_SYSTEM_RESERVE_COUNT];
+
+    volatile void * contiguous_mem_base[VG_SYSTEM_RESERVE_COUNT];
+    uint32_t        contiguous_mem_size[VG_SYSTEM_RESERVE_COUNT];
+}
+vg_module_parameters_t;
+
 /*!
 @brief Initialize the hardware mem setting.
 */
-void vg_lite_init_mem(uint32_t register_mem_base,
-                      uint32_t gpu_mem_base,
-                      volatile void * contiguous_mem_base,
-                      uint32_t contiguous_mem_size);
+void vg_lite_init_mem(vg_module_parameters_t *param);
 
 /*!
 @brief The hardware IRQ handler.
