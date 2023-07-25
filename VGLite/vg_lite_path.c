@@ -2560,13 +2560,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     uint32_t tiled;
     uint32_t in_premult = 0;
 
-#if (!gcFEATURE_VG_PARALLEL_PATHS & !gcFEATURE_VG_SPLIT_PATH)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && !gcFEATURE_VG_SPLIT_PATH)
     int32_t y = 0;
     int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-
 #if gcFEATURE_VG_SPLIT_PATH
     int32_t y = 0;
     uint32_t par_height = 0;
@@ -3021,18 +3020,18 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     uint32_t index_endian = 0;
     uint32_t in_premult = 0;
 
-#if (!gcFEATURE_VG_PARALLEL_PATHS & !gcFEATURE_VG_SPLIT_PATH)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && !gcFEATURE_VG_SPLIT_PATH)
     int32_t y = 0;
     int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-
 #if gcFEATURE_VG_SPLIT_PATH
     int32_t y = 0;
     uint32_t par_height = 0;
     int32_t next_boundary = 0;
 #endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
         target, path, fill_rule, matrix0, source, matrix1, blend, pattern_mode, pattern_color, filter);

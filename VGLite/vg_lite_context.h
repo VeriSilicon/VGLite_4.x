@@ -234,50 +234,22 @@ extern void  vg_lite_os_free(void* memory);
 #endif
 
 #ifndef vgliteDUMP_KEY
-#   define vgliteDUMP_KEY                          "process"
+#   define vgliteDUMP_KEY                       "process"
 #endif
 
-#define DUMP_CAPTURE                            0
-#define DUMP_COMMAND_BY_USER                    0
+#define DUMP_CAPTURE                            1
+#define DUMP_COMMAND_BY_USER                    1
 
 #if DUMP_CAPTURE
 void _SetDumpFileInfo();
-
-vg_lite_error_t
-vglitefDump(
-    char* String,
-    ...
-);
-#  define vglitemDUMP               vglitefDump
-
-vg_lite_error_t
-vglitefDumpBuffer(
-    char* Tag,
-    size_t Physical,
-    void* Logical,
-    size_t Offset,
-    size_t Bytes
-);
-#   define vglitemDUMP_BUFFER       vglitefDumpBuffer
+vg_lite_error_t vglitefDump(char* String, ...);
+vg_lite_error_t vglitefDumpBuffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes);
+#define vglitemDUMP                             vglitefDump
+#define vglitemDUMP_BUFFER                      vglitefDumpBuffer
 #else
-inline static void __dummy_dump(
-    char* Message,
-    ...
-)
-{
-}
-#  define vglitemDUMP               __dummy_dump
-
-inline static void
-__dummy_dump_buffer(
-    char* Tag,
-    size_t Physical,
-    void* Logical,
-    size_t Offset,
-    size_t Bytes
-)
-{
-}
-#   define vglitemDUMP_BUFFER       __dummy_dump_buffer
+inline static void __dummy_dump(char* Message, ...) {}
+inline static void __dummy_dump_buffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes) {}
+#define vglitemDUMP                             __dummy_dump
+#define vglitemDUMP_BUFFER                      __dummy_dump_buffer
 #endif
 /**************************** Capture ********************************************/

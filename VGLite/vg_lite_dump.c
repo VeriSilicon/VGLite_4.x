@@ -35,9 +35,6 @@
 #include "vg_lite_context.h"
 #ifdef _WIN32
     #include <windows.h>
-    #define bool int 
-    #define true 1
-    #define false 0
 #else
     #include <stdbool.h>
     #include <pthread.h>
@@ -45,7 +42,7 @@
 #endif
 
 #if DUMP_CAPTURE
-static bool DumpFlag  = 0;
+static int DumpFlag  = 0;
 static void * dump_mutex = NULL;
 typedef struct _vglitesDUMP_FILE_INFO
 {
@@ -78,11 +75,10 @@ static pthread_mutex_t _dumpFileMutex = PTHREAD_MUTEX_INITIALIZER;
 )
 
 static FILE *_SetDumpFile(
-    FILE *File, bool CloseOldFile
+    FILE *File, int CloseOldFile
     );
 
-vg_lite_error_t
-vg_lite_CreateMutex(void **Mutex)
+vg_lite_error_t vg_lite_CreateMutex(void **Mutex)
 {
 #ifdef _WIN32
     void *handle;
@@ -233,16 +229,17 @@ vg_lite_ReleaseMutex(void *Mutex)
 }
 
 #define vglitemUNLOCKDUMP() \
-  assert(vg_lite_ReleaseMutex(dump_mutex) == VG_LITE_SUCCESS);
+    assert(vg_lite_ReleaseMutex(dump_mutex) == VG_LITE_SUCCESS);
 
 #define STACK_THREAD_NUMBER 1
-static uint32_t            _usedFileSlot = 0;
-static uint32_t            _currentPos = 0;
-static vglitesDUMP_FILE_INFO    _FileArray[STACK_THREAD_NUMBER];
-#define vglitemOPT_VALUE(ptr)    (((ptr) == NULL) ? 0 : *(ptr))
 
-vg_lite_error_t
-vg_lite_PrintStrVSafe(
+static uint32_t                         _usedFileSlot = 0;
+static uint32_t                         _currentPos = 0;
+static vglitesDUMP_FILE_INFO            _FileArray[STACK_THREAD_NUMBER];
+
+#define vglitemOPT_VALUE(ptr)           (((ptr) == NULL) ? 0 : *(ptr))
+
+vg_lite_error_t vg_lite_PrintStrVSafe(
     char * String,
     size_t StringSize,
     unsigned int * Offset,
@@ -284,9 +281,7 @@ vg_lite_PrintStrVSafe(
     return status;
 }
 
-
-vg_lite_error_t
-vg_lite_PrintStrSafe(
+vg_lite_error_t vg_lite_PrintStrSafe(
     char * String,
     size_t StringSize,
     unsigned int * Offset,
@@ -392,21 +387,14 @@ vg_lite_SetDebugFile(
 
 #endif
 
-vg_lite_error_t
-vgliteoDUMP_SetDumpFlag(
-    bool DumpState
-    )
+vg_lite_error_t vgliteoDUMP_SetDumpFlag(int DumpState)
 {
     DumpFlag = DumpState;
 
     return VG_LITE_SUCCESS;
 }
 
-
-static FILE *_SetDumpFile(
-    FILE *File,
-    bool CloseOldFile
-    )
+static FILE *_SetDumpFile(FILE *File, int CloseOldFile)
 {
     FILE *oldFile = NULL;
     uint32_t selfThreadID = vglitemGETTHREADID();
@@ -477,8 +465,7 @@ error:
     return oldFile;
 }
 
-FILE *
-_GetDumpFile()
+FILE * _GetDumpFile()
 {
     uint32_t selfThreadID;
     uint32_t pos = 0;
@@ -519,34 +506,21 @@ exit:
     fprintf(((File == NULL) ? stderr : File), "%s", String);
 #else
 #define vglitemOUTPUT_STRING(File, String) \
-    if (File != NULL) \
-    { \
+    if (File != NULL) { \
         fprintf(File, "%s", String); \
-    } \
-    else \
-    { \
+    } else { \
         OutputDebugString(String); \
     }
 #endif
 
-static void
-OutputString(
-    FILE * File,
-    const char* String
-    )
+static void OutputString(FILE *File, const char *String)
 {
-    if (String != NULL)
-    {
+    if (String != NULL) {
         vglitemOUTPUT_STRING(File, String);
     }
 }
 
-static void
-_Print(
-    FILE * File,
-    const char* Message,
-    va_list Arguments
-    )
+static void _Print(FILE *File, const char *Message, va_list Arguments)
 {
     /* Output to file or debugger. */
 
@@ -658,24 +632,17 @@ _Print(
 #define vglitemDEBUGPRINT(FileHandle, Message) \
 { \
     va_list arguments; \
-    \
     va_start(arguments, Message); \
     _Print(FileHandle, Message, arguments); \
     va_end(arguments); \
 }
 
-void
-vgliteoOS_Print(
-    const char * Message,
-    ...
-    )
+void vgliteoOS_Print(const char * Message, ...)
 {
     vglitemDEBUGPRINT(_GetDumpFile(), Message);
 }
 
-
-void _SetDumpFileInfo(
-    )
+void _SetDumpFileInfo()
 {
 #define DUMP_FILE_PREFIX   "hal"
 
@@ -702,11 +669,7 @@ void _SetDumpFileInfo(
     vgliteoDUMP_SetDumpFlag(1);
 }
 
-vg_lite_error_t
-vglitefDump(
-        char * Message,
-        ...
-        )
+vg_lite_error_t vglitefDump(char * Message, ...)
 {
     vg_lite_error_t status = VG_LITE_SUCCESS;
     unsigned offset = 0;
@@ -730,15 +693,7 @@ vglitefDump(
     return status;
 }
 
-
-vg_lite_error_t
-vglitefDumpBuffer(
-    char * Tag,
-    size_t Physical,
-    void * Logical,
-    size_t Offset,
-    size_t Bytes
-    )
+vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, size_t Offset, size_t Bytes)
 {
     unsigned int * ptr = (unsigned int *) Logical + (Offset >> 2);
     size_t bytes   = vglitemALIGN(Bytes + (Offset & 3), 4);
