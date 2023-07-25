@@ -2559,11 +2559,18 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     float scale, bias;
     uint32_t tiled;
     uint32_t in_premult = 0;
-#if !gcFEATURE_VG_PARALLEL_PATHS
-    int y;
+
+#if (!gcFEATURE_VG_PARALLEL_PATHS & !gcFEATURE_VG_SPLIT_PATH)
+    int32_t y = 0;
     int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
+#endif
+
+#if gcFEATURE_VG_SPLIT_PATH
+    int32_t y = 0;
+    uint32_t par_height = 0;
+    int32_t next_boundary = 0;
 #endif
 
 #if gcFEATURE_VG_TRACE_API
@@ -2754,6 +2761,28 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     {
         s_context.tessbuf.tess_w_h = width | (height << 16);
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
+                /* Program tessellation control: for TS module. */
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+                }
+            }
+#else
             /* Tessellate path. */
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
@@ -2766,9 +2795,35 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             else {
                 VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
             }
+#endif
         }
 
         if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                }
+                else {
+                    format = convert_path_format(VG_LITE_FP32);
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+                }
+            }
+#else
             /* Tessellate path. */
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
@@ -2786,6 +2841,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
                 VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
+#endif
         }
     }
 #else
@@ -2793,6 +2849,28 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         s_context.tessbuf.tess_w_h = width | (height << 16);
         height = s_context.tessbuf.tess_w_h >> 16;
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
+                /* Program tessellation control: for TS module. */
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+                }
+            }
+#else
             if (height <= 128)
                 parallel_workpaths1 = 4;
             else
@@ -2826,9 +2904,35 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                     }
                 }
             }
+#endif
         }
 
         if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                }
+                else {
+                    format = convert_path_format(VG_LITE_FP32);
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                    VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+                }
+            }
+#else
             for (y = point_min.y; y < point_max.y; y += height) {
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
@@ -2857,6 +2961,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                     }
                 }
             }
+#endif
         }
     }
 #endif
@@ -2915,13 +3020,19 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t in_premult = 0;
-#if !gcFEATURE_VG_PARALLEL_PATHS
-    int y;
+
+#if (!gcFEATURE_VG_PARALLEL_PATHS & !gcFEATURE_VG_SPLIT_PATH)
+    int32_t y = 0;
     int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
 
+#if gcFEATURE_VG_SPLIT_PATH
+    int32_t y = 0;
+    uint32_t par_height = 0;
+    int32_t next_boundary = 0;
+#endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
         target, path, fill_rule, matrix0, source, matrix1, blend, pattern_mode, pattern_color, filter);
@@ -3338,6 +3449,33 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));;
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                } else {
+                    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+                    if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+                        format = convert_path_format(VG_LITE_FP32);
+                        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+                    }
+                }
+            }
+#else
         /* Tessellate path. */
         s_context.tessbuf.tess_w_h = width | (height << 16);
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
@@ -3357,12 +3495,42 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
                 VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
             }
         }
+#endif
     }
 #else
     {
         s_context.tessbuf.tess_w_h = width | (height << 16);
         height = s_context.tessbuf.tess_w_h >> 16;
+#if gcFEATURE_VG_SPLIT_PATH
+            for (y = point_min.y; y < point_max.y; y += par_height) {
+                next_boundary = (y+16) & 0xfffffff0;
+                par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
+
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));;
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (y << 16)));
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
+
+                if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+                    VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                } else {
+                    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+                    if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
+                        format = convert_path_format(VG_LITE_FP32);
+                        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
+                        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+                    }
+                }
+            }
+
+#else
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
+
             if (height <= 128)
                 parallel_workpaths1 = 4;
             else 
@@ -3426,6 +3594,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
                 }
             }
         }
+#endif
     }
 #endif
 
