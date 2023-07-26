@@ -39,22 +39,6 @@
 #define VGLITE_LOG    printf
 #endif
 
-#define DUMP_COMMAND            0
-#define DUMP_IMAGE              0
-
-/* Enable FC buffer dump if SOC supports fast clear */
-#define VG_TARGET_FC_DUMP       0
-
-
-#if DUMP_COMMAND || DUMP_IMAGE
-#ifdef __linux__
-#include <unistd.h>
-#endif
-FILE* fp;
-char filename[30];
-#endif
-
-
 /*** Global Context Access ***/
 #define GET_CONTEXT()               &s_context
 
@@ -228,7 +212,24 @@ extern void* vg_lite_os_malloc(size_t size);
 extern void  vg_lite_os_free(void* memory);
 
 
-/**************************** Capture ********************************************/
+/**************************** Dump command, image ********************************************/
+
+#define DUMP_COMMAND                            0
+#define DUMP_IMAGE                              0
+
+/* Enable FC buffer dump if SOC supports fast clear */
+#define VG_TARGET_FC_DUMP                       0
+
+#if DUMP_COMMAND || DUMP_IMAGE
+#ifdef __linux__
+#include <unistd.h>
+#endif
+FILE* fp;
+char filename[30];
+#endif
+
+/**************************** Dump Capture ****************************************************/
+
 #ifndef vgliteDUMP_PATH
 #   define vgliteDUMP_PATH                      "./"
 #endif
@@ -237,8 +238,8 @@ extern void  vg_lite_os_free(void* memory);
 #   define vgliteDUMP_KEY                       "process"
 #endif
 
-#define DUMP_CAPTURE                            1
-#define DUMP_COMMAND_BY_USER                    1
+#define DUMP_CAPTURE                            0
+#define DUMP_COMMAND_BY_USER                    0
 
 #if DUMP_CAPTURE
 void _SetDumpFileInfo();
@@ -252,4 +253,5 @@ inline static void __dummy_dump_buffer(char* Tag, size_t Physical, void* Logical
 #define vglitemDUMP                             __dummy_dump
 #define vglitemDUMP_BUFFER                      __dummy_dump_buffer
 #endif
-/**************************** Capture ********************************************/
+
+/**********************************************************************************************/
