@@ -78,6 +78,7 @@
 #define gcFEATURE_VG_AYUV_INPUT    0
 #define gcFEATURE_VG_16PIXELS_ALIGNED    1
 #define gcFEATURE_VG_MATH_PRECISION_FIX    1
+#define gcFEATURE_VG_SPLIT_PATH    0
 
 /* SW Features */
 #define gcFEATURE_VG_STROKE_PATH    1
