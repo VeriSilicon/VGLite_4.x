@@ -2521,7 +2521,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t tiled_source;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
+#if !gcFEATURE_VG_SPLIT_PATH
     uint32_t ahb_read_split = 0;
+#endif
     uint32_t compress_mode = 0;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
@@ -2871,20 +2873,20 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
         case VG_LITE_NONE_IMAGE_MODE:
-            imageMode = 0x00000001;
+            imageMode = 0x00000000;
             break;
         case VG_LITE_MULTIPLY_IMAGE_MODE:
-            imageMode = 0x00002001;
+            imageMode = 0x00002000;
             break;
         case VG_LITE_NORMAL_IMAGE_MODE:
         case VG_LITE_ZERO:
-            imageMode = 0x00001001;
+            imageMode = 0x00001000;
             break;
         case VG_LITE_STENCIL_MODE:
-            imageMode = 0x00003001;
+            imageMode = 0x00003000;
             break;
         case VG_LITE_RECOLOR_MODE:
-            imageMode = 0x00006001;
+            imageMode = 0x00006000;
             break;
     }
 
@@ -2996,10 +2998,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         stripe_mode = 0x20000000;
     }
 
+#if !gcFEATURE_VG_SPLIT_PATH
     if (blend_mode) {
         /* The hw bit for improve read image buffer performance when enable alpha blending. */
         ahb_read_split = 1 << 7;
     }
+#endif
 
     compress_mode = (uint32_t)source->compress_mode << 25;
 
@@ -3007,7 +3011,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, paintType | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -3075,9 +3079,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
             return error;
 #endif
-
+#if !gcFEATURE_VG_SPLIT_PATH
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-
+#else
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+#endif
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
@@ -3156,7 +3162,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
+#if !gcFEATURE_VG_SPLIT_PATH
     uint32_t ahb_read_split = 0;
+#endif
     uint32_t compress_mode;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
@@ -3516,20 +3524,20 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
         case VG_LITE_NONE_IMAGE_MODE:
-            imageMode = 0x00000001;
+            imageMode = 0x00000000;
             break;
         case VG_LITE_MULTIPLY_IMAGE_MODE:
-            imageMode = 0x00002001;
+            imageMode = 0x00002000;
             break;
         case VG_LITE_NORMAL_IMAGE_MODE:
         case VG_LITE_ZERO:
-            imageMode = 0x00001001;
+            imageMode = 0x00001000;
             break;
         case VG_LITE_STENCIL_MODE:
-            imageMode = 0x00003001;
+            imageMode = 0x00003000;
             break;
         case VG_LITE_RECOLOR_MODE:
-            imageMode = 0x00006001;
+            imageMode = 0x00006000;
             break;
     }
 
@@ -3619,17 +3627,19 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         stripe_mode = 0x20000000;
     }
 
+#if !gcFEATURE_VG_SPLIT_PATH
     if (blend_mode) {
         /* The hw bit for improve read image buffer performance when enable alpha blending. */
         ahb_read_split = 1 << 7;
     }
+#endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -3689,8 +3699,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     src_premultiply_enable = 0x01000100;
 #endif
 #endif
-
+#if !gcFEATURE_VG_SPLIT_PATH
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
+#else
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+#endif
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
@@ -4577,6 +4590,9 @@ vg_lite_error_t vg_lite_finish()
     }
 
     /* Flush is moved from each draw to here. */
+#if gcFEATURE_VG_SPLIT_PATH
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
+#endif
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
     VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
@@ -4615,6 +4631,9 @@ vg_lite_error_t vg_lite_flush(void)
     }
 
     /* Submit the current command buffer. */
+#if gcFEATURE_VG_SPLIT_PATH
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
+#endif
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
     CMDBUF_SWAP(s_context);
