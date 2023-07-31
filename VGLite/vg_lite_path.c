@@ -3835,7 +3835,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     dx = grad->linear_grad.X1 - grad->linear_grad.X0;
     dy = grad->linear_grad.Y1 - grad->linear_grad.Y0;
 #if gcFEATURE_VG_MATH_PRECISION_FIX
-    dxdx_dydy = (dx * dx + dy * dy) / (dx + 1);
+    dxdx_dydy = (dx * dx + dy * dy) / sqrt((dx + 1) * (dx + 1) + (dy + 1) * (dy + 1));
 #else
     dxdx_dydy = dx * dx + dy * dy;
 #endif
