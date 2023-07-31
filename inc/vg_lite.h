@@ -231,7 +231,7 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_HIGH,   /*! High quality 16x anti-aliasing path. */
         VG_LITE_UPPER,  /*! Upper quality 8x anti-aliasing path. */
         VG_LITE_MEDIUM, /*! Medium quality 4x anti-aliasing path. */
-        VG_LITE_LOW,    /*! Low quality pat without any anti-aliasing. */
+        VG_LITE_LOW,    /*! Low quality path without any anti-aliasing. */
     } vg_lite_quality_t;
 
     /* Format of path coordinates. */
