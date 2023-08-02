@@ -1801,8 +1801,22 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
         return 0;
     
     /* Compute projected x and y. */
-    result->x = (int)((pt_x / pt_w) + 0.5f);
-    result->y = (int)((pt_y / pt_w) + 0.5f);
+    if (pt_x < 0)
+    {
+        result->x = (int)((pt_x / pt_w) - 0.5f);
+    }
+    else
+    {
+        result->x = (int)((pt_x / pt_w) + 0.5f);
+    }
+    if (pt_y < 0)
+    {
+        result->y = (int)((pt_y / pt_w) - 0.5f);
+    }
+    else
+    {
+        result->y = (int)((pt_y / pt_w) + 0.5f);
+    }
     
     /* Success. */
     return 1;
