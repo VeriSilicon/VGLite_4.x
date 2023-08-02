@@ -146,6 +146,7 @@ static void compute_pathbounds(float* xmin, float* ymin, float* xmax, float* yma
     }
 }
 
+#if gcFEATURE_VG_SIMPLYFIED_BEZIER
 void quad_bezier(float* x, float* y, const float curve[6], float t) {
     const float* v0, * v1, * v2;
     float mt, t2, mt2, res[2];
@@ -377,6 +378,7 @@ void split_cubic(float out1[8], float out2[8], float curve[8], float split) {
         out2[6] = C[0][3]; out2[7] = C[1][3];
     }
 }
+#endif
 
 int32_t get_data_size(vg_lite_format_t format)
 {
@@ -3835,7 +3837,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     dx = grad->linear_grad.X1 - grad->linear_grad.X0;
     dy = grad->linear_grad.Y1 - grad->linear_grad.Y0;
 #if gcFEATURE_VG_MATH_PRECISION_FIX
-    dxdx_dydy = (dx * dx + dy * dy) / sqrt((dx + 1) * (dx + 1) + (dy + 1) * (dy + 1));
+    dxdx_dydy = (vg_lite_float_t)((dx * dx + dy * dy) / sqrt((dx + 1) * (dx + 1) + (dy + 1) * (dy + 1)));
 #else
     dxdx_dydy = dx * dx + dy * dy;
 #endif
