@@ -62,21 +62,26 @@
 /*#include <asm/uaccess.h>*/
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/kernel.h>
+#include <linux/pm.h>
+#include <linux/suspend.h>
 #endif
 
 #define FLEXA_TIMEOUT_STATE                 BIT(21)
 #define FLEXA_HANDSHEKE_FAIL_STATE          BIT(22)
 #define MIN_TS_SIZE                         (8 << 10)
 
-#ifdef BACKUP_COMMAND
-typedef struct power_context_command {
-    uint32_t command;
-    uint32_t data;
-}
-power_context_command_t;
+#if gcdVG_ENABLE_BACKUP_COMMAND
+# define STATE_COMMAND(address) (0x30010000 | address)
+# define END_COMMAND(interrupt) (0x00000000 | interrupt)
+# define SEMAPHORE_COMMAND(id)  (0x10000000 | id)
+# define STALL_COMMAND(id)      (0x20000000 | id)
 
 static vg_lite_kernel_context_t global_power_context = {0};
-static power_context_command_t *power_context_klogical = NULL;
+static uint32_t *power_context_klogical = NULL;
+static uint32_t state_map_table[4096] = {
+    [0 ... 4095] = -1
+};
 #endif
 
 typedef struct vg_lite_kernel_vidmem_node {
@@ -100,28 +105,29 @@ static vg_lite_error_t vg_lite_kernel_vidmem_free(void *handle);
 
 static void soft_reset(void);
 
-#ifdef BACKUP_COMMAND
-static void execute_recovery_command(uint32_t address, uint32_t size)
+#if gcdVG_ENABLE_BACKUP_COMMAND
+static uint32_t push_command(uint32_t command, uint32_t data, uint32_t index)
 {
+    uint32_t address = 0;
 
-    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, address);
-    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, size);
-}
+    if ((command & 0xFFFF0000) == 0x30010000) {
+        address = command & 0x0000FFFF;
+        state_map_table[address] = index;
+    }
 
-static int check_power_context(int context_index)
-{
-    int ret = -1;
+    if (NULL == power_context_klogical)
+        power_context_klogical = global_power_context.power_context_klogical;
 
-    if (power_context_klogical[context_index].command != 0x80000000) 
-        ret = 1;
+    power_context_klogical[index++] = command;
+    power_context_klogical[index++] = data;
 
-    return ret;
+    return index;
 }
 
 static vg_lite_error_t backup_power_context_buffer(uint32_t *command_buffer_klogical, uint32_t size)
 {
     int index              = 0;
-    int ret                = -1;
+    uint32_t command       = 0;
     uint32_t address       = 0;
     uint32_t context_index = 0; 
     uint32_t data          = 0;
@@ -131,23 +137,24 @@ static vg_lite_error_t backup_power_context_buffer(uint32_t *command_buffer_klog
     }
 
     for (index = 0; index < size; index++) {
-        address = command_buffer_klogical[index];
-
-        if (address == 0x30010A1B) {
-            power_context_klogical[0].data = command_buffer_klogical[index+1];
+        command = command_buffer_klogical[index];
+        
+        if ((command & 0xFFFFFFFF) == 0x30010A1B) 
             continue;
-        }
 
-        if ((address & 0xFFFF0000) == 0x30010000) {
+        if ((command & 0xFFFF0000) == 0x30010000) {
             data = command_buffer_klogical[index+1];
-            context_index = address & 0x0000FFFF;
-            ret = check_power_context(context_index);
-            if (-1 != ret) {
-                power_context_klogical[context_index].data    = data;
+            address = command & 0x0000FFFF;
+            context_index = state_map_table[address];
+            if (-1 != context_index) {
+                power_context_klogical[context_index + 1] = data;
             } else {
-                power_context_klogical[context_index].command = address;
-                power_context_klogical[context_index].data    = data;
+                power_context_klogical[global_power_context.power_context_size / 4 + 0] = command;
+                power_context_klogical[global_power_context.power_context_size / 4 + 1] = data;
+                state_map_table[address] = global_power_context.power_context_size / 4;
+                global_power_context.power_context_size += 8;
             }
+            
         }
     }    
 
@@ -177,9 +184,9 @@ static void gpu(int enable)
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
         vg_lite_hal_delay(5);
 
+        /* Perform a soft reset. */
+        soft_reset();
         do {
-            /* Perform a soft reset. */
-            soft_reset();
             vg_lite_hal_delay(reset_timer);
             reset_timer *= 2;   // If reset failed, try again with a longer wait. Need to check why if dead lopp happens here.
         } while (!VG_LITE_KERNEL_IS_GPU_IDLE());
@@ -226,7 +233,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_context_t * context;
-    vg_lite_uint32_t flags = 0, i;
+    vg_lite_uint32_t flags = 0, i, index;
 
 #if defined(__linux__) && !defined(EMULATOR)
     vg_lite_kernel_context_t __user * context_usr;
@@ -264,15 +271,13 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
     context->tess_buffer            = NULL;
     context->tessbuf_logical    = NULL;
     context->tessbuf_physical   = 0;
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_BACKUP_COMMAND
     global_power_context.power_context_logical = NULL;
     global_power_context.power_context_klogical = NULL;
     global_power_context.power_context_physical = 0;
     global_power_context.power_context = NULL;
     global_power_context.power_context_capacity = 32 << 10;
-    global_power_context.power_context_size = (VG_LITE_ALIGN(global_power_context.power_context_capacity, VGLITE_MEM_ALIGNMENT) + 7) / 8;
-    printk("global_power_context.power_context_capacity = %d\n", global_power_context.power_context_capacity);
-    printk("global_power_context.power_context_size     = %d\n", global_power_context.power_context_size);
+    global_power_context.power_context_size = 0;
 #endif
     /* Increment reference counter. */
     if (s_reference++ == 0) {
@@ -313,7 +318,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         }
     }
 
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_BACKUP_COMMAND
     if (global_power_context.power_context_capacity) {
         /*  Allocate the backup buffer. */
         error = vg_lite_kernel_vidmem_allocate(&global_power_context.power_context_capacity,
@@ -332,19 +337,42 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
             ONERROR(error);
         }
 
-        /* init power context buffer to 0x8000000 */
-        printk("init global power context to NOP command\n");
-        power_context_klogical = (power_context_command_t *)global_power_context.power_context_klogical;
-        for (i = 0; i < global_power_context.power_context_size; i++) { 
-            power_context_klogical[i].command = 0x80000000;
-            power_context_klogical[i].data    = 0x00000000;
-        }
-        power_context_klogical[0].command = 0x30010A1B;
-        power_context_klogical[0].data    = 0x00000001;
-        power_context_klogical[1].command = 0x10000007;
-        power_context_klogical[1].data    = 0x00000000;
-        power_context_klogical[2].command = 0x20000007;
-        power_context_klogical[2].data    = 0x00000000;
+        /* Initialize power context buffer */
+#if (CHIPID==0x355 || CHIPID==0x255)
+        index = push_command(STATE_COMMAND(0x0A30), 0x00000000, 0);
+        index = push_command(STATE_COMMAND(0x0A31), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A32), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A33), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A36), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A37), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A38), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A3A), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A3D), 0x00000000, index);
+#else
+        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0ACB), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0ACC), 0x00000000, index);
+#endif  
+        index = push_command(STATE_COMMAND(0x0A90), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A91), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A92), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A93), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A94), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A95), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A96), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A97), 0x00000000, index);
+
+        index = push_command(STATE_COMMAND(0x0A10), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A5C), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A11), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A12), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A13), 0x00000000, index);   
+
+        global_power_context.power_context_size = index * 4; 
     }
 #endif
     /* Allocate the tessellation buffer. */
@@ -405,8 +433,8 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 
         /* Allocate the memory. */
         error = vg_lite_kernel_vidmem_allocate(&total_size,
-                                               VG_LITE_POOL_RESERVED_MEMORY2,
                                                flags,
+                                               VG_LITE_POOL_RESERVED_MEMORY2,
                                                &context->tessbuf_logical,
                                                &context->tessbuf_klogical,
                                                &context->tessbuf_physical,
@@ -488,7 +516,7 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
         context->command_buffer[1] = NULL;
     }
 
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_BACKUP_COMMAND
     if (global_power_context.power_context) {
         /* Free the power context. */
         vg_lite_kernel_vidmem_free(global_power_context.power_context);
@@ -635,7 +663,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
 
     offset = (uint8_t *) data->commands - (uint8_t *)context->command_buffer_logical[data->command_id];
 
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_BACKUP_COMMAND
     backup_power_context_buffer((uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset), (data->command_size + 3) / 4);
 #endif
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
@@ -647,12 +675,40 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
 
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 {
+#if gcdVG_ENABLE_POWER_MANAGEMENT
+    vg_lite_kernel_context_t *context = NULL;
+
+# if defined(__linux__) && !defined(EMULATOR)
+    vg_lite_kernel_context_t __user * context_usr;
+    vg_lite_kernel_context_t mycontext = { 0 };
+
+    context_usr = (vg_lite_kernel_context_t  __user *)data->context;
+    if (copy_from_user(&mycontext, data->context, sizeof(vg_lite_kernel_context_t)) != 0) {
+        return VG_LITE_NO_CONTEXT;
+    }
+    context = &mycontext;
+# else
+    context = data->context;
+    if (context == NULL)
+    {
+        return VG_LITE_NO_CONTEXT;
+    }
+# endif
+#endif
+
     /* Wait for interrupt. */
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {
         /* Timeout. */
         return VG_LITE_TIMEOUT;
     }
+#if gcdVG_ENABLE_POWER_MANAGEMENT
+    vg_lite_hal_pm_suspend(&context->end_of_frame);
 
+    if (copy_to_user(context_usr, context, sizeof(vg_lite_kernel_context_t)) != 0) {
+        return VG_LITE_NO_CONTEXT;
+    }
+#endif
+    
 #if gcFEATURE_VG_FLEXA
     if (data->event_got & FLEXA_TIMEOUT_STATE)
         return VG_LITE_FLEXA_TIME_OUT;
@@ -664,38 +720,55 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t do_reset(void)
+#if gcdVG_ENABLE_BACKUP_COMMAND
+static vg_lite_error_t restore_gpu_state(void)
 {
-#ifdef BACKUP_COMMAND
+    vg_lite_error_t error = VG_LITE_SUCCESS;
     int i = 0;
     vg_lite_kernel_wait_t wait;
-    vg_lite_error_t error;
 
-    wait.timeout_ms = 2000;
+    wait.timeout_ms = 5000;
     wait.event_mask = (uint32_t)~0;
+    
+    power_context_klogical[global_power_context.power_context_size / 4 + 0] = 0x30010A1B;
+    power_context_klogical[global_power_context.power_context_size / 4 + 1] = 0x00000001;
+    power_context_klogical[global_power_context.power_context_size / 4 + 2] = 0x10000007;
+    power_context_klogical[global_power_context.power_context_size / 4 + 3] = 0x00000000;
+    power_context_klogical[global_power_context.power_context_size / 4 + 4] = 0x20000007;
+    power_context_klogical[global_power_context.power_context_size / 4 + 5] = 0x00000000;
+    power_context_klogical[global_power_context.power_context_size / 4 + 6] = 0x00000000;
+    power_context_klogical[global_power_context.power_context_size / 4 + 7] = 0x00000000;
+    global_power_context.power_context_size += 32;
+
+    vg_lite_kernel_print("after resume and the power_context is:\n");
+    for (i = 0; i < global_power_context.power_context_size / 4; i += 2) {
+            vg_lite_kernel_print("command = 0x%08X, data = 0x%08X\n", 
+                                  power_context_klogical[i], power_context_klogical[i + 1]);
+    }
+
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, global_power_context.power_context_physical);
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (global_power_context.power_context_size + 7) / 8);
+
+    error = do_wait(&wait);
+    if (error == VG_LITE_TIMEOUT)
+        vg_lite_kernel_hintmsg("Initialize the GPU state timeout!\n");
+    else
+        vg_lite_kernel_hintmsg("Initialize the GPU state success!\n");
+
+    return error;
+}
 #endif
-    /* Disable and enable the GPU. */
+
+static vg_lite_error_t do_reset(void)
+{
+    /* reset and enable the GPU interrupt */
     gpu(1);
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
-#ifdef BACKUP_COMMAND
-    power_context_klogical[0x00000AD2].command = 0x00000000;
-    power_context_klogical[0x00000AD2].data    = 0x00000000;
-
-    printk("after resume and the global_power_context command buffer is : \n");
-
-    for (i = 0; i < 0x00000AD3; i++) {
-        if (power_context_klogical[i].command != 0x80000000)
-            printk("global_power_context command = %08x, global_power_context data = %08x\n", 
-                    power_context_klogical[i].command, power_context_klogical[i].data);
-    }
-
-    execute_recovery_command(global_power_context.power_context_physical, 0x00000AD3);
-
-    error = do_wait(&wait);
-
-    printk("execute_recovery_command success!\n");
+#if gcdVG_ENABLE_BACKUP_COMMAND
+    restore_gpu_state();
 #endif
+
     return VG_LITE_SUCCESS;
 }
 
@@ -703,9 +776,7 @@ static vg_lite_error_t do_gpu_close(void)
 {
     gpu(0);
 
-#ifdef BACKUP_COMMAND
-    printk("gpu is shutdown!\n");
-#endif
+    vg_lite_kernel_hintmsg("gpu is shutdown!\n");
 
     return VG_LITE_SUCCESS;
 }

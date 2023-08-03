@@ -34,8 +34,6 @@
 extern "C" {
 #endif
 
-#define VGL_DEBUG
-
 #define vg_lite_kernel_print   vg_lite_hal_trace
 #define vg_lite_kernel_trace   vg_lite_hal_trace
 #define vg_lite_kernel_error   vg_lite_hal_print

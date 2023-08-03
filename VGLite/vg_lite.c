@@ -4609,6 +4609,9 @@ vg_lite_error_t vg_lite_finish()
 #endif
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
+#if gcFEATURE_VG_POWER_MANAGEMENT
+    s_context.context.end_of_frame = 1;
+#endif
     VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
 
 #if gcFEATURE_VG_IM_FASTCLEAR
@@ -4650,6 +4653,9 @@ vg_lite_error_t vg_lite_flush(void)
 #endif
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
+#if gcFEATURE_VG_POWER_MANAGEMENT
+    s_context.context.end_of_frame = 1;
+#endif
     CMDBUF_SWAP(s_context);
     /* Reset command buffer. */
     CMDBUF_OFFSET(s_context) = 0;

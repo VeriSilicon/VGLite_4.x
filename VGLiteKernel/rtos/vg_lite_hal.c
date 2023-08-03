@@ -190,6 +190,7 @@ struct vg_lite_device {
     int major;
     struct class * class;
     int created;
+    uint32_t start_pm;
 };
 
 struct client_data {
@@ -300,7 +301,7 @@ void vg_lite_hal_trace(char *format, ...)
     va_list args;
     va_start(args, format);
 
-#ifdef VGL_DEBUG
+#if gcdVG_ENABLE_DEBUG
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printf(buffer);
@@ -356,6 +357,10 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 {
     unsigned long aligned_size;
     heap_node_t * pos;
+
+    /* Judge if it exceeds the range of pool */
+    if (pool >= VG_SYSTEM_RESERVE_COUNT)
+        pool = VG_SYSTEM_RESERVE_COUNT - 1;
 
     /* Align the size to 64 bytes. */
     aligned_size = (size + 63) & ~63;
@@ -612,6 +617,15 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
     (void) cache_op;
 
     return VG_LITE_SUCCESS;
+}
+
+void vg_lite_hal_pm_suspend(uint32_t *end_of_frame)
+{
+    if (*end_of_frame && device->start_pm) {
+        device->start_pm = 0;
+        *end_of_frame = 0;
+        /* Implement platform related suspend function as follows*/     
+    }
 }
 
 static void vg_lite_exit(void)

@@ -60,11 +60,33 @@ extern "C" {
 #endif
 
 /*
- * Set VGLITE_ENABLE_WRITEBUFFER to 1 for Linux Write Combined memory access
- * Set VGLITE_ENABLE_WRITEBUFFER to 0 for Linux Uncacheable memory access
+ * Set gcdVG_ENABLE_WRITEBUFFER to 1 for Linux Write Combined memory access
+ * Set gcdVG_ENABLE_WRITEBUFFER to 0 for Linux Uncacheable memory access
 */
-#ifndef VGLITE_ENABLE_WRITEBUFFER
-    #define VGLITE_ENABLE_WRITEBUFFER               1
+#ifndef gcdVG_ENABLE_WRITEBUFFER
+    #define gcdVG_ENABLE_WRITEBUFFER                     1
+#endif
+
+/*
+ * Backup state command, only support Linux and RTOS
+*/
+#ifndef gcdVG_ENABLE_BACKUP_COMMAND
+    #define gcdVG_ENABLE_BACKUP_COMMAND                  0
+#endif
+
+/*
+ * Power management, only support Linux and RTOS
+*/
+#ifndef gcdVG_ENABLE_POWER_MANAGEMENT
+    #define gcdVG_ENABLE_POWER_MANAGEMENT                0
+#endif
+
+
+/*
+ * when set to 1, vg_lite_hal_trace can use to print message
+*/
+#ifndef gcdVG_ENABLE_DEBUG
+    #define gcdVG_ENABLE_DEBUG                           1
 #endif
 
 #ifdef __cplusplus

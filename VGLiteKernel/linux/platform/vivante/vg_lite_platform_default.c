@@ -91,6 +91,8 @@ static vg_platform_t default_platform = {
 
 int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args)
 {
+    uint32_t i;
+
 #ifdef ENABLE_PCIE
     struct vg_platform_pcie *pcie_platform = (struct vg_platform_pcie *)platform;
 
@@ -103,9 +105,12 @@ int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args)
 #endif
     args->contiguous_bases[0] =  args->contiguous_base;
     args->contiguous_sizes[0] =  (args->contiguous_size > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : args->contiguous_size;
-  
-    args->contiguous_bases[1] =  args->contiguous_base + args->contiguous_sizes[0];
-    args->contiguous_sizes[1] =  args->contiguous_sizes[0];
+
+    /* Initialize based on the memory reserved by the system */ 
+    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT - 1; i++) {
+        args->contiguous_bases[i + 1] =  args->contiguous_bases[i] + args->contiguous_sizes[i];
+        args->contiguous_sizes[i + 1] =  args->contiguous_sizes[i];
+    }
 
     return 0;
 }

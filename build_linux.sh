@@ -35,7 +35,6 @@ ZC702)
     export ARCH=arm
     export ENABLE_PCIE=0
     export USE_RESERVE_MEMORY=1
-    export BACKUP_COMMAND=0
     export gcdIRQ_SHARED=1
     export CC=${CROSS_COMPILE}gcc
     export PLATFORM=vivante/vg_lite_platform_default
@@ -47,7 +46,6 @@ PCIE-GEN6)
     export CROSS_COMPILE=""
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
     export ENABLE_PCIE=1
-    export BACKUP_COMMAND=0
     export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
@@ -61,7 +59,6 @@ X86)
     export CROSS_COMPILE=""
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
     export ENABLE_PCIE=1
-    export BACKUP_COMMAND=0
     export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
@@ -75,7 +72,6 @@ X86_51510)
     export CROSS_COMPILE=""
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-5.15.10/
     export ENABLE_PCIE=1
-    export BACKUP_COMMAND=0
     export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
@@ -94,7 +90,6 @@ IMX6Q35)
     export ARCH=arm
     export ENABLE_PCIE=0
     export USE_RESERVE_MEMORY=0
-    export BACKUP_COMMAND=0
     export gcdIRQ_SHARED=1
     export PLATFORM=freescale/vg_lite_platform_imx6
     export SYSROOTFS=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/sysroots/cortexa9t2hf-neon-poky-linux-gnueabi

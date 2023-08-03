@@ -60,6 +60,7 @@
 #include <stdio.h>
 #include "../vg_lite_debug.h"
 #include "../vg_lite_type.h"
+#include "../vg_lite_option.h"
 
 #define _BAREMETAL 0
 #define VG_SYSTEM_RESERVE_COUNT 2

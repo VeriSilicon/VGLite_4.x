@@ -75,7 +75,7 @@
 #endif
 
 #define VG_DEVICE_NAME          "vg_lite"
-#define VG_SYSTEM_RESERVE_COUNT 2
+#define VG_SYSTEM_RESERVE_COUNT 2         /* Set according to the reserved memory number */
 
 /* Struct definitions. */
 struct heap_node {
@@ -119,6 +119,10 @@ struct vg_lite_device {
 #ifdef ENABLE_PCIE
     struct pci_dev *p_dev;
     int pci_registered;
+#endif
+#ifdef CONFIG_DEBUG_FS
+    struct dentry *root;
+    uint32_t start_pm;
 #endif
 };
 

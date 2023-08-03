@@ -74,9 +74,12 @@
 #include <asm/set_memory.h>
 #endif
 #include <asm/cacheflush.h>
+#include <linux/debugfs.h>
+#include <linux/kernel.h>
+#include <linux/pm.h>
+#include <linux/suspend.h>
 
 MODULE_LICENSE("Dual MIT/GPL");
-
 
 /*#define GPU_REG_START   0x02204000
 #define GPU_REG_SIZE    0x00004000
@@ -218,9 +221,6 @@ static struct vg_lite_device * device = NULL;
 static struct client_data * private_data = NULL;
 static vg_platform_t * platform = NULL;
 static vg_module_parameters_t global_param = {0};
-#ifdef BACKUP_COMMAND
-static vg_lite_uint32_t global_flags = 0;
-#endif
 
 static vg_lite_error_t init_param(vg_module_parameters_t *param)
 {
@@ -330,7 +330,7 @@ void vg_lite_hal_trace(char *format, ...)
     va_list args;
     va_start(args, format);
 
-#ifdef VGL_DEBUG
+#if gcdVG_ENABLE_DEBUG
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printk(buffer);
@@ -561,7 +561,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** log
     if (flag & VG_LITE_HAL_ALLOC_4G)
         gfp |= __GFP_DMA32;
 
-#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !VGLITE_ENABLE_WRITEBUFFER
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !gcdVG_ENABLE_WRITEBUFFER
     _klogical = dma_alloc_coherent(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
 #else
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
@@ -575,7 +575,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** log
         ONERROR(VG_LITE_OUT_OF_MEMORY);
 
 #if defined(CONFIG_X86)
-# if VGLITE_ENABLE_WRITEBUFFER
+# if gcdVG_ENABLE_WRITEBUFFER
     ret = set_memory_wc((vg_lite_long_t)_klogical, num_pages);
     if (ret != 0)
         vg_lite_kernel_error("%s(%d): failed to set_memory_wc, ret = %d\n", __func__, __LINE__, ret);
@@ -662,6 +662,10 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 {
     unsigned long aligned_size;
     struct heap_node * pos;
+
+    /* Judge if it exceeds the range of pool */
+    if (pool >= VG_SYSTEM_RESERVE_COUNT)
+        pool = VG_SYSTEM_RESERVE_COUNT - 1;
 
     /* Align the size to 64 bytes. */
     aligned_size = VG_LITE_ALIGN(size, VGLITE_MEM_ALIGNMENT);
@@ -1807,6 +1811,15 @@ static void unmap_contiguous_memory_from_kernel(void *klogical, uint64_t physica
 }
 #endif
 
+void vg_lite_hal_pm_suspend(uint32_t *end_of_frame)
+{
+    if (*end_of_frame && device->start_pm) {
+        device->start_pm = 0;
+        *end_of_frame = 0;
+        pm_suspend(PM_SUSPEND_MEM);
+    }
+}
+
 int drv_open(struct inode * inode, struct file * file)
 {
     struct client_data * data;
@@ -1935,7 +1948,6 @@ int drv_mmap(struct file * file, struct vm_area_struct * vm)
         size = private->device->size[0] + offset;
 
     num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
-    vg_lite_kernel_hintmsg("offset = %d, size = %ld, num_pages << PAGE_SHIFT = %d\n", offset, size, num_pages << PAGE_SHIFT);
 
     if (remap_pfn_range(vm, vm->vm_start, private->device->physical[0] >> PAGE_SHIFT, num_pages << PAGE_SHIFT, vm->vm_page_prot) < 0) {
         vg_lite_kernel_error("remap_pfn_range failed\n");
@@ -2048,7 +2060,7 @@ static irqreturn_t irq_hander(int irq, void * context)
     if (flags) {
         /* Combine with current interrupt flags. */
         device->int_flags |= flags;
-
+ 
         /* Wake up any waiters. */
         wake_up_interruptible(&device->int_queue);
 
@@ -2222,6 +2234,29 @@ static vg_lite_int32_t vg_lite_set_clock(vg_lite_bool_t enable)
     return ret;
 }
 
+#ifdef CONFIG_DEBUG_FS
+static vg_lite_int32_t debug_fs_init(void)
+{
+    device->root = debugfs_create_dir("vg", NULL);
+    if (!device->root) {
+        vg_lite_kernel_error("debugfs_create_dir create dir fail!\n");
+        return -1;
+    }
+    
+    debugfs_create_u32("pm", 0664, device->root, &device->start_pm);
+
+    return 0;
+}
+
+static vg_lite_int32_t debug_fs_exit(void)
+{
+    debugfs_remove_recursive(device->root);
+
+    return 0;
+}
+
+#endif
+
 static vg_lite_int32_t gpu_probe(struct platform_device *pdev)
 {
     vg_lite_error_t error;
@@ -2254,6 +2289,11 @@ static vg_lite_int32_t gpu_probe(struct platform_device *pdev)
 
     ONERROR(vg_lite_init(pdev));
 
+#ifdef CONFIG_DEBUG_FS
+    debug_fs_init();
+    printk("Initialized debugfs success!!\n");
+#endif
+
     if (!device || !device->created) {
         ONERROR(VG_LITE_INVALID_ARGUMENT);
     }
@@ -2277,19 +2317,16 @@ static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
 
     vg_lite_exit();
 
+#ifdef CONFIG_DEBUG_FS
+    debug_fs_exit();
+#endif
+
     return 0;
 }
 
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_POWER_MANAGEMENT
 static vg_lite_int32_t gpu_suspend(struct platform_device *dev, pm_message_t state)
 {
-    /* wait gpu idle */
-    while(VG_LITE_KERNEL_IS_GPU_IDLE() != 1) {
-        vg_lite_hal_delay(2);
-    }
-
-    global_flags = *(vg_lite_uint32_t *) (vg_lite_uint8_t *) (device->register_base_mapped + VG_LITE_INTR_STATUS);
-
     /* shutdown gpu */
     vg_lite_kernel(VG_LITE_CLOSE, NULL);
 
@@ -2312,20 +2349,8 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
         vg_lite_set_clock(VG_TRUE);
     }
 
-    /* open gpu interrupt and recovery gpu register */
+    /* reset gpu, open interrupt and restore gpu state */
     vg_lite_kernel(VG_LITE_RESET, NULL);
-
-
-    if (global_flags) {
-        /* Combine with current interrupt flags. */
-        device->int_flags |= global_flags;
-
-        /* Wake up any waiters. */
-        wake_up_interruptible(&device->int_queue);
-
-        global_flags = 0;
-        vg_lite_kernel_hintmsg("wake up waiters!\n");
-    }
 
     vg_lite_kernel_hintmsg("gpu_resume success!\n");
     
@@ -2358,14 +2383,14 @@ static const struct dev_pm_ops gpu_pm_ops = {
 static struct platform_driver gpu_driver = {
     .probe      = gpu_probe,
     .remove     = gpu_remove,
-#ifdef BACKUP_COMMAND
+#if gcdVG_ENABLE_POWER_MANAGEMENT
     .suspend    = gpu_suspend,
     .resume     = gpu_resume,
 #endif
     .driver     = {
         .owner  = THIS_MODULE,
         .name   = VG_DEVICE_NAME,
-#if defined(CONFIG_PM) && LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30) && defined(BACKUP_COMMAND)
+#if defined(CONFIG_PM) && LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30) && gcdVG_ENABLE_POWER_MANAGEMENT
         .pm = &gpu_pm_ops,
 #endif
 

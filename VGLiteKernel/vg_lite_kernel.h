@@ -229,6 +229,7 @@ struct vg_lite_kernel_context {
     void                     *command_buffer_logical[CMDBUF_COUNT];
     void                     *command_buffer_klogical[CMDBUF_COUNT];
     uint32_t                  command_buffer_physical[CMDBUF_COUNT];
+    uint32_t                  end_of_frame;
     
     /* Tessellation buffer. */
     void                     *tess_buffer;
