@@ -1319,6 +1319,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
                                      vg_lite_blend_t blend,
                                      vg_lite_pattern_mode_t pattern_mode,
                                      vg_lite_color_t  pattern_color,
+                                     vg_lite_color_t  color,
                                      vg_lite_filter_t filter)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -1434,7 +1435,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
         filter_mode = 0x30000;
         break;
     }
-
 
     /* Setup the command buffer. */
     get_format_bytes(source->format, &mul, &div, &align);
