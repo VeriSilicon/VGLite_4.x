@@ -768,13 +768,13 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
 #endif
 
     /* Record scissor enable flag and disable scissor. */
-    vg_lite_bool_t enable = s_context.scissor_enable;
+    vg_lite_uint8_t enable = s_context.scissor_enable;
     s_context.scissor_enable = 0;
 
     /* Allocate if scissor layer is NULL */
     if (s_context.scissor_layer == NULL) {
         memset(&scissor_layer, 0, sizeof(vg_lite_buffer_t));
-        scissor_layer.is_scissor_layer = 1;
+        scissor_layer.scissor_layer = 1;
         scissor_layer.width = (s_context.target_width + 7) / 8;
         scissor_layer.height = s_context.target_height;
         scissor_layer.format = VG_LITE_A8;
@@ -787,7 +787,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
         vg_lite_finish();
     }
-    scissor_layer.is_scissor_layer = 1;
+    scissor_layer.scissor_layer = 1;
     /* Clear scissor layer*/
     VG_LITE_RETURN_ERROR(vg_lite_clear(&scissor_layer, NULL, 0x00000000));
     vg_lite_finish();

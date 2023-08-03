@@ -134,7 +134,6 @@ extern "C" {
 
 /* VGLite API Types ***********************************************************************************************************************/
 
-typedef int                 vg_lite_bool_t;
 typedef unsigned char       vg_lite_uint8_t;
 typedef char                vg_lite_int8_t;
 typedef short               vg_lite_int16_t;
@@ -687,7 +686,6 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     dash_phase;
         vg_lite_float_t                     dash_length;
         vg_lite_uint32_t                    dash_index;
-        vg_lite_bool_t                      dash_phase_reset;
 
         vg_lite_float_t                     half_width;
 
@@ -715,6 +713,7 @@ typedef unsigned int        vg_lite_color_t;
 
         /* Flag that add end_path in driver. */
         vg_lite_uint8_t                     add_end;
+        vg_lite_uint8_t                     dash_reset;
 
         /* Sub path list. */
         vg_lite_sub_path_ptr                stroke_paths;
@@ -723,9 +722,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_sub_path_ptr                last_stroke;
 
         /* Swing area handling. */
-        vg_lite_uint8_t                     need_swing;
         vg_lite_uint32_t                    swing_handling;
-        vg_lite_uint8_t                     swing_ccw;
         vg_lite_float_t                     swing_deltax;
         vg_lite_float_t                     swing_deltay;
         vg_lite_path_point_ptr              swing_start;
@@ -733,9 +730,10 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     swing_length;
         vg_lite_float_t                     swing_centlen;
         vg_lite_uint32_t                    swing_count;
-
         vg_lite_float_t                     stroke_length;
         vg_lite_uint32_t                    stroke_size;
+        vg_lite_uint8_t                     need_swing;
+        vg_lite_uint8_t                     swing_ccw;
 
         /* The stroke line is fat line. */
         vg_lite_uint8_t                     fattened;
@@ -769,12 +767,13 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_yuvinfo_t yuv;                  /*! The yuv format details. */
         vg_lite_image_mode_t image_mode;        /*! The blit image mode. */
         vg_lite_transparency_t transparency_mode; /*! image transparency mode. */
-        vg_lite_int8_t fc_enable;               /*! enable im fastclear. */
         vg_lite_fc_buffer_t fc_buffer[3];       /*! 3 fastclear buffers,reserved YUV format. */
         vg_lite_compress_mode_t compress_mode;  /*! Refer to the definition by vg_lite_compress_mode_t. */
         vg_lite_index_endian_t index_endian;    /*! Refer to the definition by vg_lite_index_endian_t. */
         vg_lite_paint_type_t paintType;         /*! Get paintcolor from different paint types. */
-        vg_lite_bool_t is_scissor_layer;         /*! Get paintcolor from different paint types. */
+        vg_lite_uint8_t fc_enable;              /*! enable im fastclear. */
+        vg_lite_uint8_t scissor_layer;          /*! Get paintcolor from different paint types. */
+        vg_lite_uint8_t premultiplied;          /*! The RGB pixel values are alpha-premultipled */
     } vg_lite_buffer_t;
 
     /* Memory allocation info by kernel. */
@@ -798,14 +797,14 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_hw_memory_t uploaded;           /*! Path data that has been upload into GPU addressable memory. */
         vg_lite_uint32_t path_length;           /*! Number of bytes in the path data. */
         vg_lite_pointer path;                   /*! Pointer to the physical description of the path. */
-        vg_lite_int8_t path_changed;            /*! Indicate whether path data is synced with command buffer (uploaded) or not. */
-        vg_lite_int8_t pdata_internal;          /*! Indicate whether path data memory is allocated by driver. */
+        vg_lite_uint8_t path_changed;           /*! Indicate whether path data is synced with command buffer (uploaded) or not. */
+        vg_lite_uint8_t pdata_internal;         /*! Indicate whether path data memory is allocated by driver. */
+        vg_lite_uint8_t add_end;                /*! Flag that add end_path in driver. */
         vg_lite_path_type_t path_type;          /*! Refer to the definition by vg_lite_path_type_t. */
         vg_lite_stroke_t *stroke;               /*! Pointer to a vg_lite_stroke_t structure.*/
         vg_lite_pointer stroke_path;            /*! Pointer to the physical description of the stroke path. */
         vg_lite_uint32_t stroke_size;           /*! Number of bytes in the stroke path data. */
         vg_lite_color_t stroke_color;           /*! The stroke path fill color. */
-        vg_lite_int8_t add_end;                 /*! Flag that add end_path in driver. */
     } vg_lite_path_t;
 
     /* Color ramp definition. */
