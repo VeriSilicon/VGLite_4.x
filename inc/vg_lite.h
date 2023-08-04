@@ -694,7 +694,6 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     dash_phase;
         vg_lite_float_t                     dash_length;
         vg_lite_uint32_t                    dash_index;
-
         vg_lite_float_t                     half_width;
 
         /* Total length of stroke dash patterns. */
@@ -738,10 +737,11 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     swing_length;
         vg_lite_float_t                     swing_centlen;
         vg_lite_uint32_t                    swing_count;
-        vg_lite_float_t                     stroke_length;
-        vg_lite_uint32_t                    stroke_size;
         vg_lite_uint8_t                     need_swing;
         vg_lite_uint8_t                     swing_ccw;
+
+        vg_lite_float_t                     stroke_length;
+        vg_lite_uint32_t                    stroke_size;
 
         /* The stroke line is fat line. */
         vg_lite_uint8_t                     fattened;
@@ -805,14 +805,14 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_hw_memory_t uploaded;           /*! Path data that has been upload into GPU addressable memory. */
         vg_lite_uint32_t path_length;           /*! Number of bytes in the path data. */
         vg_lite_pointer path;                   /*! Pointer to the physical description of the path. */
-        vg_lite_uint8_t path_changed;           /*! Indicate whether path data is synced with command buffer (uploaded) or not. */
-        vg_lite_uint8_t pdata_internal;         /*! Indicate whether path data memory is allocated by driver. */
-        vg_lite_uint8_t add_end;                /*! Flag that add end_path in driver. */
+        vg_lite_int8_t path_changed;            /*! Indicate whether path data is synced with command buffer (uploaded) or not. */
+        vg_lite_int8_t pdata_internal;          /*! Indicate whether path data memory is allocated by driver. */
         vg_lite_path_type_t path_type;          /*! Refer to the definition by vg_lite_path_type_t. */
         vg_lite_stroke_t *stroke;               /*! Pointer to a vg_lite_stroke_t structure.*/
         vg_lite_pointer stroke_path;            /*! Pointer to the physical description of the stroke path. */
         vg_lite_uint32_t stroke_size;           /*! Number of bytes in the stroke path data. */
         vg_lite_color_t stroke_color;           /*! The stroke path fill color. */
+        vg_lite_int8_t add_end;                 /*! Flag that add end_path in driver. */
     } vg_lite_path_t;
 
     /* Color ramp definition. */
