@@ -99,6 +99,11 @@ static uint32_t heap_size[VG_SYSTEM_RESERVE_COUNT] = {
     [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = MAX_CONTIGUOUS_SIZE
 };
 
+/* when the number of submit called by vg_lite_finish up to trigger_suspend_frame, 
+ * can trigger pm suspend 
+*/
+static uint32_t trigger_suspend_frame = 2000;
+
 void __attribute__((weak)) vg_lite_bus_error_handler();
 
 void vg_lite_init_mem(vg_module_parameters_t *param)
@@ -619,8 +624,15 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
     return VG_LITE_SUCCESS;
 }
 
-void vg_lite_hal_pm_suspend(uint32_t *end_of_frame)
+void vg_lite_hal_pm_suspend(uint32_t *end_of_frame, uint32_t *end_of_frame_count)
 {
+#if 1
+    if (*end_of_frame_count == trigger_suspend_frame) {
+        device->start_pm = 1;
+        *end_of_frame_count = 0;
+    }
+#endif
+
     if (*end_of_frame && device->start_pm) {
         device->start_pm = 0;
         *end_of_frame = 0;

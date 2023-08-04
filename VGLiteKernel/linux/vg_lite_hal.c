@@ -74,10 +74,6 @@
 #include <asm/set_memory.h>
 #endif
 #include <asm/cacheflush.h>
-#include <linux/debugfs.h>
-#include <linux/kernel.h>
-#include <linux/pm.h>
-#include <linux/suspend.h>
 
 MODULE_LICENSE("Dual MIT/GPL");
 
@@ -216,6 +212,9 @@ module_param(verbose, int, S_IRUGO);
 
 static vg_lite_int32_t cached = 0;
 module_param(cached, int, S_IRUGO);
+
+static uint32_t trigger_suspend_frame = 2000;       /* IMX6Q35: 6000 PCIE-GEN6: 2000 */
+module_param(trigger_suspend_frame, uint, 0644);
 
 static struct vg_lite_device * device = NULL;
 static struct client_data * private_data = NULL;
@@ -1811,12 +1810,68 @@ static void unmap_contiguous_memory_from_kernel(void *klogical, uint64_t physica
 }
 #endif
 
-void vg_lite_hal_pm_suspend(uint32_t *end_of_frame)
+static int32_t rtc_wake_init(time64_t seconds)
 {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    struct rtc_wkalrm alm;
+    time64_t now, alarm;
+    int32_t ret;
+
+    device->rtc = rtc_class_open("rtc0");
+    if (IS_ERR(device->rtc)) {
+        pr_err("Failed to get RTC device\n");
+        return -1;
+    }
+
+    ret = rtc_read_time(device->rtc, &alm.time);
+    if (ret < 0) {
+        pr_err("Failed to read RTC time\n");
+        ONERROR(VG_LITE_OUT_OF_RESOURCES);
+    }
+
+    now = rtc_tm_to_time64(&alm.time);    
+    alarm = seconds + now;
+
+    rtc_time64_to_tm(alarm, &alm.time);
+
+    alm.enabled = 1;
+    ret = rtc_set_alarm(device->rtc, &alm);
+    if (ret < 0) {
+        pr_err("Failed to set RTC alarm\n");
+        ONERROR(VG_LITE_OUT_OF_RESOURCES);
+    }    
+    vg_lite_kernel_hintmsg("RTC wake up set to +5 seconds!\n");
+   
+    return 1;
+on_error:
+    rtc_class_close(device->rtc);
+    return -1;
+}
+
+static void rtc_wake_exit(void)
+{
+    rtc_class_close(device->rtc);
+
+    vg_lite_kernel_hintmsg("RTC wake up exited\n");
+}
+
+void vg_lite_hal_pm_suspend(uint32_t *end_of_frame, uint32_t *end_of_frame_count)
+{
+#if 1
+    if (*end_of_frame_count == trigger_suspend_frame) {
+        device->start_pm = 1;
+        *end_of_frame_count = 0;
+    }
+#endif
+
     if (*end_of_frame && device->start_pm) {
         device->start_pm = 0;
         *end_of_frame = 0;
+        rtc_wake_init(5);
         pm_suspend(PM_SUSPEND_MEM);
+        rtc_wake_exit();
+        device->suspend_count++;
+        vg_lite_kernel_hintmsg("suspend_count = %d\n", device->suspend_count);
     }
 }
 

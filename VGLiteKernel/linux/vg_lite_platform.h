@@ -73,9 +73,16 @@
 #ifdef ENABLE_PCIE
 #include <linux/pci.h>
 #endif
+#include <linux/debugfs.h>
+#include <linux/kernel.h>
+#include <linux/pm.h>
+#include <linux/suspend.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/rtc.h>
 
 #define VG_DEVICE_NAME          "vg_lite"
-#define VG_SYSTEM_RESERVE_COUNT 2         /* Set according to the reserved memory number */
+#define VG_SYSTEM_RESERVE_COUNT 1         /* Set according to the reserved memory number */
 
 /* Struct definitions. */
 struct heap_node {
@@ -124,6 +131,8 @@ struct vg_lite_device {
     struct dentry *root;
     uint32_t start_pm;
 #endif
+    struct rtc_device *rtc;
+    uint32_t suspend_count;
 };
 
 typedef struct vg_module_parameters
@@ -241,7 +250,6 @@ typedef struct vg_linux_operations
 }
 vg_linux_operations_t;
 
-
 struct vg_platform
 {
     struct platform_device *device;
@@ -255,6 +263,5 @@ struct vg_platform
 
 int vg_kernel_platform_init(struct platform_driver *pdrv, vg_platform_t **platform);
 int vg_kernel_platform_terminate(vg_platform_t *platform);
-
 
 #endif

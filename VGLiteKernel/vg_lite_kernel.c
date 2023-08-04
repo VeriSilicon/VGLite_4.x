@@ -97,6 +97,10 @@ typedef struct vg_lite_kernel_vidmem_node {
 
 static int s_reference = 0;
 
+#if gcdVG_ENABLE_POWER_MANAGEMENT
+static uint32_t end_of_frame_count = 0;
+#endif
+
 static vg_lite_error_t do_terminate(vg_lite_kernel_terminate_t * data);
 
 static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t flags, vg_lite_vidmem_pool_t pool, void **memory, void **kmemory, uint32_t *memory_gpu, void **memory_handle);
@@ -146,17 +150,10 @@ static vg_lite_error_t backup_power_context_buffer(uint32_t *command_buffer_klog
             data = command_buffer_klogical[index+1];
             address = command & 0x0000FFFF;
             context_index = state_map_table[address];
-            if (-1 != context_index) {
+            if (-1 != context_index)
                 power_context_klogical[context_index + 1] = data;
-            } else {
-                power_context_klogical[global_power_context.power_context_size / 4 + 0] = command;
-                power_context_klogical[global_power_context.power_context_size / 4 + 1] = data;
-                state_map_table[address] = global_power_context.power_context_size / 4;
-                global_power_context.power_context_size += 8;
-            }
-            
         }
-    }    
+    }
 
     return VG_LITE_SUCCESS;
 }
@@ -372,6 +369,11 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         index = push_command(STATE_COMMAND(0x0A12), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A13), 0x00000000, index);   
 
+        index = push_command(STATE_COMMAND(0x0A1B), 0x00000001, index);   
+        index = push_command(SEMAPHORE_COMMAND(7),  0x00000000, index);   
+        index = push_command(STALL_COMMAND(7),      0x00000000, index);   
+        index = push_command(END_COMMAND(0),        0x00000000, index);   
+
         global_power_context.power_context_size = index * 4; 
     }
 #endif
@@ -458,6 +460,10 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 
     /* Enable all interrupts. */
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
+   
+#if gcdVG_ENABLE_POWER_MANAGEMENT
+    end_of_frame_count = 0;
+#endif
 
 #if defined(__linux__) && !defined(EMULATOR)
     if (copy_to_user(context_usr, context, sizeof(vg_lite_kernel_context_t)) != 0) {
@@ -702,7 +708,9 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         return VG_LITE_TIMEOUT;
     }
 #if gcdVG_ENABLE_POWER_MANAGEMENT
-    vg_lite_hal_pm_suspend(&context->end_of_frame);
+    if (context->end_of_frame)
+        end_of_frame_count++;
+    vg_lite_hal_pm_suspend(&context->end_of_frame, &end_of_frame_count);
 
     if (copy_to_user(context_usr, context, sizeof(vg_lite_kernel_context_t)) != 0) {
         return VG_LITE_NO_CONTEXT;
@@ -729,22 +737,13 @@ static vg_lite_error_t restore_gpu_state(void)
 
     wait.timeout_ms = 5000;
     wait.event_mask = (uint32_t)~0;
-    
-    power_context_klogical[global_power_context.power_context_size / 4 + 0] = 0x30010A1B;
-    power_context_klogical[global_power_context.power_context_size / 4 + 1] = 0x00000001;
-    power_context_klogical[global_power_context.power_context_size / 4 + 2] = 0x10000007;
-    power_context_klogical[global_power_context.power_context_size / 4 + 3] = 0x00000000;
-    power_context_klogical[global_power_context.power_context_size / 4 + 4] = 0x20000007;
-    power_context_klogical[global_power_context.power_context_size / 4 + 5] = 0x00000000;
-    power_context_klogical[global_power_context.power_context_size / 4 + 6] = 0x00000000;
-    power_context_klogical[global_power_context.power_context_size / 4 + 7] = 0x00000000;
-    global_power_context.power_context_size += 32;
 
     vg_lite_kernel_print("after resume and the power_context is:\n");
     for (i = 0; i < global_power_context.power_context_size / 4; i += 2) {
             vg_lite_kernel_print("command = 0x%08X, data = 0x%08X\n", 
                                   power_context_klogical[i], power_context_klogical[i + 1]);
     }
+    vg_lite_kernel_print("global_power_context.power_context_size = %d\n", global_power_context.power_context_size);
 
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, global_power_context.power_context_physical);
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (global_power_context.power_context_size + 7) / 8);
