@@ -86,14 +86,15 @@ vg_lite_ftable_t    s_ftable = {
 
 static vg_lite_error_t check_hardware_chip_info(void)
 {
-    uint32_t chip_id = 0, chip_rev = 0, cid = 0;
+    uint32_t chip_id = 0, chip_rev = 0, cid = 0, eco_id;
 
     vg_lite_get_product_info(NULL, &chip_id, &chip_rev);
     vg_lite_get_register(0x30, &cid);
+    vg_lite_get_register(0xE8, &eco_id);
 
-    if (CHIPID != chip_id || REVISION != chip_rev || CID != cid) {
-        printf("VGLite API initialization Error!!! \nHardware ChipId: 0x%X  ChipRevision: 0x%X  Cid: 0x%X \n", chip_id, chip_rev, cid);
-        printf("NOT match vg_lite_options.h CHIPID: 0x%X  REVISION: 0x%X  CID: 0x%X \n", CHIPID, REVISION, CID);
+    if (CHIPID != chip_id || REVISION != chip_rev || CID != cid || ECOID != eco_id) {
+        printf("VGLite API initialization Error!!! \nHardware ChipId: 0x%X  ChipRevision: 0x%X  Cid: 0x%X Ecoid: 0x%X \n", chip_id, chip_rev, cid, eco_id);
+        printf("NOT match vg_lite_options.h CHIPID: 0x%X  REVISION: 0x%X  CID: 0x%X Ecoid: 0x%X \n", CHIPID, REVISION, CID, ECOID);
         return VG_LITE_NOT_SUPPORT;
     }
 

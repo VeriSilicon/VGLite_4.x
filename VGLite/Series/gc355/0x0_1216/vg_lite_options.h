@@ -31,6 +31,7 @@
 #define CHIPID          0x355
 #define REVISION        0x1216
 #define CID             0x0
+#define ECOID           0x0
 
 #define gcFEATURE_VG_IM_INDEX_FORMAT            0
 #define gcFEATURE_VG_SCISSOR                    1
