@@ -1177,43 +1177,48 @@ uint32_t convert_blend(vg_lite_blend_t blend)
         case VG_LITE_BLEND_SRC_OVER:
         case VG_LITE_BLEND_NORMAL_LVGL:
         case VG_LITE_BLEND_PREMULTIPLY_SRC_OVER:
+        case VG_BLEND_SRC_OVER:
             return 0x00000100;
 
         case VG_LITE_BLEND_DST_OVER:
+        case VG_BLEND_DST_OVER:
             return 0x00000200;
 
         case VG_LITE_BLEND_SRC_IN:
+        case VG_BLEND_SRC_IN:
             return 0x00000300;
 
         case VG_LITE_BLEND_DST_IN:
+        case VG_BLEND_DST_IN:
             return 0x00000400;
 
-        case VG_LITE_BLEND_SCREEN:
-            return 0x00000600;
-
         case VG_LITE_BLEND_MULTIPLY:
+        case VG_LITE_BLEND_MULTIPLY_LVGL:
+        case VG_BLEND_MULTIPLY:
             return 0x00000500;
 
+        case VG_LITE_BLEND_SCREEN:
+        case VG_BLEND_SCREEN:
+            return 0x00000600;
+
+        case VG_LITE_BLEND_DARKEN:
+        case VG_BLEND_DARKEN:
+            return 0x00000700;
+
+        case VG_LITE_BLEND_LIGHTEN:
+        case VG_BLEND_LIGHTEN:
+            return 0x00000800;
+
         case VG_LITE_BLEND_ADDITIVE:
+        case VG_LITE_BLEND_ADDITIVE_LVGL:
+        case VG_BLEND_ADDITIVE:
             return 0x00000900;
 
         case VG_LITE_BLEND_SUBTRACT:
             return 0x00000A00;
 
-        case VG_LITE_BLEND_DARKEN:
-            return 0x00000700;
-
-        case VG_LITE_BLEND_LIGHTEN:
-            return 0x00000800;
-
         case VG_LITE_BLEND_SUBTRACT_LVGL:
             return 0x00000C00;
-
-        case VG_LITE_BLEND_ADDITIVE_LVGL:
-            return 0x00000900;
-
-        case VG_LITE_BLEND_MULTIPLY_LVGL:
-            return 0x00000500;
 
         default:
             return 0;
@@ -1954,7 +1959,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         rgb_alphadiv = 0x00000200;
 #if (CHIPID == 0x555)
         /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
-        if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
+        if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == VG_BLEND_SRC) &&
             s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
             premultiply_dst = 0x00000100;
         }
@@ -2925,7 +2930,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     in_premult = 0x00000000;
 #if (CHIPID == 0x555)
     /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
-    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
+    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == VG_BLEND_SRC) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         in_premult = 0x10000000;
     }
@@ -2972,15 +2977,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             break;
     };
 
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-#else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
-        in_premult = 0x00000000;
-    }
-#endif
 
     switch (source->paintType)
     {
@@ -3065,7 +3064,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if (CHIPID == 0x555)
     /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
-    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
+    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == VG_BLEND_SRC) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         src_premultiply_enable = 0x01000100;
     }
@@ -3576,7 +3575,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     in_premult = 0x00000000;
 #if (CHIPID == 0x555)
     /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
-    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
+    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == VG_BLEND_SRC) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         in_premult = 0x10000000;
     }
@@ -3623,15 +3622,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             break;
     };
 
-#if !gcFEATURE_VG_SRC_PREMULTIPLIED
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-#else
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
-        in_premult = 0x00000000;
-    }
-#endif
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
@@ -3701,7 +3694,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if (CHIPID == 0x555)
     /* GC555 unique copy image path when src and dst are in same pre mode and no blending, all pre registers need to set to 1. */
-    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == 0) &&
+    if ((s_context.blend_mode == VG_LITE_BLEND_NONE || s_context.blend_mode == VG_BLEND_SRC) &&
         s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 && s_context.matrix_enable == 0 && s_context.color_transform == 0) {
         src_premultiply_enable = 0x01000100;
     }
@@ -4237,6 +4230,29 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         )
     {
         return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    /* Set buffer->premultiplied properly according to buffer->format */
+    if (buffer->format < VG_LITE_RGBA8888)
+    {   /* For all OpenVG VG_* formats */
+#if gcFEATURE_VG_HW_PREMULTIPLY
+        if (buffer->format == VG_sRGBA_8888_PRE || buffer->format == VG_lRGBA_8888_PRE ||
+            buffer->format == VG_sARGB_8888_PRE || buffer->format == VG_lARGB_8888_PRE ||
+            buffer->format == VG_sBGRA_8888_PRE || buffer->format == VG_lBGRA_8888_PRE ||
+            buffer->format == VG_sABGR_8888_PRE || buffer->format == VG_lABGR_8888_PRE) {
+            buffer->premultiplied = 1;
+        }
+        else {
+            buffer->premultiplied = 0;
+        }
+#else
+        /* Cannot support OpenVG VG_* format if HW does not support premultiply */
+        return VG_LITE_INVALID_ARGUMENT;
+#endif
+    }
+    else {
+        /* All VG_LITE_* formats are not premultiplied */
+        buffer->premultiplied = 0;
     }
 
     /* Reset planar. */
