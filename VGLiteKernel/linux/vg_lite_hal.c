@@ -1829,10 +1829,19 @@ static int32_t rtc_wake_init(time64_t seconds)
         ONERROR(VG_LITE_OUT_OF_RESOURCES);
     }
 
-    now = rtc_tm_to_time64(&alm.time);    
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+    now = rtc_tm_to_time64(&alm.time);
+#else
+    rtc_tm_to_time(&alm.time, &now);
+#endif
+
     alarm = seconds + now;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
     rtc_time64_to_tm(alarm, &alm.time);
+#else
+    rtc_time_to_tm(alarm, &alm.time);
+#endif
 
     alm.enabled = 1;
     ret = rtc_set_alarm(device->rtc, &alm);
