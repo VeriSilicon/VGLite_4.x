@@ -81,12 +81,18 @@ extern "C" {
     #define gcdVG_ENABLE_POWER_MANAGEMENT                0
 #endif
 
-
 /*
  * when set to 1, vg_lite_hal_trace can use to print message
 */
 #ifndef gcdVG_ENABLE_DEBUG
     #define gcdVG_ENABLE_DEBUG                           1
+#endif
+
+/*
+ * when set to 1, dump last submit command from kernel
+*/
+#ifndef gcdVG_ENABLE_DUMP_COMMAND
+    #define gcdVG_ENABLE_DUMP_COMMAND                    0
 #endif
 
 #ifdef __cplusplus

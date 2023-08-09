@@ -624,20 +624,9 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
     return VG_LITE_SUCCESS;
 }
 
-void vg_lite_hal_pm_suspend(uint32_t *end_of_frame, uint32_t *end_of_frame_count)
+void vg_lite_hal_pm_suspend(void)
 {
-#if 1
-    if (*end_of_frame_count == trigger_suspend_frame) {
-        device->start_pm = 1;
-        *end_of_frame_count = 0;
-    }
-#endif
-
-    if (*end_of_frame && device->start_pm) {
-        device->start_pm = 0;
-        *end_of_frame = 0;
-        /* Implement platform related suspend function as follows*/     
-    }
+    /* NOT SUPPORTED */
 }
 
 static void vg_lite_exit(void)

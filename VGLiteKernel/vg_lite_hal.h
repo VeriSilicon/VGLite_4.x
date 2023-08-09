@@ -321,7 +321,7 @@ vg_lite_error_t vg_lite_hal_free(void* memory);
 /*!
  @brief execute pm suspend
  */
-void vg_lite_hal_pm_suspend(uint32_t *end_of_frame, uint32_t *end_of_frame_count);
+void vg_lite_hal_pm_suspend(void);
 
 #ifdef __cplusplus
 }

@@ -220,6 +220,7 @@ static struct vg_lite_device * device = NULL;
 static struct client_data * private_data = NULL;
 static vg_platform_t * platform = NULL;
 static vg_module_parameters_t global_param = {0};
+static uint32_t global_interrupt_flags = 0;
 
 static vg_lite_error_t init_param(vg_module_parameters_t *param)
 {
@@ -1864,24 +1865,16 @@ static void rtc_wake_exit(void)
     vg_lite_kernel_hintmsg("RTC wake up exited\n");
 }
 
-void vg_lite_hal_pm_suspend(uint32_t *end_of_frame, uint32_t *end_of_frame_count)
+void vg_lite_hal_pm_suspend(void)
 {
-#if 1
-    if (*end_of_frame_count == trigger_suspend_frame) {
-        device->start_pm = 1;
-        *end_of_frame_count = 0;
-    }
-#endif
-
-    if (*end_of_frame && device->start_pm) {
+#if 0
+    if (device->start_pm) {
         device->start_pm = 0;
-        *end_of_frame = 0;
         rtc_wake_init(5);
         pm_suspend(PM_SUSPEND_MEM);
         rtc_wake_exit();
-        device->suspend_count++;
-        vg_lite_kernel_hintmsg("suspend_count = %d\n", device->suspend_count);
     }
+#endif
 }
 
 int drv_open(struct inode * inode, struct file * file)
@@ -2318,7 +2311,6 @@ static vg_lite_int32_t debug_fs_exit(void)
 
     return 0;
 }
-
 #endif
 
 static vg_lite_int32_t gpu_probe(struct platform_device *pdev)
@@ -2391,6 +2383,12 @@ static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
 #if gcdVG_ENABLE_POWER_MANAGEMENT
 static vg_lite_int32_t gpu_suspend(struct platform_device *dev, pm_message_t state)
 {
+    while (!VG_LITE_KERNEL_IS_GPU_IDLE()) {
+        /* wait gpu idle to jump out of the while loop */
+    }
+
+    global_interrupt_flags |=  vg_lite_hal_peek(VG_LITE_INTR_STATUS) | device->int_flags;
+
     /* shutdown gpu */
     vg_lite_kernel(VG_LITE_CLOSE, NULL);
 
@@ -2416,7 +2414,17 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
     /* reset gpu, open interrupt and restore gpu state */
     vg_lite_kernel(VG_LITE_RESET, NULL);
 
-    vg_lite_kernel_hintmsg("gpu_resume success!\n");
+    if (global_interrupt_flags) {
+        if (!list_empty(&device->int_queue.head)) {
+            device->int_flags |= global_interrupt_flags;
+            wake_up_interruptible(&device->int_queue);
+            vg_lite_kernel_hintmsg("resume isr, global_interrupt_flags = 0x%08x\n", device->int_flags);
+        }
+        global_interrupt_flags = 0;
+    }
+
+    device->pm_count++;
+    vg_lite_kernel_hintmsg("gpu_resume success, pm execute count = %d\n", device->pm_count);
     
     return 0;
 }

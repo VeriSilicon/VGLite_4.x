@@ -132,7 +132,7 @@ struct vg_lite_device {
     uint32_t start_pm;
 #endif
     struct rtc_device *rtc;
-    uint32_t suspend_count;
+    uint32_t pm_count;
 };
 
 typedef struct vg_module_parameters
