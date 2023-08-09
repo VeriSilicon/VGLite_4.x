@@ -711,7 +711,6 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
 {
     struct heap_node * pos, * node;
-    unsigned long free_size;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -725,8 +724,8 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
     /* Mark node as free. */
     node->status = 0;
 
-    /* record current node free size */
-    free_size = node->size;
+    /* Add node size to free count. */
+    device->heap[pool].free += node->size;
 
     /* Check if next node is free. */
     pos = node;
@@ -734,7 +733,6 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             node->size += pos->size;
-            free_size += pos->size;
 
             /* Delete the next node from the list. */
             list_del(&pos->list);
@@ -749,7 +747,6 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             pos->size += node->size;
-            free_size += pos->size;
 
             /* Delete the current node from the list. */
             list_del(&node->list);
@@ -758,8 +755,6 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         break;
     }
 
-    /* Add node size to free count. */
-    device->heap[pool].free += free_size;
     /* TODO:the memory manager still have problem,we will refine it later.*/
     /*if(node->list.next == &device->heap.list && node->list.prev == &device->heap.list)
         kfree(node);*/
@@ -2415,7 +2410,11 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
     vg_lite_kernel(VG_LITE_RESET, NULL);
 
     if (global_interrupt_flags) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 00)
         if (!list_empty(&device->int_queue.head)) {
+#else
+        if (!list_empty(&device->int_queue.task_list)) {
+#endif
             device->int_flags |= global_interrupt_flags;
             wake_up_interruptible(&device->int_queue);
             vg_lite_kernel_hintmsg("resume isr, global_interrupt_flags = 0x%08x\n", device->int_flags);

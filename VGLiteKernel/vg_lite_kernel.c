@@ -572,6 +572,7 @@ static vg_lite_error_t vg_lite_kernel_vidmem_allocate(uint32_t *bytes, uint32_t 
         vidmem_node->handle = handle;
         flags |= VG_LITE_RESERVED_ALLOCATOR;
     } else if (error == VG_LITE_OUT_OF_MEMORY) {
+        flags |= VG_LITE_HAL_ALLOC_4G;
         ONERROR(vg_lite_hal_dma_alloc(bytes, flags, memory, kmemory, memory_gpu));
         vidmem_node->handle = handle;
         vidmem_node->physical = *memory_gpu;
@@ -666,6 +667,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     backup_command_buffer_klogical = (uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset);
     backup_command_buffer_size = data->command_size;
 #endif
+
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical + offset);
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (data->command_size + 7) / 8);
@@ -673,6 +675,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     return VG_LITE_SUCCESS;
 }
 
+#if gcdVG_ENABLE_BACKUP_COMMAND
 static void dump_last_frame(void)
 {
     uint32_t *ptr = backup_command_buffer_klogical;
@@ -682,21 +685,26 @@ static void dump_last_frame(void)
 
     vg_lite_kernel_hintmsg("the last submit command before hang:\n");
     for (i = 0; i < size / 4; i+=4) {
-        vg_lite_kernel_print("0x%08X 0x%08X\r", ptr[i], ptr[i+1]);
+        vg_lite_kernel_print("0x%08X 0x%08X", ptr[i], ptr[i+1]);
         if ((i + 2) <= (size / 4 - 1))
+#if defined(__linux__)
+            vg_lite_kernel_print(KERN_CONT " 0x%08X 0x%08X\n", ptr[i+2], ptr[i+3]);
+#else
             vg_lite_kernel_print(" 0x%08X 0x%08X\n", ptr[i+2], ptr[i+3]);
+#endif
     }   
 
     data = vg_lite_hal_peek(VG_LITE_HW_IDLE);
     vg_lite_kernel_hintmsg("vg idle reg = 0x%08X\n", data);
 }
+#endif
 
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 {
     /* Wait for interrupt. */
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {
         /* Timeout. */
-#if gcdVG_ENABLE_DUMP_COMMAND
+#if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
         dump_last_frame();
 #endif
         return VG_LITE_TIMEOUT;
@@ -740,17 +748,22 @@ static vg_lite_error_t restore_gpu_state(void)
 
     vg_lite_kernel_print("after resume and the power_context is:\n");
     for (i = 0; i < total_size / 4; i += 4) {
-            vg_lite_kernel_print("0x%08X 0x%08X\r", 
+            vg_lite_kernel_print("0x%08X 0x%08X", 
                                   power_context_klogical[i], power_context_klogical[i + 1]);
             if ((i + 2) <= (total_size / 4 - 1))
+#if defined(__linux__)
+                vg_lite_kernel_print(KERN_CONT " 0x%08X 0x%08X\n", 
+                                  power_context_klogical[i + 2], power_context_klogical[i + 3]);
+#else
                 vg_lite_kernel_print(" 0x%08X 0x%08X\n", 
                                   power_context_klogical[i + 2], power_context_klogical[i + 3]);
+#endif
     }
     vg_lite_kernel_print("global_power_context size = %d\n", total_size);
 
     /* submit the backup power context */
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, global_power_context.power_context_physical);
-    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (global_power_context.power_context_size + 7) / 8);
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (total_size + 7) / 8);
 
     error = do_wait(&wait);
     if (error == VG_LITE_TIMEOUT)
