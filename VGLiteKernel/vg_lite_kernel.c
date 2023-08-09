@@ -707,6 +707,11 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
         dump_last_frame();
 #endif
+
+#if gcdVG_ENABLE_GPU_RESET
+        do_reset();
+        return VG_LITE_SUCCESS;
+#endif
         return VG_LITE_TIMEOUT;
     }
 
