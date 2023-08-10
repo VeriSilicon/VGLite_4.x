@@ -47,6 +47,6 @@ else
 obj-m := vg_lite.o
 vg_lite-objs := $(OBJS)
 
-EXTRA_CFLAGS += -I$(M)/../inc -I$(M)/linux -I$(M) -I$(M)/../VGLite/linux
+EXTRA_CFLAGS += -I$(M)/../inc -I$(M)/linux -I$(M) -I$(M)/../VGLite/linux -I$(M)/../VGLite -I$(M)/../VGLiteKernel
 
 endif
