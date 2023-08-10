@@ -121,7 +121,7 @@ void vg_lite_hal_deinitialize(void);
  A pointer to an opaque structure that will be used as the memory handle. NULL should be returned if there is not
  enough memory.
  */
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void ** klogical, uint32_t * physical, void ** node);
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void **logical, void **klogical, uint32_t *physical, void **node);
 
 /*!
  @brief Free contiguous video memory.
@@ -171,6 +171,7 @@ void vg_lite_hal_free_os_heap(void);
  not enough system resources to map the region.
  */
 void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu);
+
 /*!
  @brief Unmap a previously mapped region.
 
@@ -181,7 +182,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
  @param memory_handle
  A pointer to an opaque structure returned by {@link vg_lite_hal_map}.
  */
-void vg_lite_hal_unmap(void * memory_handle);
+void vg_lite_hal_unmap(void *memory_handle);
 
 /*!
  @brief Execute a memory barrier.
@@ -270,7 +271,7 @@ vg_lite_error_t vg_lite_hal_unmap_memory(vg_lite_kernel_unmap_memory_t *node);
  @result
  A boolean value indicating whether the interrupt was received (1) or not (0).
  */
-int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * value);
+int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *value);
 
 /*!
  @brief After call vg_lite_hal_map(), flush cpu cache according the direction 
@@ -301,7 +302,7 @@ const char* vg_lite_hal_Status2Name(vg_lite_error_t status);
 /*!
  @brief allocate contiguous video memory by dma allocater
  */
-vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical);
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logical, void **klogical, uint32_t *physical);
 
 /*!
  @brief free contiguous video memory by dma allocater
@@ -311,12 +312,12 @@ vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogica
 /*!
  @brief allocate virtual memory from os
  */
-vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void** memory);
+vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory);
 
 /*!
  @brief free virtual memory
  */
-vg_lite_error_t vg_lite_hal_free(void* memory);
+vg_lite_error_t vg_lite_hal_free(void *memory);
 
 /*!
  @brief execute pm suspend

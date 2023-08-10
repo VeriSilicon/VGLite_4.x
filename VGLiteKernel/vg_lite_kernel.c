@@ -188,7 +188,7 @@ static void gpu(int enable)
     }
     else
     {
-        while (!VG_LITE_KERNEL_IS_GPU_IDLE() && 
+        while (!VG_LITE_KERNEL_IS_GPU_IDLE() &&
             (reset_timer < reset_timer_limit)   // Force shutdown if timeout.
             ) {
             vg_lite_hal_delay(reset_timer);
@@ -367,7 +367,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         index = push_command(STATE_COMMAND(0x0A5C), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A11), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A12), 0x00000000, index);
-        index = push_command(STATE_COMMAND(0x0A13), 0x00000000, index);   
+        index = push_command(STATE_COMMAND(0x0A13), 0x00000000, index);
 
         global_power_context.power_context_size = index * 4;
     }
@@ -692,7 +692,7 @@ static void dump_last_frame(void)
 #else
             vg_lite_kernel_print(" 0x%08X 0x%08X\n", ptr[i+2], ptr[i+3]);
 #endif
-    }   
+    }
 
     data = vg_lite_hal_peek(VG_LITE_HW_IDLE);
     vg_lite_kernel_hintmsg("vg idle reg = 0x%08X\n", data);

@@ -68,9 +68,8 @@ typedef unsigned long       vg_lite_long_t;
 # endif
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
 #endif
-

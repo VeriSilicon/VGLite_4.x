@@ -213,12 +213,9 @@ module_param(verbose, int, S_IRUGO);
 static vg_lite_int32_t cached = 0;
 module_param(cached, int, S_IRUGO);
 
-static uint32_t trigger_suspend_frame = 2000;       /* IMX6Q35: 6000 PCIE-GEN6: 2000 */
-module_param(trigger_suspend_frame, uint, 0644);
-
-static struct vg_lite_device * device = NULL;
-static struct client_data * private_data = NULL;
-static vg_platform_t * platform = NULL;
+static struct vg_lite_device *device = NULL;
+static struct client_data *private_data = NULL;
+static vg_platform_t *platform = NULL;
 static vg_module_parameters_t global_param = {0};
 static uint32_t global_interrupt_flags = 0;
 
@@ -414,9 +411,9 @@ uint32_t vg_lite_hal_cpu_to_gpu(uint64_t cpu_physical)
     return (uint32_t)cpu_physical;
 }
 
-static int split_node(struct heap_node * node, unsigned long size)
+static int split_node(struct heap_node *node, unsigned long size)
 {
-    struct heap_node * split;
+    struct heap_node *split;
 
     /* Allocate a new node. */
     split = kmalloc(sizeof(struct heap_node), GFP_KERNEL);
@@ -540,7 +537,7 @@ on_error:
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical)
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logical, void **klogical, uint32_t *physical)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t _size = *size;
@@ -646,7 +643,7 @@ on_error:
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_free(void* memory)
+vg_lite_error_t vg_lite_hal_free(void *memory)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
@@ -658,10 +655,10 @@ vg_lite_error_t vg_lite_hal_free(void* memory)
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void **klogical, uint32_t * physical,void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void **logical, void **klogical, uint32_t *physical,void **node)
 {
     unsigned long aligned_size;
-    struct heap_node * pos;
+    struct heap_node *pos;
 
     /* Judge if it exceeds the range of pool */
     if (pool >= VG_SYSTEM_RESERVE_COUNT)
@@ -708,9 +705,9 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
     return VG_LITE_OUT_OF_MEMORY;
 }
 
-void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
+void vg_lite_hal_free_contiguous(void *memory_handle, vg_lite_vidmem_pool_t pool)
 {
-    struct heap_node * pos, * node;
+    struct heap_node *pos, *node;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -790,7 +787,7 @@ vg_lite_error_t vg_lite_hal_query_mem(vg_lite_kernel_mem_t *mem)
 vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    void* _logical = NULL;
+    void *_logical = NULL;
     uint64_t physical = node->physical;
     uint32_t offset = physical & (PAGE_SIZE - 1);
     uint64_t bytes = node->bytes + offset;
@@ -799,10 +796,10 @@ vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
     struct vm_area_struct *vma;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-    _logical = (void*)vm_mmap(NULL, 0L, bytes, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, 0);
+    _logical = (void *)vm_mmap(NULL, 0L, bytes, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, 0);
 #else
     down_write(&current_mm_mmap_sem);
-    _logical = (void*)do_mmap_pgoff(NULL, 0L, bytes,
+    _logical = (void *)do_mmap_pgoff(NULL, 0L, bytes,
                 PROT_READ | PROT_WRITE, MAP_SHARED, 0);
     up_write(&current_mm_mmap_sem);
 #endif
@@ -848,7 +845,7 @@ vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
 vg_lite_error_t vg_lite_hal_unmap_memory(vg_lite_kernel_unmap_memory_t *node)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    void * _logical;
+    void *_logical;
     uint32_t bytes;
     uint32_t offset = (uint32_t)((uintptr_t)node->logical & (PAGE_SIZE - 1));
 
@@ -877,7 +874,7 @@ vg_lite_error_t vg_lite_hal_unmap_memory(vg_lite_kernel_unmap_memory_t *node)
     return error;
 }
 
-int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * value)
+int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *value)
 {
     unsigned long jiffies;
     unsigned long result;
@@ -1288,7 +1285,6 @@ vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_
         *_sgt = (vg_lite_pointer)sgt;
 
         return VG_LITE_SUCCESS;
-
     } else if (flags == VG_LITE_GFP_ALLOCATOR) {
         vg_lite_kernel_hintmsg("call VG_LITE_GFP_ALLOCATOR!\n");
         pages = kmalloc_array(num_pages, sizeof(struct page *), GFP_KERNEL | __GFP_NOWARN);
@@ -1334,11 +1330,10 @@ static vg_lite_int32_t dmabuf_attach(struct dma_buf *dmabuf, struct device *dev,
 }
 
 /* called by dma_buf_detach() */
-static void dmabuf_detach(struct dma_buf * dmabuf, struct dma_buf_attachment *attachment)
+static void dmabuf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attachment)
 {
 
 }
-
 
 /* called by dma_buf_map_attachment() */
 static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attachment,
@@ -1361,11 +1356,10 @@ static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attachment
     }
 
 # if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
-    if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, &attrs) == 0)
+    if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, &attrs) == 0) {
 # else
-    if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, attrs) == 0)
+    if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, attrs) == 0) {
 # endif
-    {
         sg_free_table(sgt);
         kfree(sgt);
         sgt = NULL;
@@ -1505,7 +1499,7 @@ on_error:
 
 void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu)
 {
-    struct mapped_memory * mapped;
+    struct mapped_memory *mapped;
     vg_lite_int32_t ret = -1;
     vg_lite_error_t error = VG_LITE_SUCCESS;
    
@@ -1519,7 +1513,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
         /* TODO: complete dma_buf importer*/
         struct dma_buf *dmabuf = NULL;
 
-        dmabuf = dma_buf_get(dma_buf_fd);        
+        dmabuf = dma_buf_get(dma_buf_fd);
         if (IS_ERR(dmabuf)) {
             vg_lite_kernel_error("dma_buf_get invalid parameter!\n");
             ONERROR(VG_LITE_INVALID_ARGUMENT);
@@ -1532,7 +1526,6 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
         ret = import_dma_buf(&device->pdev->dev, mapped);
 
         vg_lite_kernel_print("mapped->dmabuf_desc.dma_address_array = %s\n", (char *)phys_to_virt(mapped->dmabuf_desc.dma_address_array[0]));
-
     } else if (flags == VG_LITE_HAL_MAP_USER_MEMORY) {
 
         struct vm_area_struct *vma = NULL;
@@ -1613,7 +1606,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
         } else {
             if (vm_flags & VM_PFNMAP) {
                 vg_lite_kernel_hintmsg("import_pfns: \n");
-                ret = import_pfns(mapped, memory, page_count, offset); 
+                ret = import_pfns(mapped, memory, page_count, offset);
             } else {
                 vg_lite_kernel_hintmsg("import_pages: \n");
                 ret = import_pages(mapped, memory, page_count, offset, bytes, vm_flags);
@@ -1642,9 +1635,9 @@ on_error:
     return NULL;
 }
 
-void vg_lite_hal_unmap(void * handle)
+void vg_lite_hal_unmap(void *handle)
 {
-    struct mapped_memory * mapped = handle;
+    struct mapped_memory *mapped = handle;
     struct page **pages = mapped->um_desc.pages; 
     vg_lite_int32_t i;
 
@@ -1736,35 +1729,6 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
     
     return error;
 }
-
-#if 0
-static int32_t unmap_contiguous_memory_from_user(void)
-{
-    vg_lite_pointer  _logical;
-    vg_lite_uint32_t bytes;
-    vg_lite_uint32_t offset;
-    
-    if (unlikely(!current->mm))
-        return -1;
-
-    offset = (vg_lite_uintptr_t)private_data->contiguous_mapped & (PAGE_SIZE - 1);
-    _logical = (vg_lite_pointer)((vg_lite_uint8_t *)private_data->contiguous_mapped - offset);
-    bytes = private_data->device->size + offset;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
-    if (vm_munmap((unsigned long)_logical, bytes) < 0)
-        vg_lite_kernel_error("vm_munmap failed\n");
-#else
-    down_write(&current_mm_mmap_sem);
-    if (do_munmap(current->mm, (unsigned long)_logical, bytes) < 0)
-        vg_lite_kernel_error("do_munmap failed\n");
-
-    up_write(&current_mm_mmap_sem);
-#endif
-
-    return 0;
-}
-#endif
 
 #ifdef USE_RESERVE_MEMORY
 static void *map_contiguous_memory_to_kernel(vg_lite_uintptr_t physical, vg_lite_uint32_t size)
@@ -1872,9 +1836,9 @@ void vg_lite_hal_pm_suspend(void)
 #endif
 }
 
-int drv_open(struct inode * inode, struct file * file)
+int drv_open(struct inode *inode, struct file *file)
 {
-    struct client_data * data;
+    struct client_data *data;
     vg_lite_uint32_t i = 0;
 
     data = kmalloc(sizeof(struct client_data), GFP_KERNEL);
@@ -1893,9 +1857,9 @@ int drv_open(struct inode * inode, struct file * file)
     return 0;
 }
 
-int drv_release(struct inode * inode, struct file * file)
+int drv_release(struct inode *inode, struct file *file)
 {
-    struct client_data * data = (struct client_data *) file->private_data;
+    struct client_data *data = (struct client_data *)file->private_data;
 
     if (data != NULL) {
         if (data->contiguous_mapped != NULL) {
@@ -1909,10 +1873,10 @@ int drv_release(struct inode * inode, struct file * file)
     return 0;
 }
 
-long drv_ioctl(struct file * file, unsigned int ioctl_code, unsigned long arg)
+long drv_ioctl(struct file *file, unsigned int ioctl_code, unsigned long arg)
 {
     struct ioctl_data arguments;
-    void * data;
+    void *data;
 
     private_data = (struct client_data *) file->private_data;
     if (private_data == NULL)
@@ -1924,12 +1888,12 @@ long drv_ioctl(struct file * file, unsigned int ioctl_code, unsigned long arg)
         return -1;
     }
 
-    if ((void *) arg == NULL)
+    if ((void *)arg == NULL)
     {
         return -1;
     }
 
-    if (copy_from_user(&arguments, (void *) arg, sizeof(arguments)) != 0) {
+    if (copy_from_user(&arguments, (void *)arg, sizeof(arguments)) != 0) {
         return -1;
     }
 
@@ -1947,7 +1911,7 @@ long drv_ioctl(struct file * file, unsigned int ioctl_code, unsigned long arg)
 
     kfree(data);
 
-    if (copy_to_user((void *) arg, &arguments, sizeof(arguments)) != 0)
+    if (copy_to_user((void *)arg, &arguments, sizeof(arguments)) != 0)
         return -1;
 
     return 0;
@@ -1957,15 +1921,15 @@ error:
     return -1;
 }
 
-ssize_t drv_read(struct file * file, char * buffer, size_t length, loff_t * offset)
+ssize_t drv_read(struct file *file, char *buffer, size_t length, loff_t *offset)
 {
-    struct client_data * private = (struct client_data *) file->private_data;
+    struct client_data *private = (struct client_data *)file->private_data;
 
     if (length != 4) {
         return 0;
     }
 
-    if (copy_to_user((void __user *) buffer, (const void *) &private->device->size, sizeof(private->device->size)) != 0)
+    if (copy_to_user((void __user *)buffer, (const void *)&private->device->size, sizeof(private->device->size)) != 0)
     {
         return 0;
     }
@@ -1973,10 +1937,10 @@ ssize_t drv_read(struct file * file, char * buffer, size_t length, loff_t * offs
     return 4;
 }
 
-int drv_mmap(struct file * file, struct vm_area_struct * vm)
+int drv_mmap(struct file *file, struct vm_area_struct *vm)
 {
     vg_lite_long_t size;
-    struct client_data * private = (struct client_data *) file->private_data;
+    struct client_data *private = (struct client_data *)file->private_data;
     vg_lite_uint32_t offset = private->device->physical[0] & (PAGE_SIZE - 1);
     vg_lite_uint32_t num_pages = 0;
     vg_lite_uint32_t i = 0;
@@ -2041,8 +2005,8 @@ static struct file_operations file_operations =
 
 static void vg_lite_exit(void)
 {
-    struct heap_node * pos;
-    struct heap_node * n;
+    struct heap_node *pos;
+    struct heap_node *n;
     vg_lite_uint32_t i = 0;
 
     /* Check for valid device. */
@@ -2103,9 +2067,9 @@ static void vg_lite_exit(void)
     }
 }
 
-static irqreturn_t irq_hander(int irq, void * context)
+static irqreturn_t irq_hander(int irq, void *context)
 {
-    struct vg_lite_device * device = context;
+    struct vg_lite_device *device = context;
 
     /* Read interrupt status. */
     vg_lite_uint32_t flags = *(vg_lite_uint32_t *) (vg_lite_uint8_t *) (device->register_base_mapped + VG_LITE_INTR_STATUS);
@@ -2124,9 +2088,9 @@ static irqreturn_t irq_hander(int irq, void * context)
     return IRQ_NONE;
 }
 
-static vg_lite_error_t vg_lite_init(struct platform_device * pdev)
+static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
 {
-    struct heap_node * node;
+    struct heap_node *node;
     vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map_memory = {0};
@@ -2449,8 +2413,6 @@ static const struct dev_pm_ops gpu_pm_ops = {
 # endif
 #endif
 
-
-
 static struct platform_driver gpu_driver = {
     .probe      = gpu_probe,
     .remove     = gpu_remove,
@@ -2464,7 +2426,6 @@ static struct platform_driver gpu_driver = {
 #if defined(CONFIG_PM) && LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30) && gcdVG_ENABLE_POWER_MANAGEMENT
         .pm = &gpu_pm_ops,
 #endif
-
     }
 };
 

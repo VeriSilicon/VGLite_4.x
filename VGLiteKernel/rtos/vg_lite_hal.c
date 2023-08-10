@@ -72,7 +72,6 @@ static void sleep(uint32_t msec)
 {
     vTaskDelay((configTICK_RATE_HZ * msec + 999)/ 1000);
 }
-
 #endif
 
 #if _BAREMETAL
@@ -84,12 +83,12 @@ static    uint32_t    registerMemBase    = 0x40240000;
 
 /* If bit31 is activated this indicates a bus error */
 #define IS_AXI_BUS_ERR(x) ((x)&(1U << 31))
-
 #define HEAP_NODE_USED  0xABBAF00D
 
-volatile void* contiguousMem[VG_SYSTEM_RESERVE_COUNT] = { 
+volatile void* contiguousMem[VG_SYSTEM_RESERVE_COUNT] = {
     [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = NULL
 };
+
 uint32_t gpuMemBase[VG_SYSTEM_RESERVE_COUNT] = {
     [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = 0
 };
@@ -98,11 +97,6 @@ uint32_t gpuMemBase[VG_SYSTEM_RESERVE_COUNT] = {
 static uint32_t heap_size[VG_SYSTEM_RESERVE_COUNT] = {
     [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = MAX_CONTIGUOUS_SIZE
 };
-
-/* when the number of submit called by vg_lite_finish up to trigger_suspend_frame, 
- * can trigger pm suspend 
-*/
-static uint32_t trigger_suspend_frame = 2000;
 
 void __attribute__((weak)) vg_lite_bus_error_handler();
 
@@ -154,7 +148,7 @@ static inline void _memset(void *mem, unsigned char value, int size)
 {
     int i;
     for (i = 0; i < size; i++) {
-        ((unsigned char*)mem)[i] = value;
+        ((unsigned char *)mem)[i] = value;
     }
 }
 
@@ -164,20 +158,20 @@ struct memory_heap {
 };
 
 struct mapped_memory {
-    void * logical;
+    void *logical;
     uint32_t physical;
     int page_count;
-    struct page ** pages;
+    struct page **pages;
 };
 
 struct vg_lite_device {
     /* void * gpu; */
     uint32_t register_base;    /* Always use physical for register access in RTOS. */
     /* struct page * pages; */
-    volatile void * contiguous[VG_SYSTEM_RESERVE_COUNT];
+    volatile void *contiguous[VG_SYSTEM_RESERVE_COUNT];
     unsigned int order;
     unsigned int heap_size[VG_SYSTEM_RESERVE_COUNT];
-    void * virtual[VG_SYSTEM_RESERVE_COUNT];
+    void *virtual[VG_SYSTEM_RESERVE_COUNT];
     uint32_t physical[VG_SYSTEM_RESERVE_COUNT];
     uint32_t size[VG_SYSTEM_RESERVE_COUNT];
     struct memory_heap heap[VG_SYSTEM_RESERVE_COUNT];
@@ -190,21 +184,21 @@ struct vg_lite_device {
     /* wait_queue_head_t int_queue; */
     SemaphoreHandle_t int_queue;
 #endif
-    void * device;
+    void *device;
     int registered;
     int major;
-    struct class * class;
+    struct class *class;
     int created;
     uint32_t start_pm;
 };
 
 struct client_data {
-    struct vg_lite_device * device;
-    struct vm_area_struct * vm;
+    struct vg_lite_device *device;
+    struct vm_area_struct *vm;
     void * contiguous_mapped;
 };
 
-static struct vg_lite_device Device, * device;
+static struct vg_lite_device Device, *device;
 
 vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
 {
@@ -222,7 +216,7 @@ vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_free(void * memory)
+vg_lite_error_t vg_lite_hal_free(void *memory)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     
@@ -264,11 +258,11 @@ void vg_lite_hal_deinitialize(void)
     /* TODO: Remove power. */
 }
 
-static int split_node(heap_node_t * node, unsigned long size)
+static int split_node(heap_node_t *node, unsigned long size)
 {
     /* TODO: the original is linux specific list based, needs rewrite.
     */
-    heap_node_t * split;
+    heap_node_t *split;
 
     /* Allocate a new node. */
     vg_lite_hal_allocate(sizeof(heap_node_t), (void **)&split);
@@ -348,7 +342,7 @@ const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
     }
 }
 
-vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void ** logical, void **klogical, uint32_t * physical)
+vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logical, void **klogical, uint32_t *physical)
 {
     return VG_LITE_NOT_SUPPORT;
 }
@@ -358,10 +352,10 @@ vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogica
     return VG_LITE_NOT_SUPPORT;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void ** klogical, uint32_t * physical, void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void **logical, void **klogical, uint32_t *physical, void **node)
 {
     unsigned long aligned_size;
-    heap_node_t * pos;
+    heap_node_t *pos;
 
     /* Judge if it exceeds the range of pool */
     if (pool >= VG_SYSTEM_RESERVE_COUNT)
@@ -376,7 +370,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
     }
 
     /* Walk the heap backwards. */
-    for (pos = (heap_node_t*)device->heap[pool].list.prev;
+    for (pos = (heap_node_t *)device->heap[pool].list.prev;
                  &pos->list != &device->heap[pool].list;
                  pos = (heap_node_t*) pos->list.prev) {
         /* Check if the current node is free and is big enough. */
@@ -405,11 +399,10 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
     return VG_LITE_OUT_OF_MEMORY;
 }
 
-void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool)
+void vg_lite_hal_free_contiguous(void *memory_handle, vg_lite_vidmem_pool_t pool)
 {
     /* TODO: no list available in RTOS. */
-    heap_node_t * pos, * node;
-    unsigned long free_size;
+    heap_node_t *pos, *node;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -422,7 +415,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
     node->status = 0;
 
     /* Add node size to free count. */
-    free_size = node->size;
+    device->heap[pool].free += node->size;
 
     /* Check if next node is free. */
     pos = node;
@@ -432,8 +425,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             node->size += pos->size;
-            free_size += pos->size;
-            if(node->offset > pos->offset)
+            if (node->offset > pos->offset)
                 node->offset = pos->offset;
             /* Delete the next node from the list. */
             delete_list(&pos->list);
@@ -450,8 +442,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         if (pos->status == 0) {
             /* Merge the nodes. */
             pos->size += node->size;
-            free_size += pos->size;
-            if(pos->offset > node->offset)
+            if (pos->offset > node->offset)
                 pos->offset = node->offset;
             /* Delete the current node from the list. */
             delete_list(&node->list);
@@ -460,7 +451,6 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
         break;
     }
 
-    device->heap[pool].free += free_size;
     /* when release command buffer node and ts buffer node to exit,release the linked list*/
     /* if(device->heap[pool].list.next == device->heap[pool].list.prev) {
         delete_list(&pos->list);
@@ -470,7 +460,7 @@ void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t poo
 
 void vg_lite_hal_free_os_heap(void)
 {
-    struct heap_node    *pos, *n;
+    struct heap_node *pos, *n;
     uint32_t i;
 
     /* Check for valid device. */
@@ -556,7 +546,7 @@ void vg_lite_IRQHandler(void)
     }
 }
 
-int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * value)
+int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *value)
 {
 #if _BAREMETAL
     uint32_t int_status=0;
@@ -610,7 +600,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
     return (void *)0;
 }
 
-void vg_lite_hal_unmap(void * handle)
+void vg_lite_hal_unmap(void *handle)
 {
 
     (void) handle;
@@ -631,8 +621,8 @@ void vg_lite_hal_pm_suspend(void)
 
 static void vg_lite_exit(void)
 {
-    heap_node_t * pos;
-    heap_node_t * n;
+    heap_node_t *pos;
+    heap_node_t *n;
     uint32_t i;
 
     /* Check for valid device. */
@@ -660,7 +650,7 @@ static void vg_lite_exit(void)
 
 static int vg_lite_init(void)
 {
-    heap_node_t * node;
+    heap_node_t *node;
     uint32_t i;
 
     /* Initialize memory and objects ***************************************/
@@ -682,7 +672,7 @@ static int vg_lite_init(void)
         /* Make 64byte aligned. */
         while ((((uint32_t)device->contiguous[i]) & 63) != 0)
         {
-            device->contiguous[i] = ((unsigned char*)device->contiguous[i]) + 4;
+            device->contiguous[i] = ((unsigned char *)device->contiguous[i]) + 4;
             device->heap_size[i] -= 4;
         }
 
