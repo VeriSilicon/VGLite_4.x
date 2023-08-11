@@ -188,6 +188,8 @@ typedef struct vg_lite_context {
     uint32_t                    color_transform;
     uint32_t                    path_counter;
     vg_lite_filter_t            filter;
+    uint8_t                     pre_div;
+    uint8_t                     pre_mul;
 #if (CHIPID == 0x355)
     uint8_t                     from_blit_rect;
 #endif
