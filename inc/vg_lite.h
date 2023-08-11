@@ -418,16 +418,16 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*! (S * D) * Sa + D * (1 - Sa) , Non-premultiplied */
         VG_LITE_BLEND_PREMULTIPLY_SRC_OVER      = 15,       /*! S * Sa + (1 - Sa) * D , Non-premultiplied */
 
-        VG_BLEND_SRC                            = 0x2000,   /*! Copy SRC, no blend, Premultiplied */
-        VG_BLEND_SRC_OVER                       = 0x2001,   /*! Porter-Duff SRC_OVER blend, Premultiplied */
-        VG_BLEND_DST_OVER                       = 0x2002,   /*! Porter-Duff DST_OVER blend, Premultiplied */
-        VG_BLEND_SRC_IN                         = 0x2003,   /*! Porter-Duff SRC_IN blend, Premultiplied */
-        VG_BLEND_DST_IN                         = 0x2004,   /*! Porter-Duff DST_IN blend, Premultiplied */
-        VG_BLEND_MULTIPLY                       = 0x2005,   /*! Porter-Duff MULTIPLY blend, Premultiplied */
-        VG_BLEND_SCREEN                         = 0x2006,   /*! Porter-Duff SCREEN blend, Premultiplied */
-        VG_BLEND_DARKEN                         = 0x2007,   /*! Porter-Duff DARKEN blend, Premultiplied */
-        VG_BLEND_LIGHTEN                        = 0x2008,   /*! Porter-Duff LIGHTEN blend, Premultiplied */
-        VG_BLEND_ADDITIVE                       = 0x2009,   /*! Porter-Duff ADDITIVE blend, Premultiplied */
+        OPENVG_BLEND_SRC                        = 0x2000,   /*! Copy SRC, no blend, Premultiplied */
+        OPENVG_BLEND_SRC_OVER                   = 0x2001,   /*! Porter-Duff SRC_OVER blend, Premultiplied */
+        OPENVG_BLEND_DST_OVER                   = 0x2002,   /*! Porter-Duff DST_OVER blend, Premultiplied */
+        OPENVG_BLEND_SRC_IN                     = 0x2003,   /*! Porter-Duff SRC_IN blend, Premultiplied */
+        OPENVG_BLEND_DST_IN                     = 0x2004,   /*! Porter-Duff DST_IN blend, Premultiplied */
+        OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*! Porter-Duff MULTIPLY blend, Premultiplied */
+        OPENVG_BLEND_SCREEN                     = 0x2006,   /*! Porter-Duff SCREEN blend, Premultiplied */
+        OPENVG_BLEND_DARKEN                     = 0x2007,   /*! Porter-Duff DARKEN blend, Premultiplied */
+        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*! Porter-Duff LIGHTEN blend, Premultiplied */
+        OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*! Porter-Duff ADDITIVE blend, Premultiplied */
     } vg_lite_blend_t;
 
     /* Fill rules. Match OpenVG enum VGFillRule */
