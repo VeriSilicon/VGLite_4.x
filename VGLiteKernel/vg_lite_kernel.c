@@ -228,7 +228,10 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_context_t * context;
-    vg_lite_uint32_t flags = 0, i, index;
+    vg_lite_uint32_t flags = 0, i;
+#if gcdVG_ENABLE_BACKUP_COMMAND
+    vg_lite_uint32_t index;
+#endif
 
 #if defined(__linux__) && !defined(EMULATOR)
     vg_lite_kernel_context_t __user * context_usr;
@@ -715,10 +718,6 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         return VG_LITE_TIMEOUT;
     }
 
-#if gcdVG_ENABLE_POWER_MANAGEMENT
-    vg_lite_hal_pm_suspend();
-#endif
-    
 #if gcFEATURE_VG_FLEXA
     if (data->event_got & FLEXA_TIMEOUT_STATE)
         return VG_LITE_FLEXA_TIME_OUT;

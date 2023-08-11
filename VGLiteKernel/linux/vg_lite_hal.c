@@ -217,7 +217,9 @@ static struct vg_lite_device *device = NULL;
 static struct client_data *private_data = NULL;
 static vg_platform_t *platform = NULL;
 static vg_module_parameters_t global_param = {0};
+#if gcdVG_ENABLE_POWER_MANAGEMENT
 static uint32_t global_interrupt_flags = 0;
+#endif
 
 static vg_lite_error_t init_param(vg_module_parameters_t *param)
 {
@@ -1826,14 +1828,12 @@ static void rtc_wake_exit(void)
 
 void vg_lite_hal_pm_suspend(void)
 {
-#if 0
     if (device->start_pm) {
         device->start_pm = 0;
         rtc_wake_init(5);
         pm_suspend(PM_SUSPEND_MEM);
         rtc_wake_exit();
     }
-#endif
 }
 
 int drv_open(struct inode *inode, struct file *file)
@@ -2374,15 +2374,9 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
     vg_lite_kernel(VG_LITE_RESET, NULL);
 
     if (global_interrupt_flags) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 00)
-        if (!list_empty(&device->int_queue.head)) {
-#else
-        if (!list_empty(&device->int_queue.task_list)) {
-#endif
-            device->int_flags |= global_interrupt_flags;
-            wake_up_interruptible(&device->int_queue);
-            vg_lite_kernel_hintmsg("resume isr, global_interrupt_flags = 0x%08x\n", device->int_flags);
-        }
+        device->int_flags |= global_interrupt_flags;
+        wake_up_interruptible(&device->int_queue);
+        vg_lite_kernel_hintmsg("resume isr, global_interrupt_flags = 0x%08x\n", device->int_flags);
         global_interrupt_flags = 0;
     }
 
