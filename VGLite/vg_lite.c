@@ -1859,7 +1859,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     uint32_t rgb_alphadiv = 0;
     uint32_t read_dest = 0;
     uint32_t dst_format = 0;
-    uint32_t gamma_value = 0;
 
     if (target == NULL)
         return VG_LITE_INVALID_ARGUMENT;
