@@ -108,6 +108,7 @@ static vg_lite_error_t vg_lite_kernel_vidmem_free(void *handle);
 static void soft_reset(void);
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data);
 
+#if gcdVG_ENABLE_BACKUP_COMMAND
 static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite_gpu_reset_type_t reset_type)
 {    
     vg_lite_kernel_wait_t wait;
@@ -137,7 +138,6 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
     return error;
 }
 
-#if gcdVG_ENABLE_BACKUP_COMMAND
 static uint32_t push_command(uint32_t command, uint32_t data, uint32_t index)
 {
     uint32_t address = 0;
@@ -747,16 +747,16 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         dump_last_frame();
 #endif
 
-#if gcdVG_ENABLE_GPU_RESET
+#if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
         gpu_reset_count++;
         if (gpu_reset_count < 2) {
             /* reset and enable the GPU interrupt */
             gpu(1);
             vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
-    
+
             if (data->reset_type == RESTORE_INIT_COMMAND) {
-                execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32, 
-                                RESTORE_INIT_COMMAND);            
+                execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
+                                RESTORE_INIT_COMMAND);
             } else if (data->reset_type == RESTORE_LAST_COMMAND) {
                 execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
             } else {
