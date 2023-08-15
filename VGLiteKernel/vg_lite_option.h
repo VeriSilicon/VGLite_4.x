@@ -99,7 +99,7 @@ extern "C" {
  * when gpu hang, set 1 to open gpu reset function
 */
 #ifndef gcdVG_ENABLE_GPU_RESET
-    #define gcdVG_ENABLE_GPU_RESET                       0
+    #define gcdVG_ENABLE_GPU_RESET                       1
 #endif
 
 

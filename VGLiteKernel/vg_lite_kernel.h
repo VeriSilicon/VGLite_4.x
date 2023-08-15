@@ -366,6 +366,15 @@ typedef struct vg_lite_kernel_submit
 }
 vg_lite_kernel_submit_t;
 
+typedef enum vg_lite_gpu_reset_type
+{
+    RESTORE_INIT_COMMAND = 0,
+    RESTORE_LAST_COMMAND = 1,
+    RESTORE_ALL_COMMAND  = 2,
+    RESTORE_NONE         = 3,
+}
+vg_lite_gpu_reset_type_t;
+
 typedef struct vg_lite_kernel_wait
 {
     /* Context to wait for. */
@@ -379,6 +388,9 @@ typedef struct vg_lite_kernel_wait
 
     /* The event(s) got after waiting. */
     uint32_t event_got;
+
+    /* After GPU reset, select submit command */
+    vg_lite_gpu_reset_type_t reset_type;
 }
 vg_lite_kernel_wait_t;
 
