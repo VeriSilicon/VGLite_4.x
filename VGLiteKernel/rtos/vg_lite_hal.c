@@ -655,7 +655,13 @@ static int vg_lite_init(void)
 
     /* Initialize memory and objects ***************************************/
     /* Create device structure. */
+#if _BAREMETAL
     device = &Device;
+#else
+    vg_lite_hal_allocate(sizeof(struct vg_lite_device), (void **)&device);
+    if (NULL == device)
+        return -1;
+#endif
 
     /* Zero out the enture structure. */
     _memset(device, 0, sizeof(struct vg_lite_device));
