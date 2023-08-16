@@ -85,6 +85,7 @@ static uint32_t state_map_table[4096] = {
 static uint32_t backup_command_buffer_physical;
 static void *backup_command_buffer_klogical;
 static uint32_t backup_command_buffer_size;
+static uint32_t is_submit = 0;
 #endif
 
 typedef struct vg_lite_kernel_vidmem_node {
@@ -383,7 +384,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         index = push_command(STATE_COMMAND(0x0A3A), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A3D), 0x00000000, index);
 #else
-        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, 0);
         index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0ACB), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0ACC), 0x00000000, index);
@@ -492,6 +493,10 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 #if gcdVG_ENABLE_GPU_RESET
     gpu_reset_count = 0;
 #endif
+#if gcdVG_ENABLE_BACKUP_COMMAND
+    is_submit = 0;
+#endif
+
     /* Enable all interrupts. */
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
@@ -705,6 +710,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     backup_command_buffer_physical = physical + offset;
     backup_command_buffer_klogical = (uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset);
     backup_command_buffer_size = data->command_size;
+    is_submit = 1;
 #endif
 
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
@@ -832,7 +838,8 @@ static vg_lite_error_t do_reset(void)
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
-    restore_gpu_state();
+    if (is_submit)
+        restore_gpu_state();
 #endif
 
     return VG_LITE_SUCCESS;
