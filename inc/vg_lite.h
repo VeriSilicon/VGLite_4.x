@@ -566,6 +566,12 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_MAP_DMABUF                  = 0x01,
     } vg_lite_map_flag_t;
 
+    /*VGLite parameters variable*/
+    typedef enum vg_lite_param_type
+    {
+        VG_LITE_SCCISOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
+    } vg_lite_param_type_t;
+
 /* VGLite API Structures ******************************************************************************************************************/
 
     /* VGLite driver information */
@@ -1330,6 +1336,11 @@ typedef unsigned int        vg_lite_color_t;
 
     /* Dump command buffer */
     vg_lite_error_t vg_lite_dump_command_buffer();
+
+    /* Return VGLite parameters in params[] array */
+    vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
+                                    vg_lite_uint32_t count,
+                                    vg_lite_float_t* params);
 
 #endif /* VGLITE_VERSION_3_0 */
 

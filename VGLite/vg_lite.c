@@ -5558,3 +5558,24 @@ vg_lite_error_t vg_lite_dump_command_buffer()
 
     return error;
 }
+
+vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
+                                      vg_lite_uint32_t count,
+                                      vg_lite_float_t* params)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    switch (type)
+    {
+    case VG_LITE_SCCISOR_RECT:
+        for (int i = 0; i < count; i++)
+        {
+            *(params+i) = s_context.scissor[i];
+        }
+        break;
+
+    default:
+        error = VG_LITE_INVALID_ARGUMENT;
+        break;
+    }
+    return error;
+}
