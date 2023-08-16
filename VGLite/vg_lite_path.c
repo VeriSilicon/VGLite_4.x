@@ -2612,6 +2612,40 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         matrix = &ident_mtx;
     }
 
+#if gcFEATURE_VG_GAMMA
+    /* Set gamma configuration of source buffer */
+    /* Openvg paintcolor defaults to SRGB */
+    s_context.gamma_src = 1;
+
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= VG_sRGBX_8888 && target->format <= VG_sL_8) ||
+        (target->format >= VG_sXRGB_8888 && target->format <= VG_sARGB_4444) ||
+        (target->format >= VG_sBGRX_8888 && target->format <= VG_sBGRA_4444) ||
+        (target->format >= VG_sXBGR_8888 && target->format <= VG_sABGR_4444))
+    {
+        s_context.gamma_dst = 1;
+    }
+    else
+    {
+        s_context.gamma_dst = 0;
+    }
+    if (s_context.gamma_dirty == 0) {
+        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+        {
+            s_context.gamma_value = 0x00002000;
+        }
+        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+        {
+            s_context.gamma_value = 0x00001000;
+        }
+        else
+        {
+            s_context.gamma_value = 0x00000000;
+        }
+    }
+    s_context.gamma_dirty = 1;
+#endif
+
     /*blend input into context*/
     s_context.blend_mode = blend;
     /* Set premultiply according to source and target format. */
