@@ -5564,6 +5564,11 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                       vg_lite_float_t* params)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
+
+#if gcFEATURE_VG_TRACE_API
+    VGLITE_LOG("vg_lite_get_parameter %d %p\n", count, params);
+#endif
+
     switch (type)
     {
     case VG_LITE_SCCISOR_RECT:
