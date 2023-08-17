@@ -2618,16 +2618,16 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     s_context.gamma_src = 1;
 
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_sRGBX_8888 && target->format <= VG_sL_8) ||
-        (target->format >= VG_sXRGB_8888 && target->format <= VG_sARGB_4444) ||
-        (target->format >= VG_sBGRX_8888 && target->format <= VG_sBGRA_4444) ||
-        (target->format >= VG_sXBGR_8888 && target->format <= VG_sABGR_4444))
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_lL_8) ||
+        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
+        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
+        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
     {
-        s_context.gamma_dst = 1;
+        s_context.gamma_dst = 0;
     }
     else
     {
-        s_context.gamma_dst = 0;
+        s_context.gamma_dst = 1;
     }
     if (s_context.gamma_dirty == 0) {
         if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
@@ -3185,28 +3185,28 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_sRGBX_8888 && source->format <= VG_sL_8) ||
-        (source->format >= VG_sXRGB_8888 && source->format <= VG_sARGB_4444) ||
-        (source->format >= VG_sBGRX_8888 && source->format <= VG_sBGRA_4444) ||
-        (source->format >= VG_sXBGR_8888 && source->format <= VG_sABGR_4444))
-    {
-        s_context.gamma_src = 1;
-    }
-    else
+    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_lL_8) ||
+        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
+        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
+        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
     {
         s_context.gamma_src = 0;
     }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_sRGBX_8888 && target->format <= VG_sL_8) ||
-        (target->format >= VG_sXRGB_8888 && target->format <= VG_sARGB_4444) ||
-        (target->format >= VG_sBGRX_8888 && target->format <= VG_sBGRA_4444) ||
-        (target->format >= VG_sXBGR_8888 && target->format <= VG_sABGR_4444))
+    else
     {
-        s_context.gamma_dst = 1;
+        s_context.gamma_src = 1;
+    }
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_lL_8) ||
+        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
+        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
+        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_dst = 0;
     }
     else
     {
-        s_context.gamma_dst = 0;
+        s_context.gamma_dst = 1;
     }
     if (s_context.gamma_dirty == 0) {
         if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
