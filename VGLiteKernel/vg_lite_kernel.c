@@ -85,6 +85,7 @@ static uint32_t state_map_table[4096] = {
 static uint32_t backup_command_buffer_physical;
 static void *backup_command_buffer_klogical;
 static uint32_t backup_command_buffer_size;
+static uint32_t suspend_resume_count = 0;
 #endif
 
 typedef struct vg_lite_kernel_vidmem_node {
@@ -114,7 +115,7 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
     vg_lite_kernel_wait_t wait;
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-    wait.timeout_ms = 5000;
+    wait.timeout_ms = 1000;
     wait.event_mask = (uint32_t)~0;
 
     if (reset_type == RESTORE_INIT_COMMAND)
@@ -369,6 +370,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         }
 
         /* Initialize power context buffer */
+        suspend_resume_count = 0;
         for (i = 0; i < sizeof(state_map_table) / sizeof(state_map_table[0]); i++)
             state_map_table[i] = -1;
 #if (CHIPID==0x355 || CHIPID==0x255)
@@ -383,7 +385,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         index = push_command(STATE_COMMAND(0x0A3A), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A3D), 0x00000000, index);
 #else
-        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A35), 0x00000000, 0);
         index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0ACB), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0ACC), 0x00000000, index);
@@ -401,6 +403,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0AC8), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A5C), 0x00000000, index);
+        index = push_command(STATE_COMMAND(0x0A5D), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A11), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A12), 0x00000000, index);
         index = push_command(STATE_COMMAND(0x0A13), 0x00000000, index);
@@ -705,6 +708,14 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     backup_command_buffer_physical = physical + offset;
     backup_command_buffer_klogical = (uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset);
     backup_command_buffer_size = data->command_size;
+    
+    if (suspend_resume_count == 1) {
+        gpu(1);
+        vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
+        execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
+                        RESTORE_INIT_COMMAND);
+        suspend_resume_count++;
+    }
 #endif
 
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
@@ -750,19 +761,22 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 #if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
         gpu_reset_count++;
         if (gpu_reset_count < 2) {
-            /* reset and enable the GPU interrupt */
-            gpu(1);
-            vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
+            //gpu(1);
+            //vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
             if (data->reset_type == RESTORE_INIT_COMMAND) {
-                execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
-                                RESTORE_INIT_COMMAND);
+                //execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
+                                //RESTORE_INIT_COMMAND);
             } else if (data->reset_type == RESTORE_LAST_COMMAND) {
-                execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+                //execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
             } else {
+                /* reset and enable the GPU interrupt */
+                gpu(1);
+                vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
+                /* restore gpu state */
                 execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
                                 RESTORE_INIT_COMMAND);
-                //execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+                execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
             }
             gpu_reset_count = 0;
             return VG_LITE_SUCCESS;
@@ -833,6 +847,9 @@ static vg_lite_error_t do_reset(void)
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
     restore_gpu_state();
+    suspend_resume_count++;
+    if (suspend_resume_count >=2)
+        suspend_resume_count = 2;
 #endif
 
     return VG_LITE_SUCCESS;

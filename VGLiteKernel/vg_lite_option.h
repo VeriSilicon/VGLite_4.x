@@ -92,7 +92,7 @@ extern "C" {
  * when set to 1, dump last submit command from kernel
 */
 #ifndef gcdVG_ENABLE_DUMP_COMMAND
-    #define gcdVG_ENABLE_DUMP_COMMAND                    1
+    #define gcdVG_ENABLE_DUMP_COMMAND                    0
 #endif
 
 /*
