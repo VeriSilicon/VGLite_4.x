@@ -110,6 +110,8 @@ static void soft_reset(void);
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data);
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
+static vg_lite_error_t restore_gpu_state(void);
+
 static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite_gpu_reset_type_t reset_type)
 {    
     vg_lite_kernel_wait_t wait;
@@ -132,9 +134,9 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
     
     error = do_wait(&wait);
     if (error == VG_LITE_TIMEOUT)
-        vg_lite_kernel_hintmsg("Initialize the GPU state timeout!\n");
+        vg_lite_kernel_print("Initialize the GPU state timeout!\n");
     else
-        vg_lite_kernel_hintmsg("Initialize the GPU state success!\n");
+        vg_lite_kernel_print("Initialize the GPU state success!\n");
       
     return error;
 }
@@ -712,8 +714,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     if (suspend_resume_count == 1) {
         gpu(1);
         vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
-        execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
-                        RESTORE_INIT_COMMAND);
+        restore_gpu_state();
         suspend_resume_count++;
     }
 #endif
@@ -733,7 +734,7 @@ static void dump_last_frame(void)
     uint32_t i = 0;
     uint32_t data = 0;
 
-    vg_lite_kernel_hintmsg("the last submit command before hang:\n");
+    vg_lite_kernel_print("the last submit command before hang:\n");
     for (i = 0; i < size / 4; i+=4) {
         vg_lite_kernel_print("0x%08X 0x%08X", ptr[i], ptr[i+1]);
         if ((i + 2) <= (size / 4 - 1))
@@ -745,7 +746,7 @@ static void dump_last_frame(void)
     }
 
     data = vg_lite_hal_peek(VG_LITE_HW_IDLE);
-    vg_lite_kernel_hintmsg("vg idle reg = 0x%08X\n", data);
+    vg_lite_kernel_print("vg idle reg = 0x%08X\n", data);
 }
 #endif
 
@@ -781,7 +782,7 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
             gpu_reset_count = 0;
             return VG_LITE_SUCCESS;
         }
-        vg_lite_kernel_hintmsg("GPU reset fail!\n");
+        vg_lite_kernel_print("GPU reset fail!\n");
 #endif
         return VG_LITE_TIMEOUT;
     }

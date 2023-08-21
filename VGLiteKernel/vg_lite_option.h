@@ -85,7 +85,7 @@ extern "C" {
  * when set to 1, vg_lite_hal_trace can use to print message
 */
 #ifndef gcdVG_ENABLE_DEBUG
-    #define gcdVG_ENABLE_DEBUG                           1
+    #define gcdVG_ENABLE_DEBUG                           0
 #endif
 
 /*
