@@ -726,7 +726,7 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     return VG_LITE_SUCCESS;
 }
 
-#if gcdVG_ENABLE_BACKUP_COMMAND
+#if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
 static void dump_last_frame(void)
 {
     uint32_t *ptr = backup_command_buffer_klogical;
