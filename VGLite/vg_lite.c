@@ -2548,9 +2548,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t tiled_source;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
-#if !gcFEATURE_VG_SPLIT_PATH
-    uint32_t ahb_read_split = 0;
-#endif
     uint32_t compress_mode = 0;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
@@ -3092,13 +3089,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         stripe_mode = 0x20000000;
     }
 
-#if !gcFEATURE_VG_SPLIT_PATH
-    if (blend_mode) {
-        /* The hw bit for improve read image buffer performance when enable alpha blending. */
-        ahb_read_split = 1 << 7;
-    }
-#endif
-
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
@@ -3141,11 +3131,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
             return error;
 #endif
-#if !gcFEATURE_VG_SPLIT_PATH
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-#else
+
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
-#endif
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
@@ -3224,9 +3211,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
-#if !gcFEATURE_VG_SPLIT_PATH
-    uint32_t ahb_read_split = 0;
-#endif
     uint32_t compress_mode;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
@@ -3758,13 +3742,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         tiled = 0x40;
         stripe_mode = 0x20000000;
     }
-
-#if !gcFEATURE_VG_SPLIT_PATH
-    if (blend_mode) {
-        /* The hw bit for improve read image buffer performance when enable alpha blending. */
-        ahb_read_split = 1 << 7;
-    }
-#endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
@@ -3800,11 +3777,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             uv_swiz = convert_uv_swizzle(source->yuv.swizzle);
     }
 
-#if !gcFEATURE_VG_SPLIT_PATH
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-#else
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
-#endif
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
