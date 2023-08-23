@@ -193,7 +193,7 @@ static void gpu(int enable)
         value.control.clock_gate = 0;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
         vg_lite_hal_delay(1);
-        vg_lite_hal_poke(0x104, 0x800);
+        vg_lite_hal_poke(VG_LITE_POWER_CONTROL, 0x800);
         vg_lite_hal_delay(1);
         /* Set clock speed. */
         value.control.scale = 64;
@@ -211,7 +211,7 @@ static void gpu(int enable)
             reset_timer *= 2;   // If reset failed, try again with a longer wait. Need to check why if dead lopp happens here.
         } while (!VG_LITE_KERNEL_IS_GPU_IDLE());
 
-        vg_lite_hal_poke(0x104, 0x800);
+        vg_lite_hal_poke(VG_LITE_POWER_CONTROL, 0x800);
         vg_lite_hal_delay(1);
     }
     else
