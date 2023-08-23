@@ -119,24 +119,12 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
 
     wait.timeout_ms = 1000;
     wait.event_mask = (uint32_t)~0;
-
-    if (reset_type == RESTORE_INIT_COMMAND)
-        wait.reset_type = RESTORE_INIT_COMMAND;
-    else if (reset_type == RESTORE_LAST_COMMAND)
-        wait.reset_type = RESTORE_LAST_COMMAND;
-    else if (reset_type == RESTORE_ALL_COMMAND)
-        wait.reset_type = RESTORE_ALL_COMMAND;
-    else
-        wait.reset_type = RESTORE_NONE;
+    wait.reset_type = reset_type;
     
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical);
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (size + 7) / 8);
     
     error = do_wait(&wait);
-    if (error == VG_LITE_TIMEOUT)
-        vg_lite_kernel_print("Initialize the GPU state timeout!\n");
-    else
-        vg_lite_kernel_print("Initialize the GPU state success!\n");
       
     return error;
 }
@@ -756,6 +744,9 @@ static void dump_last_frame(void)
 
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 {
+#if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+#endif
     /* Wait for interrupt. */
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {
         /* Timeout. */
@@ -765,26 +756,24 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 
 #if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
         gpu_reset_count++;
-        if (gpu_reset_count < 2) {
-            //gpu(1);
-            //vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
-
+        if (gpu_reset_count <= 1) {
             if (data->reset_type == RESTORE_INIT_COMMAND) {
-                //execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
-                                //RESTORE_INIT_COMMAND);
+                error = VG_LITE_SUCCESS;
             } else if (data->reset_type == RESTORE_LAST_COMMAND) {
-                //execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
-            } else {
+                error = VG_LITE_SUCCESS;
+            } else if (data->reset_type == RESTORE_ALL_COMMAND){
                 /* reset and enable the GPU interrupt */
                 gpu(1);
                 vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
                 /* restore gpu state */
-                execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
+                error = execute_command(global_power_context.power_context_physical, global_power_context.power_context_size + 32,
                                 RESTORE_INIT_COMMAND);
-                execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+                error = execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+            } else {
+                error = VG_LITE_TIMEOUT;
             }
             gpu_reset_count = 0;
-            return VG_LITE_SUCCESS;
+            return error;
         }
         vg_lite_kernel_print("GPU reset fail!\n");
 #endif
@@ -836,9 +825,13 @@ static vg_lite_error_t restore_gpu_state(void)
 
     /* submit the backup power context */
     error = execute_command(global_power_context.power_context_physical, total_size, RESTORE_INIT_COMMAND);
+    if (error == VG_LITE_SUCCESS)
+        vg_lite_kernel_print("Initialize the GPU state success!\n"); 
 
     /* submit last frame before suspend */
-    //error = execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+    /*error = execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+    if (error == VG_LITE_SUCCESS)
+        vg_lite_kernel_print("Initialize the GPU state success!\n");*/
     
     return error;
 }

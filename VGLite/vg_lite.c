@@ -1699,6 +1699,7 @@ static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint
     wait.context = &context->context;
     wait.timeout_ms = time_ms > 0 ? time_ms : VG_LITE_INFINITE;
     wait.event_mask = mask;
+    wait.reset_type = RESTORE_ALL_COMMAND;
 #if defined(_WINDLL)
     vg_lite_kernel(VG_LITE_WAIT, &wait);
 #else
