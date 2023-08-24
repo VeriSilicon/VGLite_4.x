@@ -245,7 +245,11 @@ typedef unsigned int        vg_lite_color_t;
     /* Format of pixel buffer. */
     typedef enum vg_lite_buffer_format
     {
-        /* OpenVG VGImageFormat enums */
+        /* OpenVG VGImageFormat enums:
+         * Note: The bits for each color channel are stored within a machine word
+         * from MSB to LSB in the order indicated by the pixel format name.
+         * This is opposite of VG_LITE_* formats (from LSB to MSB).
+         */
 
         /* RGB{A,X} channel ordering */
         VG_sRGBX_8888                               =  0,
@@ -295,8 +299,11 @@ typedef unsigned int        vg_lite_color_t;
         VG_lABGR_8888                               =  8 | (1 << 6) | (1 << 7),
         VG_lABGR_8888_PRE                           =  9 | (1 << 6) | (1 << 7),
 
-        /* Original VGLite API image format enums */
-
+        /* Original VGLite API image format enums:
+         * Note: The bits for each color channel are stored within a machine word
+         * from LSB to MSB in the order indicated by the pixel format name.
+         * This is opposite of OPENVG VG_* formats (from MSB to LSB).
+         */
         VG_LITE_RGBA8888                        =  0 | (1 << 10),
         VG_LITE_BGRA8888                        =  1 | (1 << 10),
         VG_LITE_RGBX8888                        =  2 | (1 << 10),
@@ -346,7 +353,6 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_BGRA5658_PLANAR                 = 46 | (1 << 10),
         VG_LITE_ARGB8565_PLANAR                 = 47 | (1 << 10),
         VG_LITE_RGBA5658_PLANAR                 = 48 | (1 << 10),
-
 
         VG_LITE_INDEX_1 = 0 | (1 << 11),  /*! Indexed format. */
         VG_LITE_INDEX_2 = 1 | (1 << 11),
@@ -1303,9 +1309,6 @@ typedef unsigned int        vg_lite_color_t;
 
     /* Set gamma value. */
     vg_lite_error_t vg_lite_set_gamma(vg_lite_gamma_conversion_t gamma_value);
-
-    /* Set source image and target image premultiply states */
-    vg_lite_error_t vg_lite_set_premultiply(vg_lite_uint8_t src_premult, vg_lite_uint8_t dst_premult);
 
     /* Enable color transformation, which is OFF by default. */
     vg_lite_error_t vg_lite_enable_color_transform();

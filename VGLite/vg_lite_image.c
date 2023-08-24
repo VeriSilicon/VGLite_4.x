@@ -918,26 +918,6 @@ vg_lite_error_t vg_lite_set_gamma(vg_lite_gamma_conversion_t gamma_value)
 #endif
 }
 
-vg_lite_error_t vg_lite_set_premultiply(vg_lite_uint8_t src_premult, vg_lite_uint8_t dst_premult)
-{
-#if gcFEATURE_VG_HW_PREMULTIPLY
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_premultiply %d %d\n", src_premult, dst_premult);
-#endif
-
-    /* Enable premultiply Mode. */
-    s_context.premultiply_src = src_premult;
-    s_context.premultiply_dst = dst_premult;
-    s_context.premultiply_dirty = 1;
-
-    return error;
-#else
-    return VG_LITE_NOT_SUPPORT;
-#endif
-}
-
 vg_lite_error_t vg_lite_enable_color_transform()
 {
 #if gcFEATURE_VG_COLOR_TRANSFORMATION

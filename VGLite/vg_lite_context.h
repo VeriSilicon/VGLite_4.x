@@ -184,7 +184,6 @@ typedef struct vg_lite_context {
     uint32_t                    gamma_dst;
     uint32_t                    premultiply_src;
     uint32_t                    premultiply_dst;
-    uint32_t                    premultiply_dirty;
     uint32_t                    color_transform;
     uint32_t                    path_counter;
     vg_lite_filter_t            filter;

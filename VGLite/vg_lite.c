@@ -1910,7 +1910,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     s_context.target_height = target->height;
     /* Program render target. */
     if (s_context.rtbuffer != target || memcmp(s_context.rtbuffer,target,sizeof(vg_lite_buffer_t)) || (s_context.flexa_dirty != 0) ||
-       (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0) || (s_context.premultiply_dirty != 0)) {
+       (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0)) {
         VG_LITE_RETURN_ERROR(check_compress(target->format, target->compress_mode, target->tiled, target->width, target->height));
         if (target->tiled == VG_LITE_TILED) {
             if ((target->stride % DEST_ALIGNMENT_LIMITATION) != 0)
@@ -1965,14 +1965,13 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         if ((s_context.rtbuffer != NULL) &&
             !(memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) &&
             (s_context.scissor_dirty == 0) && (s_context.mirror_dirty == 0) &&
-            (s_context.gamma_dirty == 0) && (s_context.premultiply_dirty == 0))
+            (s_context.gamma_dirty == 0))
         {
             return VG_LITE_SUCCESS;
         }
 
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
-        s_context.premultiply_dirty = 0;
 
         if (s_context.flexa_dirty  && !s_context.flexa_mode && s_context.tessbuf.tessbuf_size) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AC8, s_context.tessbuf.tessbuf_size -64));
@@ -3501,7 +3500,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
     /*blend input into context*/
     s_context.blend_mode = blend;
-   in_premult = 0x00000000;
+    in_premult = 0x00000000;
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
     switch (source->format) {
