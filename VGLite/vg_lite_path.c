@@ -2617,7 +2617,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     s_context.gamma_src = 1;
 
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_lL_8) ||
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
         (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
         (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
         (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
@@ -3110,7 +3110,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_lL_8) ||
+    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
         (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
         (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
         (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
@@ -3122,7 +3122,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         s_context.gamma_src = 1;
     }
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_lL_8) ||
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
         (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
         (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
         (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
