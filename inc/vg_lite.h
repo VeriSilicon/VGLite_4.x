@@ -575,7 +575,7 @@ typedef unsigned int        vg_lite_color_t;
     /*VGLite parameters variable*/
     typedef enum vg_lite_param_type
     {
-        VG_LITE_SCCISOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
+        VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
     } vg_lite_param_type_t;
 
 /* VGLite API Structures ******************************************************************************************************************/

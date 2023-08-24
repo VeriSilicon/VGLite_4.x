@@ -5578,7 +5578,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 
     switch (type)
     {
-    case VG_LITE_SCCISOR_RECT:
+    case VG_LITE_SCISSOR_RECT:
         for (int i = 0; i < count; i++)
         {
             *(params+i) = s_context.scissor[i];
