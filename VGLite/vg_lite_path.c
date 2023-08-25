@@ -2647,9 +2647,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    /* Set premultiply according to source and target format. */
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
 
     switch (target->format) {
     case VG_sRGBA_8888_PRE:
@@ -2665,6 +2666,24 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     default:
         break;
     };
+    /* Adjust premultiply setting according to openvg condition */
+    if (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) {
+        s_context.pre_mul = 1;
+    }
+    else {
+        s_context.pre_mul = 0;
+    }
+    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+        in_premult = 0x10000000;
+    }
+    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
+             (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        in_premult = 0x00000000;
+    }
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
+    }
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -2750,11 +2769,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tessellation_size = s_context.tessbuf.tessbuf_size;
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 
-    in_premult = 0x10000000;
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL || (blend >= OPENVG_BLEND_SRC_OVER && blend <= OPENVG_BLEND_ADDITIVE)) {
-        in_premult = 0x00000000;
-        s_context.pre_mul = 1;
-    }
     /* Setup the command buffer. */
     /* Program color register. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
@@ -2935,6 +2949,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         }
     }
 #endif
+
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
 
     return error;
 }
@@ -3151,12 +3170,15 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 #endif
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
+
     /*blend input into context*/
     s_context.blend_mode = blend;
-    in_premult = 0x00000000;
-    /* Set premultiply according to source and target format. */
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+    in_premult = 0x00000000;
+
     switch (source->format) {
     case VG_sRGBA_8888_PRE:
     case VG_lRGBA_8888_PRE:
@@ -3219,13 +3241,13 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-
     if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3573,7 +3595,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
 
     if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
-
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t *)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
 
@@ -3627,7 +3648,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 #endif
         }
     }
-
 #else
     {
         /* Tessellate path. */
@@ -3651,8 +3671,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
             }
         }
     }
-
 #endif
+
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
 
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #if DUMP_IMAGE
@@ -4116,7 +4140,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
 
     if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
-
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t *)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
 

@@ -869,9 +869,9 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
                 for (j = rect_draw.y; j < rect_draw.height + rect_draw.y; ++j) {
                     ((vg_lite_uint8_t*)scissor_layer.memory)[j * stride + rect_draw.x] |= alpha;
                 }
+            }
         }
     }
-}
 
     s_context.scissor_enable = enable;
     s_context.scissor_dirty = 1;
