@@ -1927,19 +1927,14 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
         compress_mode = (uint32_t)target->compress_mode << 25;
 
-#if gcFEATURE_VG_HW_PREMULTIPLY
         if (s_context.premultiply_dst == s_context.premultiply_src && s_context.pre_mul == 0) {
             premultiply_dst = 0x00000100;
         }
         else if (s_context.premultiply_dst) {
             premultiply_dst = 0x00000100;
         }
+#if gcFEATURE_VG_HW_PREMULTIPLY
         rgb_alphadiv = 0x00000200;
-
-#else
-        if (s_context.premultiply_dst) {
-            premultiply_dst = 0x00000100;
-        }
 #endif
 
 #if gcFEATURE_VG_USE_DST
@@ -2798,6 +2793,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Set premultiply according to source and target format. */
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
     switch (source->format) {
     case VG_sRGBA_8888_PRE:
     case VG_lRGBA_8888_PRE:
@@ -2827,7 +2824,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         break;
     };
     /* Adjust premultiply setting according to openvg condition */
-#if gcFEATURE_VG_HW_PREMULTIPLY
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
@@ -2861,38 +2857,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-#endif
-    switch (source->format) {
-    case VG_LITE_RGBA8888:
-    case VG_LITE_BGRA8888:
-    case VG_LITE_ABGR8888:
-    case VG_LITE_ARGB8888:
-    case VG_LITE_RGBA8888_ETC2_EAC:
-    case VG_LITE_ABGR8565:
-    case VG_LITE_BGRA5658:
-    case VG_LITE_ARGB8565:
-    case VG_LITE_RGBA5658:
-    case VG_LITE_RGBA4444:
-    case VG_LITE_BGRA4444:
-    case VG_LITE_ABGR4444:
-    case VG_LITE_ARGB4444:
-    case VG_LITE_RGBA2222:
-    case VG_LITE_BGRA2222:
-    case VG_LITE_ABGR2222:
-    case VG_LITE_ARGB2222:
-    case VG_LITE_ABGR8565_PLANAR:
-    case VG_LITE_BGRA5658_PLANAR:
-    case VG_LITE_ARGB8565_PLANAR:
-    case VG_LITE_RGBA5658_PLANAR:
-#if (CHIPID == 0x255)
-    case VG_LITE_A8:
-    case VG_LITE_A4:
-#endif
-        in_premult = 0x10000000;
-        break;
-    default:
-        break;
-    };
+
     if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT){
         in_premult = 0x00000000;
     }
@@ -3503,6 +3468,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     in_premult = 0x00000000;
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
     switch (source->format) {
     case VG_sRGBA_8888_PRE:
     case VG_lRGBA_8888_PRE:
@@ -3532,7 +3499,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         break;
     };
     /* Adjust premultiply setting according to openvg condition */
-#if gcFEATURE_VG_HW_PREMULTIPLY
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
@@ -3566,39 +3532,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-#endif
 
-    switch (source->format) {
-    case VG_LITE_RGBA8888:
-    case VG_LITE_BGRA8888:
-    case VG_LITE_ABGR8888:
-    case VG_LITE_ARGB8888:
-    case VG_LITE_RGBA8888_ETC2_EAC:
-    case VG_LITE_ABGR8565:
-    case VG_LITE_BGRA5658:
-    case VG_LITE_ARGB8565:
-    case VG_LITE_RGBA5658:
-    case VG_LITE_RGBA4444:
-    case VG_LITE_BGRA4444:
-    case VG_LITE_ABGR4444:
-    case VG_LITE_ARGB4444:
-    case VG_LITE_RGBA2222:
-    case VG_LITE_BGRA2222:
-    case VG_LITE_ABGR2222:
-    case VG_LITE_ARGB2222:
-    case VG_LITE_ABGR8565_PLANAR:
-    case VG_LITE_BGRA5658_PLANAR:
-    case VG_LITE_ARGB8565_PLANAR:
-    case VG_LITE_RGBA5658_PLANAR:
-#if (CHIPID == 0x255)
-    case VG_LITE_A8:
-    case VG_LITE_A4:
-#endif
-        in_premult = 0x10000000;
-        break;
-    default:
-        break;
-    };
     if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
         in_premult = 0x00000000;
     }
