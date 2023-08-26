@@ -1154,6 +1154,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     vg_lite_point_t point_min = {0}, point_max = {0}, temp = {0};
     int x, y, width, height;
     uint8_t ts_is_fullscreen = 0;
+    uint32_t in_premult = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw %p %p %d %p %d 0x%08X\n", target, path, fill_rule, matrix, blend, color);
@@ -1176,6 +1177,45 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
 
     if (!matrix) {
         matrix = &ident_mtx;
+    }
+
+    /*blend input into context*/
+    s_context.blend_mode = blend;
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+
+    switch (target->format) {
+    case VG_sRGBA_8888_PRE:
+    case VG_lRGBA_8888_PRE:
+    case VG_sARGB_8888_PRE:
+    case VG_lARGB_8888_PRE:
+    case VG_sBGRA_8888_PRE:
+    case VG_lBGRA_8888_PRE:
+    case VG_sABGR_8888_PRE:
+    case VG_lABGR_8888_PRE:
+        s_context.premultiply_dst = 1;
+        break;
+    default:
+        break;
+    };
+    /* Adjust premultiply setting according to openvg condition */
+    if (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) {
+        s_context.pre_mul = 1;
+    }
+    else {
+        s_context.pre_mul = 0;
+    }
+    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+        in_premult = 0x10000000;
+    }
+    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
+             (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        in_premult = 0x00000000;
+    }
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
     }
 
     error = set_render_target(target);
@@ -1247,7 +1287,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000000 | s_context.capabilities.cap.tiled | blend_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program tessellation control: for TS module. */
@@ -1305,6 +1345,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     }
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
+
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+
     return error;
 }
 
@@ -1341,6 +1387,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     vg_lite_point_t point_min = {0}, point_max = {0}, temp = {0};
     int x, y, width, height;
     uint8_t ts_is_fullscreen = 0;
+    uint32_t in_premult = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
@@ -1363,6 +1410,79 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
+    }
+
+    /*blend input into context*/
+    s_context.blend_mode = blend;
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+    in_premult = 0x00000000;
+
+    switch (source->format) {
+    case VG_sRGBA_8888_PRE:
+    case VG_lRGBA_8888_PRE:
+    case VG_sARGB_8888_PRE:
+    case VG_lARGB_8888_PRE:
+    case VG_sBGRA_8888_PRE:
+    case VG_lBGRA_8888_PRE:
+    case VG_sABGR_8888_PRE:
+    case VG_lABGR_8888_PRE:
+        s_context.premultiply_src = 1;
+        break;
+    default:
+        break;
+    };
+    switch (target->format) {
+    case VG_sRGBA_8888_PRE:
+    case VG_lRGBA_8888_PRE:
+    case VG_sARGB_8888_PRE:
+    case VG_lARGB_8888_PRE:
+    case VG_sBGRA_8888_PRE:
+    case VG_lBGRA_8888_PRE:
+    case VG_sABGR_8888_PRE:
+    case VG_lABGR_8888_PRE:
+        s_context.premultiply_dst = 1;
+        break;
+    default:
+        break;
+    };
+    /* Adjust premultiply setting according to openvg condition */
+    if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        s_context.pre_div = 0;
+    }
+    else {
+        s_context.pre_div = 1;
+    }
+    if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
+        s_context.pre_mul = 1;
+    }
+    else {
+        s_context.pre_mul = 0;
+    }
+    if (source->format >= (1 << 10)) {
+        s_context.pre_mul = 0;
+    }
+    if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) ||
+        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
+        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+        in_premult = 0x10000000;
+    }
+    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
+              (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        in_premult = 0x00000000;
+    }
+    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
+             (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+        in_premult = 0x00000000;
+    }
+    if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+        in_premult = 0x00000000;
+    }
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
     }
 
     error = set_render_target(target);
@@ -1502,7 +1622,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     /* Program color register. */
 
     /* enable pre-multiplied from VG to VGPE */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x2 | in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000400 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
@@ -1559,6 +1679,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
+
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
 
     return error;
 }
