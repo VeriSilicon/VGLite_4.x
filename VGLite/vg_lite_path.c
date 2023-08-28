@@ -1462,9 +1462,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     else {
         s_context.pre_mul = 0;
     }
-    if (source->format >= (1 << 10)) {
-        s_context.pre_mul = 0;
-    }
+
     if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) ||
         (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
         (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
@@ -3347,9 +3345,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     else {
         s_context.pre_mul = 0;
     }
-    if (source->format >= (1 << 10)) {
-        s_context.pre_mul = 0;
-    }
+
     if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) ||
         (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
         (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
