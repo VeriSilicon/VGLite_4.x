@@ -5580,7 +5580,7 @@ vg_lite_error_t vg_lite_dump_command_buffer()
 }
 
 vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
-                                      vg_lite_uint32_t count,
+                                      vg_lite_int32_t count,
                                       vg_lite_float_t* params)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -5592,9 +5592,9 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
     switch (type)
     {
     case VG_LITE_SCISSOR_RECT:
-        for (int i = 0; i < count; i++)
+        for (vg_lite_int32_t i = 0; i < count; i++)
         {
-            *(params+i) = s_context.scissor[i];
+            *(params+i) = (vg_lite_float_t)s_context.scissor[i];
         }
         break;
 
