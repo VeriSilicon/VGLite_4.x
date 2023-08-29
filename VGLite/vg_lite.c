@@ -2030,7 +2030,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     uint32_t color32;
     uint32_t tiled = 0;
     uint32_t stripe_mode = 0;
-
+    uint32_t in_premult = 0;
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
     if (rect) VGLITE_LOG("    Rect(%d, %d, %d, %d)\n", rect->x, rect->y, rect->width, rect->height);
@@ -2069,7 +2069,31 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
     s_context.gamma_dirty = 1;
 #endif
-
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+    switch (target->format) {
+    case VG_sRGBA_8888_PRE:
+    case VG_lRGBA_8888_PRE:
+    case VG_sARGB_8888_PRE:
+    case VG_lARGB_8888_PRE:
+    case VG_sBGRA_8888_PRE:
+    case VG_lBGRA_8888_PRE:
+    case VG_sABGR_8888_PRE:
+    case VG_lABGR_8888_PRE:
+        s_context.premultiply_dst = 1;
+        break;
+    default:
+        break;
+    };
+    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+        in_premult = 0x10000000;
+    }
+    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
+        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        in_premult = 0x00000000;
+    }
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -2150,20 +2174,23 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect && (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
         }
         else
 #endif
         {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, x, y, width, height));
         }
 
         /* flush VGPE after clear */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000001));
     }
-
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
     /* Success. */
     return VG_LITE_SUCCESS;
 }
@@ -4674,9 +4701,8 @@ vg_lite_error_t vg_lite_finish()
     }
 
     /* Flush is moved from each draw to here. */
-#if gcFEATURE_VG_SPLIT_PATH
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
-#endif
+
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
 #if gcFEATURE_VG_POWER_MANAGEMENT
@@ -4718,9 +4744,7 @@ vg_lite_error_t vg_lite_flush(void)
     }
 
     /* Submit the current command buffer. */
-#if gcFEATURE_VG_SPLIT_PATH
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
-#endif
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
 #if gcFEATURE_VG_POWER_MANAGEMENT
