@@ -2841,11 +2841,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         s_context.pre_mul = 0;
     }
 
-    if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) ||
-        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
+    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
         (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
+    }
+    /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
+    else if (s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) {
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
     }
     else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
               (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
@@ -3523,11 +3527,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         s_context.pre_mul = 0;
     }
 
-    if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) ||
-        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
+    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
         (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
+    }
+    /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
+    else if(s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0){
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
     }
     else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
               (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
