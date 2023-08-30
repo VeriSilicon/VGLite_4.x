@@ -1342,7 +1342,7 @@ typedef unsigned int        vg_lite_color_t;
 
     /* Return VGLite parameters in params[] array */
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
-                                    vg_lite_uint32_t count,
+                                    vg_lite_int32_t count,
                                     vg_lite_float_t* params);
 
 #endif /* VGLITE_VERSION_3_0 */
