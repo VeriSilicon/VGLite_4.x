@@ -133,6 +133,7 @@ struct vg_lite_device {
 #endif
     struct rtc_device *rtc;
     uint32_t pm_count;
+    vg_lite_gpu_execute_state_t gpu_execute_state;
 };
 
 typedef struct vg_module_parameters

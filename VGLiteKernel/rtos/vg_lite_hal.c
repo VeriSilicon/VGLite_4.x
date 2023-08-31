@@ -189,7 +189,7 @@ struct vg_lite_device {
     int major;
     struct class *class;
     int created;
-    uint32_t start_pm;
+    vg_lite_gpu_execute_state_t gpu_execute_state;
 };
 
 struct client_data {
@@ -199,6 +199,11 @@ struct client_data {
 };
 
 static struct vg_lite_device Device, *device;
+
+void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state)
+{
+    device->gpu_execute_state = state;
+}
 
 vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
 {
@@ -570,7 +575,10 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *va
                *value = device->int_flags & mask;
             }
             device->int_flags = 0;
-
+    
+            /* set gpu state to idle */
+            device->gpu_execute_state = VG_LITE_GPU_STOP;
+        
             if (IS_AXI_BUS_ERR(*value))
             {
                 vg_lite_bus_error_handler();

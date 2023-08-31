@@ -120,7 +120,7 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
     wait.event_mask = (uint32_t)~0;
     wait.reset_type = reset_type;
 
-    /* Perform a memory barrier. */
+    /* flush cache. */
     vg_lite_hal_barrier();
 
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical);
@@ -490,6 +490,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 #if gcdVG_ENABLE_GPU_RESET
     gpu_reset_count = 0;
 #endif
+    vg_lite_set_gpu_execute_state(VG_LITE_GPU_STOP);
     /* Enable all interrupts. */
     vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
@@ -704,6 +705,9 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     backup_command_buffer_klogical = (uint32_t *)((uint8_t *)context->command_buffer_klogical[data->command_id] + offset);
     backup_command_buffer_size = data->command_size;
 #endif
+
+    /* set gpu to busy state  */
+    vg_lite_set_gpu_execute_state(VG_LITE_GPU_RUN);
 
     /* Write the registers to kick off the command execution (CMDBUF_SIZE). */
     vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical + offset);

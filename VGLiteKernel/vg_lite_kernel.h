@@ -216,12 +216,17 @@ typedef enum vg_lite_cache_op {
 } 
 vg_lite_cache_op_t;
 
-typedef enum vg_lite_vidmem_pool
-{
+typedef enum vg_lite_vidmem_pool {
     VG_LITE_POOL_RESERVED_MEMORY1 = 0,
     VG_LITE_POOL_RESERVED_MEMORY2 = 1,
 }
 vg_lite_vidmem_pool_t;
+
+typedef enum vg_lite_gpu_execute_state {
+    VG_LITE_GPU_STOP = 0,
+    VG_LITE_GPU_RUN  = 1,
+}
+vg_lite_gpu_execute_state_t;
 
 /* Context structure. */
 typedef struct vg_lite_kernel_context {

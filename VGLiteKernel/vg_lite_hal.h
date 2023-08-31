@@ -324,6 +324,11 @@ vg_lite_error_t vg_lite_hal_free(void *memory);
  */
 void vg_lite_hal_pm_suspend(void);
 
+/*!
+ @brief set gpu execute state
+ */
+void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state);
+
 #ifdef __cplusplus
 }
 #endif

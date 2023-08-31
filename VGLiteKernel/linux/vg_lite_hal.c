@@ -217,9 +217,6 @@ static struct vg_lite_device *device = NULL;
 static struct client_data *private_data = NULL;
 static vg_platform_t *platform = NULL;
 static vg_module_parameters_t global_param = {0};
-#if gcdVG_ENABLE_POWER_MANAGEMENT
-static uint32_t global_interrupt_flags = 0;
-#endif
 
 static vg_lite_error_t init_param(vg_module_parameters_t *param)
 {
@@ -922,7 +919,16 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *va
     }
 
     device->int_flags = 0;
+
+    /* set gpu state to idle */
+    device->gpu_execute_state = VG_LITE_GPU_STOP;
+
     return (result != 0);
+}
+
+void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state)
+{
+    device->gpu_execute_state = state;
 }
 
 static vg_lite_int32_t import_dma_buf(struct device *dev, struct mapped_memory *mapped)
@@ -2291,6 +2297,7 @@ static vg_lite_int32_t gpu_probe(struct platform_device *pdev)
     memset(device, 0, sizeof(struct vg_lite_device));
 
     device->pdev = pdev;
+    device->gpu_execute_state = VG_LITE_GPU_STOP;
     platform->vg_device = device;
 
     ONERROR(init_param(&global_param));
@@ -2342,11 +2349,18 @@ static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
 #if gcdVG_ENABLE_POWER_MANAGEMENT
 static vg_lite_int32_t gpu_suspend(struct platform_device *dev, pm_message_t state)
 {
-    while (!VG_LITE_KERNEL_IS_GPU_IDLE()) {
-        /* wait gpu idle to jump out of the while loop */
-    }
+    uint32_t total_suspend_time = 0;
+    uint32_t suspend_time_limit = 1000;
 
-    global_interrupt_flags |=  vg_lite_hal_peek(VG_LITE_INTR_STATUS) | device->int_flags;
+    while (!VG_LITE_KERNEL_IS_GPU_IDLE() || device->gpu_execute_state == VG_LITE_GPU_RUN) {
+        if (total_suspend_time < suspend_time_limit) {
+            vg_lite_hal_delay(2);
+            total_suspend_time += 2;
+        } else {
+            vg_lite_kernel_hintmsg("wait gpu idle timeout, gpu suspend fail!\n");
+            return -EBUSY;
+        }
+    }
 
     /* shutdown gpu */
     vg_lite_kernel(VG_LITE_CLOSE, NULL);
@@ -2373,16 +2387,9 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
     /* reset gpu, open interrupt and restore gpu state */
     vg_lite_kernel(VG_LITE_RESET, NULL);
 
-    if (global_interrupt_flags) {
-        device->int_flags |= global_interrupt_flags;
-        wake_up_interruptible(&device->int_queue);
-        vg_lite_kernel_hintmsg("resume isr, global_interrupt_flags = 0x%08x\n", device->int_flags);
-        global_interrupt_flags = 0;
-    }
-
     device->pm_count++;
     vg_lite_kernel_hintmsg("gpu_resume success, pm execute count = %d\n", device->pm_count);
-    
+
     return 0;
 }
 
