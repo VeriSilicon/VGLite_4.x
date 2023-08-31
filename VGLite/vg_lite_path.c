@@ -4405,6 +4405,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     uint32_t uv_swiz = 0;
     void* data;
     uint32_t compress_mode;
+    uint32_t in_premult = 0;
 
     /* The following code is from "draw path" */
     uint32_t format, quality, tiling, fill;
@@ -4502,6 +4503,65 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
+
+#if gcFEATURE_VG_GAMMA
+    /* Set gamma configuration of source buffer */
+    /* Openvg paintcolor defaults to SRGB */
+    s_context.gamma_src = 1;
+
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
+        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
+        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
+        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_dst = 0;
+    }
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+    if (s_context.gamma_dirty == 0) {
+        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+        {
+            s_context.gamma_value = 0x00002000;
+        }
+        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+        {
+            s_context.gamma_value = 0x00001000;
+        }
+        else
+        {
+            s_context.gamma_value = 0x00000000;
+        }
+    }
+    s_context.gamma_dirty = 1;
+#endif
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+    switch (target->format) {
+    case VG_sRGBA_8888_PRE:
+    case VG_lRGBA_8888_PRE:
+    case VG_sARGB_8888_PRE:
+    case VG_lARGB_8888_PRE:
+    case VG_sBGRA_8888_PRE:
+    case VG_lBGRA_8888_PRE:
+    case VG_sABGR_8888_PRE:
+    case VG_lABGR_8888_PRE:
+        s_context.premultiply_dst = 1;
+        break;
+    default:
+        break;
+    };
+    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+        in_premult = 0x10000000;
+    }
+    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
+        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        in_premult = 0x00000000;
+    }
 
     radius = grad->radial_grad.r;
 
@@ -5036,7 +5096,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x12000002 | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x02000002 | s_context.capabilities.cap.tiled | in_premult | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | s_context.scissor_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
