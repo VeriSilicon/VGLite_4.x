@@ -53,9 +53,8 @@
 *****************************************************************************/
 
 #include "vg_lite_platform.h"
-#include "../vg_lite_kernel.h"
-#include "../../inc/vg_lite_hal.h"
 #include "vg_lite_kernel.h"
+#include "vg_lite_hal.h"
 #include "vg_lite_hw.h"
 
 #if !_BAREMETAL
