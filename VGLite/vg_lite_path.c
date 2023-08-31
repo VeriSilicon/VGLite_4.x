@@ -2685,8 +2685,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     uint32_t tiled;
     uint32_t in_premult = 0;
 
-#if (!gcFEATURE_VG_PARALLEL_PATHS)  
-    int temp_height = 0;
+#if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
@@ -3145,7 +3144,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
 
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
-    int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
