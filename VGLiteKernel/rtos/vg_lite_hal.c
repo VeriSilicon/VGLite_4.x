@@ -202,11 +202,12 @@ void * vg_lite_hal_alloc(unsigned long size)
 #endif
 }
 
-void vg_lite_hal_free(void * memory)
+vg_lite_error_t vg_lite_hal_free(void * memory)
 {
 #if !_BAREMETAL
     /* TODO: Free some memory. No more kernel mode in RTOS. */
     vPortFree(memory);
+    return VG_LITE_SUCCESS;
 #endif
 }
 
