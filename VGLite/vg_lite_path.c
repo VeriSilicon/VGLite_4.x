@@ -5242,6 +5242,12 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
+
+    s_context.premultiply_dst = 0;
+    s_context.premultiply_src = 0;
+    s_context.pre_mul = 0;
+    s_context.pre_div = 0;
+
     return error;
 #else
     return VG_LITE_NOT_SUPPORT;
