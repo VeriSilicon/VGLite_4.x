@@ -3514,12 +3514,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A04, (uint32_t)c_step[0]));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A05, (uint32_t)c_step[1]));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A06, (uint32_t)x_step[0]));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A07, (uint32_t)x_step[1]));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A08, (uint32_t)y_step[0]));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A09, (uint32_t)y_step[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A04, (void *) &c_step[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A05, (void *) &c_step[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A06, (void *) &x_step[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A07, (void *) &x_step[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A08, (void *) &y_step[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A09, (void *) &y_step[1]));
     }
     
     /* Setup the command buffer. */
