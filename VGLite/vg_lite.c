@@ -36,6 +36,7 @@ uint32_t            submit_flag = 0;
 
 /* Initialize the feature table of a chip. */
 vg_lite_ftable_t    s_ftable = {
+    {
         gcFEATURE_VG_IM_INDEX_FORMAT,
         gcFEATURE_VG_SCISSOR,
         gcFEATURE_VG_BORDER_CULLING,
@@ -81,12 +82,13 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_YUV_TILED_INPUT,
         gcFEATURE_VG_AYUV_INPUT,
         gcFEATURE_VG_16PIXELS_ALIGNED,
+    }
 };
 
 
 static vg_lite_error_t check_hardware_chip_info(void)
 {
-    uint32_t chip_id = 0, chip_rev = 0, cid = 0, eco_id;
+    vg_lite_uint32_t chip_id = 0, chip_rev = 0, cid = 0, eco_id;
 
     vg_lite_get_product_info(NULL, &chip_id, &chip_rev);
     vg_lite_get_register(0x30, &cid);
@@ -4633,7 +4635,7 @@ vg_lite_uint32_t vg_lite_get_product_info(vg_lite_char* name, vg_lite_uint32_t* 
 {
     const char *product_name;
     uint32_t name_len;
-    uint32_t rev = 0, id = 0;
+    vg_lite_uint32_t rev = 0, id = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_get_product_info %p %p %p\n", name, chip_id, chip_rev);
