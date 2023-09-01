@@ -66,6 +66,8 @@
 #include "sleep.h"
 #endif
 
+#include <stdarg.h>
+
 #if !_BAREMETAL
 static void sleep(uint32_t msec)
 {
