@@ -53,9 +53,8 @@
 *****************************************************************************/
 
 #include "vg_lite_platform.h"
-#include "../vg_lite_kernel.h"
-#include "../../inc/vg_lite_hal.h"
 #include "vg_lite_kernel.h"
+#include "vg_lite_hal.h"
 #include "vg_lite_hw.h"
 
 #if !_BAREMETAL
@@ -203,11 +202,12 @@ void * vg_lite_hal_alloc(unsigned long size)
 #endif
 }
 
-void vg_lite_hal_free(void * memory)
+vg_lite_error_t vg_lite_hal_free(void * memory)
 {
 #if !_BAREMETAL
     /* TODO: Free some memory. No more kernel mode in RTOS. */
     vPortFree(memory);
+    return VG_LITE_SUCCESS;
 #endif
 }
 
