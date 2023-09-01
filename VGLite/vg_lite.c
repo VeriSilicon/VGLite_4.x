@@ -36,6 +36,7 @@ uint32_t            submit_flag = 0;
 
 /* Initialize the feature table of a chip. */
 vg_lite_ftable_t    s_ftable = {
+    {
         gcFEATURE_VG_IM_INDEX_FORMAT,
         gcFEATURE_VG_SCISSOR,
         gcFEATURE_VG_BORDER_CULLING,
@@ -81,6 +82,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_YUV_TILED_INPUT,
         gcFEATURE_VG_AYUV_INPUT,
         gcFEATURE_VG_16PIXELS_ALIGNED,
+    }
 };
 
 
