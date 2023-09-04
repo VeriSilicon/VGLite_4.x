@@ -1919,12 +1919,14 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
                 return VG_LITE_INVALID_ARGUMENT;
         }
 
-        if (s_context.flexa_mode)
-        {
+        if (s_context.flexa_mode) {
             flexa_mode = 1 << 7;
         }
-        if (s_context.mirror_orient)
-        {
+#if (CHIPID==0x355 || CHIPID==0x255)
+        if (s_context.mirror_orient == VG_LITE_ORIENTATION_TOP_BOTTOM) {
+#else
+        if (s_context.mirror_orient == VG_LITE_ORIENTATION_BOTTOM_TOP) {
+#endif
             mirror_mode = 1 << 16;
         }
         compress_mode = (uint32_t)target->compress_mode << 25;
@@ -3976,14 +3978,9 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
 
     s_context.path_counter = 0;
 
-#if (CHIPID==0x355 || CHIPID==0x255)
-    s_context.mirror_orient = VG_LITE_ORIENTATION_BOTTOM_TOP;
-    s_context.premultiply_src = 0;
-#else
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
     s_context.premultiply_src = 0;
     s_context.premultiply_dst = 0;
-#endif
 
 #if DUMP_CAPTURE
     _SetDumpFileInfo();
