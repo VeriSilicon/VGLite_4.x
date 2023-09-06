@@ -2175,16 +2175,19 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color32));
 
+        /* Clear operation is not affected by color transformation and pixel matrix.
+         * So PE clear and push_rectangle() clear have the same clear result color.
+         */
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect && (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
         }
         else
 #endif
         {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tiled | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tiled | s_context.scissor_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, x, y, width, height));
         }
 
