@@ -3101,6 +3101,9 @@ static vg_lite_error_t _copy_stroke_path(
     vg_lite_float_t totalsize = 0,real_size = 0;
     float *pfloat;
     char *cpath;
+#if (CHIPID==0x355)
+    char last_opcode = 0;
+#endif
     void *temp_stroke_data = NULL;
     uint32_t temp_stroke_size;
     vg_lite_sub_path_ptr sub_path;
@@ -3145,12 +3148,27 @@ static vg_lite_error_t _copy_stroke_path(
         }
 
         pfloat = (vg_lite_float_t *)((char *)path->stroke_path + temp_stroke_size);
-        cpath = (char *)pfloat;
-        *cpath = VLC_OP_MOVE;
-        pfloat++;
+#if (CHIPID==0x355)
+        if (last_opcode == VLC_OP_CLOSE) {
+            cpath = (char*)(pfloat - 1) + 1;
+            *cpath++ = VLC_OP_MOVE;
+            cpath = (char*)pfloat;
+        }
+        else 
+#endif
+        {
+            cpath = (char*)pfloat;
+            *cpath = VLC_OP_MOVE;
+            pfloat++;
+        }
+
         *pfloat++ = point->x;
         *pfloat++ = point->y;
         real_size += _commandSize_float[VLC_OP_MOVE];
+#if (CHIPID == 0x355)
+        if (last_opcode == VLC_OP_CLOSE)
+            real_size -= 4;
+#endif
 
         for (point = point->next; point; prev_point = point, point = point->next)
         {
@@ -3263,6 +3281,9 @@ static vg_lite_error_t _copy_stroke_path(
         totalsize = 0;
         real_size = 0;
         sub_path = sub_path->next;
+#if (CHIPID==0x355)
+        last_opcode = *cpath;
+#endif
     }
 
 ErrorHandler:
