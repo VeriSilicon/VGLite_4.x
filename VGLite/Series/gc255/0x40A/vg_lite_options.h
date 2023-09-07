@@ -34,7 +34,7 @@
 #define ECOID           0x1
 
 #define gcFEATURE_VG_IM_INDEX_FORMAT    1
-#define gcFEATURE_VG_SCISSOR    0
+#define gcFEATURE_VG_SCISSOR    1
 #define gcFEATURE_VG_BORDER_CULLING    1
 #define gcFEATURE_VG_RGBA2_FORMAT    1
 #define gcFEATURE_VG_QUALITY_8X    1

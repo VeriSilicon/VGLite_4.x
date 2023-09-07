@@ -278,7 +278,7 @@ vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lit
 
 vg_lite_error_t vg_lite_enable_scissor()
 {
-#if gcFEATURE_VG_SCISSOR
+#if gcFEATURE_VG_MASK
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_enable_scissor\n");
@@ -296,7 +296,7 @@ vg_lite_error_t vg_lite_enable_scissor()
 
 vg_lite_error_t vg_lite_disable_scissor()
 {
-#if gcFEATURE_VG_SCISSOR
+#if gcFEATURE_VG_MASK
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_disable_scissor\n");

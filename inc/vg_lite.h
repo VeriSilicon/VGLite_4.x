@@ -1194,13 +1194,16 @@ typedef unsigned int        vg_lite_color_t;
     /* Rotate a matrix. */
     vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t *matrix);
 
-    /* Set a scissor rectangle for render target. */
+    /* Set and enable a scissor rectangle for render target. */
     vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lite_int32_t right, vg_lite_int32_t bottom);
 
-    /* Enable scissor. */
+    /* Set scissor rectangles on mask layer. Scissor rects are enabled/disabled by following APIs. */
+    vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
+
+    /* Enable scissor rects defined on mask layer. */
     vg_lite_error_t vg_lite_enable_scissor();
 
-    /* Disable scissor. */
+    /* Disable scissor rects defined on mask layer. */
     vg_lite_error_t vg_lite_disable_scissor();
 
     /* Query size of available contiguous video memory. */
@@ -1300,9 +1303,6 @@ typedef unsigned int        vg_lite_color_t;
                                     vg_lite_fill_t fill_rule,
                                     vg_lite_color_t color,
                                     vg_lite_matrix_t *matrix);
-
-    /* Set scissor rectangles. */
-    vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
 
     /* Set mirror orientation. */
     vg_lite_error_t vg_lite_set_mirror(vg_lite_orientation_t orientation);
