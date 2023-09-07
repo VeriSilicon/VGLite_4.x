@@ -63,7 +63,7 @@
 #include "../vg_lite_option.h"
 
 #define _BAREMETAL 0
-#define VG_SYSTEM_RESERVE_COUNT 2
+#define VG_SYSTEM_RESERVE_COUNT 1
 
 /* Implementation of list. ****************************************/
 typedef struct list_head {

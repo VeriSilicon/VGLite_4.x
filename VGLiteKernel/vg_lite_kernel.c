@@ -491,7 +491,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         /* Allocate the memory. */
         error = vg_lite_kernel_vidmem_allocate(&total_size,
                                                flags,
-                                               VG_LITE_POOL_RESERVED_MEMORY2,
+                                               VG_LITE_POOL_RESERVED_MEMORY1,
                                                &context->tessbuf_logical,
                                                &context->tessbuf_klogical,
                                                &context->tessbuf_physical,
