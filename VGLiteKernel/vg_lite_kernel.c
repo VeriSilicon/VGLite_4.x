@@ -111,6 +111,32 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data);
 #if gcdVG_ENABLE_BACKUP_COMMAND
 static vg_lite_error_t restore_gpu_state(void);
 
+static vg_lite_error_t restore_init_command(uint32_t physical, uint32_t size)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_uint32_t total_suspend_time = 0;
+    vg_lite_uint32_t suspend_time_limit = 1000;
+
+    /* flush cache. */
+    vg_lite_hal_barrier();
+
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, physical);
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (size + 7) / 8);
+
+    while (!vg_lite_hal_peek(VG_LITE_INTR_STATUS)) {
+        vg_lite_hal_delay(2);
+        if (total_suspend_time < suspend_time_limit) {
+            total_suspend_time += 2;
+        } else {
+            error = VG_LITE_TIMEOUT;
+            break;
+        }
+    }
+    vg_lite_hal_delay(2);
+
+    return error;
+}
+
 static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite_gpu_reset_type_t reset_type)
 {
     vg_lite_kernel_wait_t wait;
@@ -822,12 +848,12 @@ static vg_lite_error_t restore_gpu_state(void)
     vg_lite_kernel_print("global_power_context size = %d\n", total_size);
 
     /* submit the backup power context */
-    error = execute_command(global_power_context.power_context_physical, total_size, RESTORE_INIT_COMMAND);
+    error = restore_init_command(global_power_context.power_context_physical, total_size);
     if (error == VG_LITE_SUCCESS)
         vg_lite_kernel_print("Initialize the GPU state success!\n"); 
 
     /* submit last frame before suspend */
-    /*error = execute_command(backup_command_buffer_physical, backup_command_buffer_size, RESTORE_LAST_COMMAND);
+    /*error = restore_init_command(backup_command_buffer_physical, backup_command_buffer_size);
     if (error == VG_LITE_SUCCESS)
         vg_lite_kernel_print("Initialize the GPU state success!\n");*/
     
@@ -839,11 +865,12 @@ static vg_lite_error_t do_reset(void)
 {
     /* reset and enable the GPU interrupt */
     gpu(1);
-    vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
     restore_gpu_state();
 #endif
+
+    vg_lite_hal_poke(VG_LITE_INTR_ENABLE, 0xFFFFFFFF);
 
     return VG_LITE_SUCCESS;
 }

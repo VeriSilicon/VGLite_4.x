@@ -2349,17 +2349,9 @@ static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
 #if gcdVG_ENABLE_POWER_MANAGEMENT
 static vg_lite_int32_t gpu_suspend(struct platform_device *dev, pm_message_t state)
 {
-    uint32_t total_suspend_time = 0;
-    uint32_t suspend_time_limit = 1000;
-
-    while (!VG_LITE_KERNEL_IS_GPU_IDLE() || device->gpu_execute_state == VG_LITE_GPU_RUN) {
-        if (total_suspend_time < suspend_time_limit) {
-            vg_lite_hal_delay(2);
-            total_suspend_time += 2;
-        } else {
-            vg_lite_kernel_hintmsg("wait gpu idle timeout, gpu suspend fail!\n");
-            return -EBUSY;
-        }
+    if (device->gpu_execute_state == VG_LITE_GPU_RUN) {
+        vg_lite_kernel_hintmsg("gpu suspend fail!\n");
+        return -EBUSY;
     }
 
     /* shutdown gpu */
