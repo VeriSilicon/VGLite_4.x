@@ -2898,6 +2898,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
     if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT){
+#if (CHIPID==0x255)
+        src_premultiply_enable = 0x00000000;
+#endif
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
@@ -3584,6 +3587,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
     if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+#if (CHIPID==0x255)
+        src_premultiply_enable = 0x00000000;
+#endif
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
