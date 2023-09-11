@@ -199,7 +199,10 @@ struct client_data {
     void * contiguous_mapped;
 };
 
-static struct vg_lite_device Device, *device;
+static struct vg_lite_device *device;
+#if _BAREMETAL
+static struct vg_lite_device Device;
+#endif
 
 void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state)
 {
@@ -297,6 +300,7 @@ void vg_lite_hal_print(char *format, ...)
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printf(buffer);
+
     va_end(args);
 }
 
@@ -306,11 +310,10 @@ void vg_lite_hal_trace(char *format, ...)
     va_list args;
     va_start(args, format);
 
-#if gcdVG_ENABLE_DEBUG
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printf(buffer);
-#endif
+
     va_end(args);
 }
 

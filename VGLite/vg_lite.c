@@ -1530,7 +1530,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
     }
 
     if ((bytes + 8) > CMDBUF_SIZE(*context)) {
-        printf("Command buffer size needs increase for data sized %d bytes!\n", bytes);
+        printf("Command buffer size needs increase for data sized %d bytes!\n", (int)bytes);
         return VG_LITE_OUT_OF_RESOURCES;
     }
 

@@ -489,7 +489,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 #endif /* (CHIPID==0x355 || CHIPID==0x255) */
 
         /* Allocate the memory. */
-        error = vg_lite_kernel_vidmem_allocate(&total_size,
+        error = vg_lite_kernel_vidmem_allocate((uint32_t*)&total_size,
                                                flags,
                                                VG_LITE_POOL_RESERVED_MEMORY1,
                                                &context->tessbuf_logical,
