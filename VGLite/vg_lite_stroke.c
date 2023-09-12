@@ -2547,6 +2547,12 @@ _close_stroke_sub_path(
         last_stroke_point->x, last_stroke_point->y
         ));
 
+    if (stroke_conversion->cap_style == VG_LITE_CAP_SQUARE
+        && stroke_conversion->join_style == VG_LITE_JOIN_MITER) {
+        stroke_conversion->left_point->x = last_stroke_point->x;
+        stroke_conversion->left_point->y = last_stroke_point->y;
+    }
+
     /* Adjust the two end ponts of the first point. */
     first_stroke_point->x = stroke_conversion->right_point->x;
     first_stroke_point->y = stroke_conversion->right_point->y;
