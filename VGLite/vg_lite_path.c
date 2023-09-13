@@ -3352,6 +3352,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
             s_context.gamma_value = 0x00000000;
         }
     }
+
+    if (target->image_mode == VG_LITE_STENCIL_MODE)
+    {
+        s_context.gamma_stencil = s_context.gamma_value;
+        s_context.gamma_value = 0x00000000;
+    }
     s_context.gamma_dirty = 1;
 #endif
 
