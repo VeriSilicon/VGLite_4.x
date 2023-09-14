@@ -2722,56 +2722,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
-#if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
-        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
-        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
-        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
-    {
-        s_context.gamma_src = 0;
-    }
-    else
-    {
-        s_context.gamma_src = 1;
-    }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        if (source->paintType == VG_LITE_PAINT_PATTERN) {
-            s_context.gamma_value = s_context.gamma_stencil;
-        }
-        else
-            s_context.gamma_value = 0x00000000;
-    }
-    s_context.gamma_dirty = 1;
-#endif
-
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -2832,6 +2782,56 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* No need to draw. */
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
+
+#if gcFEATURE_VG_GAMMA
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
+        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
+        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
+        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_src = 0;
+    }
+    else
+    {
+        s_context.gamma_src = 1;
+    }
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
+        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
+        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
+        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_dst = 0;
+    }
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+    if (s_context.gamma_dirty == 0) {
+        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+        {
+            s_context.gamma_value = 0x00002000;
+        }
+        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+        {
+            s_context.gamma_value = 0x00001000;
+        }
+        else
+        {
+            s_context.gamma_value = 0x00000000;
+        }
+    }
+
+    if (source->image_mode == VG_LITE_STENCIL_MODE) {
+        if (source->paintType == VG_LITE_PAINT_PATTERN) {
+            s_context.gamma_value = s_context.gamma_stencil;
+        }
+        else
+            s_context.gamma_value = 0x00000000;
+    }
+    s_context.gamma_dirty = 1;
+#endif
 
     /*blend input into context*/
     s_context.blend_mode = blend;
