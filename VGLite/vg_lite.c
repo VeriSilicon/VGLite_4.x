@@ -3371,49 +3371,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return error;
     }
 #endif
-
-#if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
-        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
-        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
-        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
-    {
-        s_context.gamma_src = 0;
-    }
-    else
-    {
-        s_context.gamma_src = 1;
-    }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-    s_context.gamma_dirty = 1;
-#endif
-
     /* Set source region. */
     if (rect != NULL) {
         if (rect->x < 0)
@@ -3520,6 +3477,48 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if (CHIPID == 0x355)
     s_context.from_blit_rect = 0;
+#endif
+
+#if gcFEATURE_VG_GAMMA
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
+        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
+        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
+        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_src = 0;
+    }
+    else
+    {
+        s_context.gamma_src = 1;
+    }
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
+        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
+        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
+        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE))
+    {
+        s_context.gamma_dst = 0;
+    }
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+    if (s_context.gamma_dirty == 0) {
+        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+        {
+            s_context.gamma_value = 0x00002000;
+        }
+        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+        {
+            s_context.gamma_value = 0x00001000;
+        }
+        else
+        {
+            s_context.gamma_value = 0x00000000;
+        }
+    }
+    s_context.gamma_dirty = 1;
 #endif
 
     /*blend input into context*/
