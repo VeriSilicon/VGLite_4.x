@@ -792,7 +792,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_index_endian_t index_endian;    /*! Refer to the definition by vg_lite_index_endian_t. */
         vg_lite_paint_type_t paintType;         /*! Get paintcolor from different paint types. */
         vg_lite_uint8_t fc_enable;              /*! enable im fastclear. */
-        vg_lite_uint8_t scissor_layer;          /*! Get paintcolor from different paint types. */
+        vg_lite_uint8_t scissor_layer;          /*! The buffer is scissor buffer. */
         vg_lite_uint8_t premultiplied;          /*! The RGB pixel values are alpha-premultipled */
     } vg_lite_buffer_t;
 
