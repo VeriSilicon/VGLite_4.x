@@ -4632,7 +4632,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
 
     radius = grad->radial_grad.r;
-    if (radius <= 0) {
+    if (radius < 0) {
         return VG_LITE_INVALID_ARGUMENT;
     }
 
