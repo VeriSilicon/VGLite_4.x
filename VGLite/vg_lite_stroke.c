@@ -500,7 +500,7 @@ static vg_lite_error_t _flatten_quad_bezier(
         /* Add extra P0 for incoming tangent. */
         point0 = stroke_conversion->path_end;
         /* First add P1 to calculate incoming tangent, which is saved in P0. */
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v1[0], v1[1], vgcFLATTEN_START));
+        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v1[0], v1[1], vgcFLATTEN_NO));
 
         point1 = stroke_conversion->path_end;
         /* Change the point1's coordinates back to P0. */
@@ -534,11 +534,11 @@ static vg_lite_error_t _flatten_quad_bezier(
                 t = n / d;
                 if (t > 1e-12f && t < 1.f - 1e-12f) {
                     quad_bezier(&pt[0], &pt[1], curve, t);
-                    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
+                    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_NO));
                 }
             }
         }
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_MIDDLE));
+        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_NO));
         return error;
     }
 
@@ -547,7 +547,7 @@ static vg_lite_error_t _flatten_quad_bezier(
     VG_LITE_ERROR_HANDLER(_flatten_quad_bezier(stroke_conversion, subCurve2, level + 1));
     if (level == 0) {
         /* Add point 2 separately to avoid cumulative errors. */
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_END));
+        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_NO));
 
         /* Add extra P2 for outgoing tangent. */
         /* First change P2(point0)'s coordinates to P1. */
@@ -595,15 +595,15 @@ static vg_lite_error_t _flatten_cubic_bezier(
         /* First add P1/P2/P3 to calculate incoming tangent, which is saved in P0. */
         if (v0[0] != v1[0] || v0[1] != v1[1])
         {
-            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v1[0], v1[1], vgcFLATTEN_START));
+            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v1[0], v1[1], vgcFLATTEN_NO));
         }
         else if (v0[0] != v2[0] || v0[1] != v2[1])
         {
-            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_START));
+            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_NO));
         }
         else
         {
-            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_START));
+            VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_NO));
         }
         point1 = stroke_conversion->path_end;
         /* Change the point1's coordinates back to P0. */
@@ -664,10 +664,10 @@ static vg_lite_error_t _flatten_cubic_bezier(
 
             for (uint8_t i = 0; i < rootNum; ++i) {
                 cubic_bezier(&pt[0], &pt[1], curve, root[i]);
-                VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
+                VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_NO));
             }
         }
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_MIDDLE));
+        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_NO));
         return error;
     }
 
@@ -676,7 +676,7 @@ static vg_lite_error_t _flatten_cubic_bezier(
     VG_LITE_ERROR_HANDLER(_flatten_cubic_bezier(stroke_conversion, subCurve2, level + 1));
     if (level == 0) {
         /* Add point 3 separately to avoid cumulative errors. */
-        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_END));
+        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_NO));
 
         /* Add extra P3 for outgoing tangent. */
         /* First change P3(point0)'s coordinates to P0/P1/P2. */
