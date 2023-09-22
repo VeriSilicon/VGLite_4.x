@@ -1435,6 +1435,9 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
     vg_lite_int32_t _fd = -1;
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t allocater_flags = VG_LITE_GFP_ALLOCATOR;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+    DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
+#endif
 
     memory_node = kmalloc(sizeof(*memory_node), GFP_KERNEL);
     if (!memory_node) {
@@ -1480,7 +1483,6 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
     }
 
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
-    DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
     exp_info.ops = &dmabuf_ops;
     exp_info.size = memory_node->bytes;
     exp_info.flags = O_CLOEXEC;
