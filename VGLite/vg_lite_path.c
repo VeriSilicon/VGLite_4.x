@@ -1372,7 +1372,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     uint32_t imageMode;
     uint32_t blend_mode;
     uint32_t filter_mode = 0;
-    int32_t src_align_width,dst_align_width;
+    int32_t dst_align_width;
     uint32_t mul, div, align;
     uint32_t conversion = 0;
     uint32_t tiled_source;
@@ -1555,9 +1555,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     }
 
     /* Setup the command buffer. */
-    get_format_bytes(source->format, &mul, &div, &align);
-    src_align_width = source->stride * div / mul;
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(target, src_align_width, source->height, matrix));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
 
     /* enable pre-multiplied in imager unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
@@ -1568,7 +1566,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, src_align_width | (source->height << 16)));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
     
     /* Work on path states. */
     matrix = matrix0;
