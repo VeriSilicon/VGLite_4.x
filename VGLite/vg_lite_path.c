@@ -1691,7 +1691,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
-
+    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)* (source->height));
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
