@@ -1945,14 +1945,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         read_dest = 0x00100000;
 #endif
 
-#if (CHIPID == 0x355)
-        if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
-            target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-            target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
-            return error;
-        }
-#endif
-
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == 0xFF) {
             printf("error: Target format is not supported.\n");
@@ -2038,6 +2030,17 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
     if (rect) VGLITE_LOG("    Rect(%d, %d, %d, %d)\n", rect->x, rect->y, rect->width, rect->height);
+#endif
+
+#if gcFEATURE_VG_ERROR_CHECK
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif
 
 #if gcFEATURE_VG_GAMMA
@@ -2668,6 +2671,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         || target->format == VG_LITE_AYUY2 || target->format == VG_LITE_AYUY2_TILED)) {
         return VG_LITE_NOT_SUPPORT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if gcFEATURE_VG_INDEX_ENDIAN
@@ -3318,6 +3329,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         || target->format == VG_LITE_AYUY2 || target->format == VG_LITE_AYUY2_TILED)) {
         return VG_LITE_NOT_SUPPORT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if gcFEATURE_VG_INDEX_ENDIAN

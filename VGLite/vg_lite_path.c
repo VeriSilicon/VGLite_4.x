@@ -1169,6 +1169,14 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
@@ -1406,6 +1414,14 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
@@ -1743,6 +1759,14 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
@@ -2156,6 +2180,14 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
+#if (CHIPID == 0x355)
+    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
+        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
+        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
+        printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_SUCCESS;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
