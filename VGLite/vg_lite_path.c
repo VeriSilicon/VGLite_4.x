@@ -3941,6 +3941,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     uint32_t in_premult = 0;
+    uint32_t src_premultiply_enable = 0;
     void* data;
 
     /* The following code is from "draw path" */
@@ -4057,6 +4058,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
     s_context.gamma_dirty = 1;
 #endif
+    /*blend input into context*/
+    s_context.blend_mode = blend;
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
@@ -4075,13 +4078,51 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     default:
         break;
     };
-    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+    src_premultiply_enable = 0x01000100;
+    if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        s_context.pre_div = 0;
+    }
+    else {
+        s_context.pre_div = 1;
+    }
+    if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
+        s_context.pre_mul = 1;
+    }
+    else {
+        s_context.pre_mul = 0;
+    }
+
+    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
+        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+        src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
+    }
+    /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
+    else if (s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) {
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
     }
     else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
         (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
+    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
+        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
+    }
+    if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+#if (CHIPID==0x255)
+        src_premultiply_enable = 0x00000000;
+#endif
+        in_premult = 0x00000000;
+    }
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
+    }
+
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
@@ -4313,7 +4354,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
-                                                        filter_mode | uv_swiz | yuv2rgb | linear_tile | conversion | 0x01000100));
+                                                        filter_mode | uv_swiz | yuv2rgb | linear_tile | conversion | src_premultiply_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, paint_color));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source->address));
 
@@ -4570,6 +4611,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     void* data;
     uint32_t compress_mode;
     uint32_t in_premult = 0;
+    uint32_t src_premultiply_enable = 0;
 
     /* The following code is from "draw path" */
     uint32_t format, quality, tiling, fill;
@@ -4705,6 +4747,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
     s_context.gamma_dirty = 1;
 #endif
+    /*blend input into context*/
+    s_context.blend_mode = blend;
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
@@ -4723,13 +4767,51 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     default:
         break;
     };
-    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
+    src_premultiply_enable = 0x01000100;
+    if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        s_context.pre_div = 0;
+    }
+    else {
+        s_context.pre_div = 1;
+    }
+    if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
+        s_context.pre_mul = 1;
+    }
+    else {
+        s_context.pre_mul = 0;
+    }
+
+    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
+        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+        src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
+    }
+    /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
+    else if (s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) {
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
     }
     else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
         (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+        src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
+    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
+        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+        src_premultiply_enable = 0x00000100;
+        in_premult = 0x00000000;
+    }
+    if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+#if (CHIPID==0x255)
+        src_premultiply_enable = 0x00000000;
+#endif
+        in_premult = 0x00000000;
+    }
+    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        in_premult = 0x00000000;
+    }
+
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
@@ -5197,7 +5279,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
-                                                        filter_mode | uv_swiz | yuv2rgb | rad_tile | conversion | 0x01000100 | compress_mode));
+                                                        filter_mode | uv_swiz | yuv2rgb | rad_tile | conversion | src_premultiply_enable | compress_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, paint_color));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source->address));
 
