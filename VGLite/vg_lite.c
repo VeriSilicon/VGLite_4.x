@@ -2038,7 +2038,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
         target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
         printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_SUCCESS;
+        return VG_LITE_NOT_SUPPORT;
     }
 #endif
 #endif
@@ -2676,7 +2676,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
         target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
         printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_SUCCESS;
+        return VG_LITE_NOT_SUPPORT;
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
@@ -3152,10 +3152,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 
 #if (CHIPID == 0x355)
-    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
+    if (source->format == VG_LITE_YUYV ||
         source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
         source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
-        return error;
+        return VG_LITE_NOT_SUPPORT;
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
@@ -3334,7 +3334,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
         target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
         printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_SUCCESS;
+        return VG_LITE_NOT_SUPPORT;
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
@@ -3817,10 +3817,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 
 #if (CHIPID == 0x355)
-    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
+    if (source->format == VG_LITE_YUYV ||
         source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
         source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
-        return error;
+        return VG_LITE_NOT_SUPPORT;
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
