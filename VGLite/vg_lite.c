@@ -4212,6 +4212,7 @@ vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
     VGLITE_LOG("vg_lite_get_mem_size %p\n", size);
 #endif
 
+    mem.pool = VG_LITE_POOL_RESERVED_MEMORY1;
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_QUERY_MEM, &mem));
     *size = mem.bytes;
 
