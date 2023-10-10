@@ -25,65 +25,14 @@
 *
 *****************************************************************************/
 
-#ifndef _vg_lite_options_h_
-#define _vg_lite_options_h_
+#ifndef _vg_lite_options_dispatch_h_
+#define _vg_lite_options_dispatch_h_
 
-#define CHIPID          0x255
-#define REVISION        0x1311
-#define CID             0x40A
-#define ECOID           0x1
-
-#define gcFEATURE_VG_IM_INDEX_FORMAT    1
-#define gcFEATURE_VG_SCISSOR    1
-#define gcFEATURE_VG_BORDER_CULLING    1
-#define gcFEATURE_VG_RGBA2_FORMAT    1
-#define gcFEATURE_VG_QUALITY_8X    1
-#define gcFEATURE_VG_IM_FASTCLEAR    0
-#define gcFEATURE_VG_RADIAL_GRADIENT    0
-#define gcFEATURE_VG_GLOBAL_ALPHA    0
-#define gcFEATURE_VG_RGBA8_ETC2_EAC    0
-#define gcFEATURE_VG_COLOR_KEY    0
-#define gcFEATURE_VG_DOUBLE_IMAGE    0
-#define gcFEATURE_VG_YUV_OUTPUT    0
-#define gcFEATURE_VG_FLEXA    0
-#define gcFEATURE_VG_24BIT    0
-#define gcFEATURE_VG_DITHER    0
-#define gcFEATURE_VG_USE_DST    0
-#define gcFEATURE_VG_PE_CLEAR    0
-#define gcFEATURE_VG_IM_INPUT    1
-#define gcFEATURE_VG_DEC_COMPRESS    0
-#define gcFEATURE_VG_LINEAR_GRADIENT_EXT    0
-#define gcFEATURE_VG_MASK    0
-#define gcFEATURE_VG_MIRROR    0
-#define gcFEATURE_VG_GAMMA    0
-#define gcFEATURE_VG_NEW_BLEND_MODE    0
-#define gcFEATURE_VG_STENCIL    0
-#define gcFEATURE_VG_SRC_PREMULTIPLIED    0
-#define gcFEATURE_VG_HW_PREMULTIPLY    0
-#define gcFEATURE_VG_COLOR_TRANSFORMATION    0
-#define gcFEATURE_VG_LVGL_SUPPORT    0
-#define gcFEATURE_VG_INDEX_ENDIAN    0
-#define gcFEATURE_VG_24BIT_PLANAR    0
-#define gcFEATURE_VG_PIXEL_MATRIX    0
-#define gcFEATURE_VG_NEW_IMAGE_INDEX    0
-#define gcFEATURE_VG_PARALLEL_PATHS    0
-#define gcFEATURE_VG_STRIPE_MODE    0
-#define gcFEATURE_VG_IM_DEC_INPUT    0
-#define gcFEATURE_VG_GAUSSIAN_BLUR    0
-#define gcFEATURE_VG_RECTANGLE_TILED_OUT    0
-#define gcFEATURE_VG_TESSELLATION_TILED_OUT    0
-#define gcFEATURE_VG_IM_REPEAT_REFLECT    0
-#define gcFEATURE_VG_YUY2_INPUT    1
-#define gcFEATURE_VG_YUV_INPUT    0
-#define gcFEATURE_VG_YUV_TILED_INPUT    0
-#define gcFEATURE_VG_AYUV_INPUT    0
-#define gcFEATURE_VG_16PIXELS_ALIGNED    1
-
-/* SW Features */
-#define gcFEATURE_VG_STROKE_PATH    1
-#define gcFEATURE_VG_ARC_PATH    1
-#define gcFEATURE_VG_ERROR_CHECK    1
-#define gcFEATURE_VG_TRACE_API    0
-#define gcFEATURE_VG_POWER_MANAGEMENT    0
+#if defined(GCID_REV_CID)
+#define VG_LITE_OPTIONS  <Series/GCID_REV_CID/vg_lite_options.h>
+#include VG_LITE_OPTIONS
+#else
+#error "GCID_REV_CID is not defined; eg: -DGCID_REV_CID=gc355/0x0_1216"
+#endif
 
 #endif
