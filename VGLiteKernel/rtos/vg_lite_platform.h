@@ -76,6 +76,7 @@ typedef struct heap_node {
     uint32_t offset;
     unsigned long size;
     int32_t status;
+    vg_lite_vidmem_pool_t pool;
 }heap_node_t;
 
 typedef struct vg_module_parameters

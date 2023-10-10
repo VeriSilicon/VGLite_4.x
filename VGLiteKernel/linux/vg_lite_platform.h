@@ -90,6 +90,7 @@ struct heap_node {
     uint32_t offset;
     unsigned long size;
     int32_t status;
+    vg_lite_vidmem_pool_t pool;
 };
 
 struct memory_heap {

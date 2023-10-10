@@ -220,6 +220,8 @@ vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
 #else
     /* TODO: Allocate some memory. No more kernel mode in RTOS. */
     *memory = pvPortMalloc(size);
+    if (NULL == *memory)
+        error = VG_LITE_OUT_OF_MEMORY;
 #endif
 
     return error;
@@ -351,16 +353,6 @@ const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
     }
 }
 
-vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logical, void **klogical, uint32_t *physical)
-{
-    return VG_LITE_NOT_SUPPORT;
-}
-
-vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical)
-{
-    return VG_LITE_NOT_SUPPORT;
-}
-
 vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void **logical, void **klogical, uint32_t *physical, void **node)
 {
     unsigned long aligned_size;
@@ -397,6 +389,10 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
             *logical = (uint8_t *)device->virtual[pool] + pos->offset;
             *klogical = *logical;
             *physical = gpuMemBase[pool] + (uint32_t)(*logical);/* device->physical + pos->offset; */
+
+            /* Mark which pool the pos belong to */
+            pos->pool = pool;
+
             device->heap[pool].free -= aligned_size;
 
             *node = pos;
@@ -408,10 +404,11 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
     return VG_LITE_OUT_OF_MEMORY;
 }
 
-void vg_lite_hal_free_contiguous(void *memory_handle, vg_lite_vidmem_pool_t pool)
+void vg_lite_hal_free_contiguous(void *memory_handle)
 {
     /* TODO: no list available in RTOS. */
     heap_node_t *pos, *node;
+    vg_lite_vidmem_pool_t pool;
 
     /* Get pointer to node. */
     node = memory_handle;
@@ -419,6 +416,9 @@ void vg_lite_hal_free_contiguous(void *memory_handle, vg_lite_vidmem_pool_t pool
     if (node->status != 0xABBAF00D) {
         return;
     }
+
+    /* Determine which pool the node belongs to */
+    pool = node->pool;
 
     /* Mark node as free. */
     node->status = 0;
@@ -624,11 +624,6 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
     (void) cache_op;
 
     return VG_LITE_SUCCESS;
-}
-
-void vg_lite_hal_pm_suspend(void)
-{
-    /* NOT SUPPORTED */
 }
 
 static void vg_lite_exit(void)

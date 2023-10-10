@@ -133,7 +133,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
  @param memory_handle
  A pointer to an opaque structure returned by {@link vg_lite_hal_allocate_contiguous}.
  */
-void vg_lite_hal_free_contiguous(void * memory_handle, vg_lite_vidmem_pool_t pool);
+void vg_lite_hal_free_contiguous(void * memory_handle);
 
 /*!
  @brief remove unfree node when continuously allocate buffer without free buffer.
@@ -300,16 +300,6 @@ void vg_lite_hal_trace(char *format, ...);
 const char* vg_lite_hal_Status2Name(vg_lite_error_t status);
 
 /*!
- @brief allocate contiguous video memory by dma allocater
- */
-vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logical, void **klogical, uint32_t *physical);
-
-/*!
- @brief free contiguous video memory by dma allocater
- */
-vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogical, uint32_t physical);
-
-/*!
  @brief allocate virtual memory from os
  */
 vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory);
@@ -318,11 +308,6 @@ vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory);
  @brief free virtual memory
  */
 vg_lite_error_t vg_lite_hal_free(void *memory);
-
-/*!
- @brief execute pm suspend
- */
-void vg_lite_hal_pm_suspend(void);
 
 /*!
  @brief set gpu execute state
