@@ -3038,7 +3038,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t*)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
+
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
+#endif
 
 #if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
@@ -3822,7 +3825,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t *)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
 
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
+#endif
 
 #if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
@@ -4467,7 +4472,9 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t *)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
 
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
+#endif
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {
@@ -5392,7 +5399,9 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         vglitemDUMP_BUFFER("path", (size_t)path->uploaded.address, (uint8_t *)(path->uploaded.memory), 0, path->uploaded.bytes);
     }
 
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
+#endif
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {

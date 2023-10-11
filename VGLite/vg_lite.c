@@ -1676,7 +1676,9 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("command", (size_t)CMDBUF_BUFFER(*context),
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
+#if !DUMP_COMMAND_CAPTURE    
     vglitemDUMP("@[commit]");
+#endif
 #endif
 
     /* Reset command buffer. */
@@ -1694,7 +1696,9 @@ static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint
     vg_lite_kernel_wait_t wait;
 
 #if !DUMP_COMMAND_BY_USER
+#if !DUMP_COMMAND_CAPTURE    
     vglitemDUMP("@[stall]");
+#endif
 #endif
 
     /* Wait until GPU is ready. */
@@ -4462,6 +4466,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
             VG_LITE_RETURN_ERROR(stall(&s_context, 0, ~0));
         }
 #if !DUMP_COMMAND_BY_USER
+#if !DUMP_COMMAND_CAPTURE
         vglitemDUMP("@[swap 0x%08X %dx%d +%u]",
             s_context.rtbuffer->address,
             s_context.rtbuffer->width, s_context.rtbuffer->height,
@@ -4471,6 +4476,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
             (size_t)s_context.rtbuffer->address,s_context.rtbuffer->memory,
             0,
             s_context.rtbuffer->stride*(s_context.rtbuffer->height));
+#endif
 #endif
         memset(s_context.rtbuffer, 0, sizeof(vg_lite_buffer_t));
     }
@@ -5611,7 +5617,10 @@ vg_lite_error_t vg_lite_dump_command_buffer()
 
     vglitemDUMP_BUFFER("command", (size_t)CMDBUF_BUFFER(*context),
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
+
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[commit]");
+#endif
 
     return error;
 }

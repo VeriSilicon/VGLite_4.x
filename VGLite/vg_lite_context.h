@@ -242,6 +242,7 @@ char filename[30];
 
 #define DUMP_CAPTURE                            0
 #define DUMP_COMMAND_BY_USER                    0
+#define DUMP_COMMAND_CAPTURE                    0
 
 #if DUMP_CAPTURE
 void _SetDumpFileInfo();

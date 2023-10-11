@@ -705,12 +705,27 @@ vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, si
 
     vglitemLOCKDUMP();
 
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[%s 0x%08X 0x%08X", Tag, Physical + (Offset & ~3), bytes);
+#endif
 
     while (bytes >= 16)
     {
+#if !DUMP_COMMAND_CAPTURE
         vglitemDUMP("  0x%08X 0x%08X 0x%08X 0x%08X",
                 ptr[0], ptr[1], ptr[2], ptr[3]);
+#else
+        vglitemDUMP("  0x%08X", ptr[0]);
+        vglitemDUMP("  0x%08X", ptr[1]);
+        if (bytes == 16 && (ptr[2] == 0) && (ptr[3] == 0))
+        {
+            printf("This two commands is 0x00000000\n");
+        }
+        else {
+            vglitemDUMP("  0x%08X", ptr[2]);
+            vglitemDUMP("  0x%08X", ptr[3]);
+        }
+#endif
 
         ptr   += 4;
         bytes -= 16;
@@ -719,11 +734,36 @@ vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, si
     switch (bytes)
     {
     case 12:
+#if !DUMP_COMMAND_CAPTURE
         vglitemDUMP("  0x%08X 0x%08X 0x%08X", ptr[0], ptr[1], ptr[2]);
+#else
+        vglitemDUMP("  0x%08X", ptr[0]);
+        if ((ptr[1] == 0) && (ptr[2] == 0))
+        {
+            printf("This two commands is 0x00000000\n");
+        }
+        else
+        {
+            vglitemDUMP("  0x%08X", ptr[1]);
+            vglitemDUMP("  0x%08X", ptr[2]);
+        }
+#endif
         break;
 
     case 8:
+#if !DUMP_COMMAND_CAPTURE
         vglitemDUMP("  0x%08X 0x%08X", ptr[0], ptr[1]);
+#else
+        if ((ptr[0] == 0) && (ptr[1] == 0))
+        {
+            printf("This two commands is 0x00000000\n");
+        }
+        else
+        {
+            vglitemDUMP("  0x%08X", ptr[0]);
+            vglitemDUMP("  0x%08X", ptr[1]);
+        }
+#endif
         break;
 
     case 4:
@@ -731,7 +771,11 @@ vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, si
         break;
     }
 
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("] -- %s", Tag);
+#else
+    vglitemDUMP("---This command end----");
+#endif
 
     vglitemUNLOCKDUMP();
 
