@@ -290,7 +290,8 @@ vg_lite_error_t vg_lite_enable_scissor()
 
     return VG_LITE_SUCCESS;
 #else
-    return VG_LITE_NOT_SUPPORT;
+    /* Noop */
+    return VG_LITE_SUCCESS;
 #endif
 }
 
@@ -308,7 +309,8 @@ vg_lite_error_t vg_lite_disable_scissor()
 
     return VG_LITE_SUCCESS;
 #else
-    return VG_LITE_NOT_SUPPORT;
+    /* Noop */
+    return VG_LITE_SUCCESS;
 #endif
 }
 
