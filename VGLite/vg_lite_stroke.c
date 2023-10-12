@@ -3488,14 +3488,23 @@ vg_lite_error_t vg_lite_set_stroke(
     else {
 #if gcFEATURE_VG_STROKE_PATH
         if (path->stroke) {
-            if (path->stroke->path_points) {
-                vg_lite_path_point_ptr temp_point;
-                while (path->stroke->path_points) {
-                    temp_point = path->stroke->path_points->next;
-                    vg_lite_os_free(path->stroke->path_points);
-                    path->stroke->path_points = temp_point;
+            if (path->stroke->path_list_divide) {
+                vg_lite_path_list_ptr cur_list;
+                while (path->stroke->path_list_divide) {
+                    cur_list = path->stroke->path_list_divide->next;
+                    if (path->stroke->path_list_divide->path_points) {
+                        vg_lite_path_point_ptr temp_point;
+                        while (path->stroke->path_list_divide->path_points) {
+                            temp_point = path->stroke->path_list_divide->path_points->next;
+                            vg_lite_os_free(path->stroke->path_list_divide->path_points);
+                            path->stroke->path_list_divide->path_points = temp_point;
+                        }
+                        temp_point = NULL;
+                    }
+                    vg_lite_os_free(path->stroke->path_list_divide);
+                    path->stroke->path_list_divide = cur_list;
                 }
-                temp_point = NULL;
+                cur_list = 0;
             }
 
             if (path->stroke->stroke_paths) {
@@ -3516,9 +3525,6 @@ vg_lite_error_t vg_lite_set_stroke(
                 }
                 temp_sub_path = NULL;
             }
-
-            if (path->stroke->path_list_divide)
-                vg_lite_os_free(path->stroke->path_list_divide);
 
             if (path->stroke->dash_pattern)
                 vg_lite_os_free(path->stroke->dash_pattern);
