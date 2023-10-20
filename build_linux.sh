@@ -7,7 +7,7 @@ usage()
     echo
     echo "  BOARD: X86 PCIE-GEN6 ZC702 IMX6Q35"
     echo
-    echo "  Example:  ./build_linux.sh X86 gc555 0x41A"
+    echo "  Example:  ./build_linux.sh X86 gc555 0x423"
     echo
 }
 
