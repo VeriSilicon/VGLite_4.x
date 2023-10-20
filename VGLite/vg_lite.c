@@ -2098,9 +2098,6 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     default:
         break;
     };
-    if (target->premultiplied) {
-        s_context.premultiply_dst = 1;
-    }
     if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
         in_premult = 0x10000000;
     }
@@ -2887,12 +2884,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     default:
         break;
     };
-    if (target->premultiplied) {
-        s_context.premultiply_dst = 1;
-    }
-    if (source->premultiplied) {
-        s_context.premultiply_src = 1;
-    }
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
@@ -2902,21 +2893,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     else {
         s_context.pre_div = 1;
     }
-    if (source->copy_image == 0) {
-        if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-            s_context.pre_mul = 1;
-        }
-        else {
-            s_context.pre_mul = 0;
-        }
+    if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
+        s_context.pre_mul = 1;
     }
-    else if (source->copy_image == 1) {
-        if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-            s_context.pre_mul = 1;
-        }
-        else {
-            s_context.pre_mul = 0;
-        }
+    else {
+        s_context.pre_mul = 0;
     }
 
     if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
@@ -2948,6 +2929,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3598,12 +3580,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     default:
         break;
     };
-    if (target->premultiplied) {
-        s_context.premultiply_dst = 1;
-    }
-    if (source->premultiplied) {
-        s_context.premultiply_src = 1;
-    }
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
@@ -3613,21 +3589,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     else {
         s_context.pre_div = 1;
     }
-    if (source->copy_image == 0) {
-        if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-            s_context.pre_mul = 1;
-        }
-        else {
-            s_context.pre_mul = 0;
-        }
+    if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
+        s_context.pre_mul = 1;
     }
-    else if (source->copy_image == 1) {
-        if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-            s_context.pre_mul = 1;
-        }
-        else {
-            s_context.pre_mul = 0;
-        }
+    else {
+        s_context.pre_mul = 0;
     }
 
     if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
