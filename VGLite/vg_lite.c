@@ -2839,11 +2839,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
     if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        if (source->paintType == VG_LITE_PAINT_PATTERN) {
+        if (source->paintType == VG_LITE_PAINT_PATTERN 
+            || source->paintType == VG_LITE_PAINT_RADIAL_GRADIENT
+            || source->paintType == VG_LITE_PAINT_LINEAR_GRADIENT) {
             s_context.gamma_value = s_context.gamma_stencil;
         }
-        else
+        else if (source->paintType == VG_LITE_PAINT_COLOR && s_context.gamma_dst == 0) {
+            s_context.gamma_value = 0x00001000;
+        }
+        else {
             s_context.gamma_value = 0x00000000;
+        }
     }
     s_context.gamma_dirty = 1;
 #endif
