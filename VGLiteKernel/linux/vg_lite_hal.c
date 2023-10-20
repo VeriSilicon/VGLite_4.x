@@ -313,7 +313,6 @@ void vg_lite_hal_print(char *format, ...)
     static char buffer[128];
     va_list args;
     va_start(args, format);
-
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printk(buffer);
@@ -322,17 +321,15 @@ void vg_lite_hal_print(char *format, ...)
 
 void vg_lite_hal_trace(char *format, ...)
 {
+#if gcdVG_ENABLE_DEBUG
     static char buffer[128];
     va_list args;
     va_start(args, format);
-
-#if gcdVG_ENABLE_DEBUG
     vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     printk(buffer);
-#endif
-
     va_end(args);
+#endif
 }
 
 const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
