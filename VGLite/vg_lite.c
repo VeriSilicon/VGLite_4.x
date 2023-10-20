@@ -4253,7 +4253,7 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
      */
     buffer->width = VG_LITE_ALIGN(buffer->width, 8);
     buffer->height = VG_LITE_ALIGN(buffer->height, 8);
-    buffer->stride = VG_LITE_ALIGN(buffer->width, 128);
+    buffer->stride = VG_LITE_ALIGN(buffer->width, 64);
     
     switch (buffer->format) {
         case VG_LITE_NV12:
