@@ -40,19 +40,6 @@ ZC702)
     export PLATFORM=vivante/vg_lite_platform_default
 ;;
 
-PCIE-GEN6)
-    export SDK_DIR=`pwd`/../build.s2c/sdk
-    export TOOLCHAIN=/usr
-    export CROSS_COMPILE=""
-    export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
-    export ENABLE_PCIE=1
-    export USE_RESERVE_MEMORY=1
-    export CPU_ARCH=0
-    export ARCH=x86
-    export gcdIRQ_SHARED=1
-    export PLATFORM=vivante/vg_lite_platform_default
-;;
-
 X86)
     export SDK_DIR=./build
     export TOOLCHAIN=/usr
@@ -105,6 +92,7 @@ IMX6Q35)
     echo
     echo "ERROR: Unknown [ $BOARD ], or not support so far."
     usage
+    exit
 ;;
 esac;
 

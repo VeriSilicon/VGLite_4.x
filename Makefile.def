@@ -21,7 +21,7 @@ endif
 CFLAGS += -std=c99 -Wall -Werror -fno-strict-aliasing
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -O -DDEBUG -D_DEBUG
+CFLAGS += -g -O0 -DDEBUG -D_DEBUG
 else
 CFLAGS += -O2
 endif
