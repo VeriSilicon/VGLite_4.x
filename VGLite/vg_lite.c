@@ -787,6 +787,7 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
         return VG_LITE_SUCCESS; \
     }
 
+#if gcFEATURE_VG_16PIXELS_ALIGNED
 /* determine source IM is aligned by specified bytes */
 static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint32_t stride)
 {
@@ -857,6 +858,7 @@ static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint
             return VG_LITE_SUCCESS;
     }
 }
+#endif
 
 /* Convert VGLite source color format to HW values. */
 uint32_t convert_source_format(vg_lite_buffer_format_t format)
