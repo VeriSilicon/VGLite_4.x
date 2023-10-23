@@ -85,7 +85,7 @@ IMX6Q35)
     export PFLAGS="--sysroot=$SYSROOTFS"
     export LDFLAGS="--sysroot=$SYSROOTFS"
 
-    source  /home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/environment-setup-cortexa9t2hf-neon-poky-linux-gnueabi
+    source /home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/environment-setup-cortexa9t2hf-neon-poky-linux-gnueabi
     export YOCTO_BUILD=1
 ;;
 *)
