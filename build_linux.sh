@@ -5,7 +5,7 @@ usage()
     echo
     echo "Usage: $0 BOARD ChipID CID"
     echo
-    echo "  BOARD: X86 PCIE-GEN6 ZC702 IMX6Q35"
+    echo "  BOARD: X86 PCIE-GEN6 IMX6Q35"
     echo
     echo "  Example:  ./build_linux.sh X86 gc555 0x41A"
     echo
@@ -27,20 +27,7 @@ cp -f VGLite/Series/${Series}/${Chip}/vg_lite_options.h VGLite/
 BOARD=$1
 case "$BOARD" in
 
-ZC702)
-    export SDK_DIR=`pwd`/../build.s2c/sdk
-    export CROSS_COMPILE=/home/software/Linux/zync/arm-vivante-linux-gnueabihf/bin/arm-vivante-linux-gnueabihf-
-    export KERNEL_DIR=/home/software/Linux/zync/git/linux-s2c
-    export CPU_ARCH=armv7-a
-    export ARCH=arm
-    export ENABLE_PCIE=0
-    export USE_RESERVE_MEMORY=1
-    export gcdIRQ_SHARED=1
-    export CC=${CROSS_COMPILE}gcc
-    export PLATFORM=vivante/vg_lite_platform_default
-;;
-
-X86)
+PCIE-GEN6)
     export SDK_DIR=./build
     export TOOLCHAIN=/usr
     export CROSS_COMPILE=""
@@ -53,7 +40,7 @@ X86)
     export PLATFORM=vivante/vg_lite_platform_default
 ;;
 
-X86_51510)
+X86)
     export SDK_DIR=./build
     export TOOLCHAIN=/usr
     export CROSS_COMPILE=""
