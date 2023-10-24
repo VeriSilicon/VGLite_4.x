@@ -81,7 +81,7 @@ IMX6Q35)
     export PLATFORM=freescale/vg_lite_platform_imx6
     export SYSROOTFS=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/sysroots/cortexa9t2hf-neon-poky-linux-gnueabi
     export ROOTFS_USR=$SYSROOTFS/usr
-    export CFLAGS="-D__ARM_PCS_VFP --sysroot=$SYSROOTFS"
+    export CFLAGS="--sysroot=$SYSROOTFS -D__ARM_PCS_VFP"
     export PFLAGS="--sysroot=$SYSROOTFS"
     export LDFLAGS="--sysroot=$SYSROOTFS"
 
