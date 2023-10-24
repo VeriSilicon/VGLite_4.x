@@ -2,21 +2,21 @@
 OBJS = linux/vg_lite_hal.o vg_lite_kernel.o linux/platform/$(PLATFORM).o
 
 ifeq ($(DEBUG), 1)
-EXTRA_CFLAGS += -g -O1 -DDEBUG -D_DEBUG
+ccflags-y += -g -O1 -DDEBUG -D_DEBUG
 else
-EXTRA_CFLAGS += -O2 -g0
+ccflags-y += -O2 -g0
 endif
 
 ifeq ($(ENABLE_PCIE), 1)
-EXTRA_CFLAGS += -DENABLE_PCIE
+ccflags-y += -DENABLE_PCIE
 endif
 
 ifeq ($(gcdIRQ_SHARED), 1)
-EXTRA_CFLAGS += -DgcdIRQ_SHARED
+ccflags-y += -DgcdIRQ_SHARED
 endif
 
 ifeq ($(USE_RESERVE_MEMORY), 1)
-EXTRA_CFLAGS += -DUSE_RESERVE_MEMORY
+ccflags-y += -DUSE_RESERVE_MEMORY
 endif
 
 ifeq ($(KERNELRELEASE),)
@@ -43,6 +43,6 @@ else
 obj-m := vg_lite.o
 vg_lite-objs := $(OBJS)
 
-EXTRA_CFLAGS += -I$(M)/../inc -I$(M)/linux -I$(M) -I$(M)/../VGLite/linux
+ccflags-y += -I$(M)/../inc -I$(M)/linux -I$(M) -I$(M)/../VGLite/linux
 
 endif
