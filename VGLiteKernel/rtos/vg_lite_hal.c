@@ -579,10 +579,7 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *va
                *value = device->int_flags & mask;
             }
             device->int_flags = 0;
-    
-            /* set gpu state to idle */
-            device->gpu_execute_state = VG_LITE_GPU_STOP;
-        
+
             if (IS_AXI_BUS_ERR(*value))
             {
                 vg_lite_bus_error_handler();

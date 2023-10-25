@@ -102,6 +102,12 @@ extern "C" {
     #define gcdVG_ENABLE_GPU_RESET                       1
 #endif
 
+/*
+ * Set 1 to open gpu auto clock gating feature
+*/
+#ifndef gcdVG_ENABLE_AUTO_CLOCK_GATING
+    #define gcdVG_ENABLE_AUTO_CLOCK_GATING               0
+#endif
 
 #ifdef __cplusplus
 }

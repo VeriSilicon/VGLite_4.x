@@ -204,6 +204,9 @@ static void gpu(int enable)
     vg_lite_hw_clock_control_t value;
     uint32_t          reset_timer = 2;
     const uint32_t    reset_timer_limit = 1000;
+#if gcdVG_ENABLE_AUTO_CLOCK_GATING
+    uint32_t          data;
+#endif
 
     if (enable) {
         /* Enable clock gating. */
@@ -227,11 +230,18 @@ static void gpu(int enable)
             reset_timer *= 2;   // If reset failed, try again with a longer wait. Need to check why if dead lopp happens here.
         } while (!VG_LITE_KERNEL_IS_GPU_IDLE());
 
+#if gcdVG_ENABLE_AUTO_CLOCK_GATING
         /* Enable Module Clock gating */
-        vg_lite_hal_poke(VG_LITE_POWER_CONTROL, 0x00000001);
+        data = vg_lite_hal_peek(VG_LITE_POWER_CONTROL);
+        data |= 0x1;
+        vg_lite_hal_poke(VG_LITE_POWER_CONTROL, data);
         vg_lite_hal_delay(1);
-        vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, 0x00000800);
+
+        data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
+        data |= 0x800;
+        vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);
         vg_lite_hal_delay(1);
+#endif
     }
     else
     {
@@ -768,6 +778,9 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
     if (data->event_got & FLEXA_HANDSHEKE_FAIL_STATE)
         return VG_LITE_FLEXA_HANDSHAKE_FAIL;
 #endif
+
+    /* set gpu to idle state  */
+    vg_lite_set_gpu_execute_state(VG_LITE_GPU_STOP);
 
     return VG_LITE_SUCCESS;
 }
