@@ -29,11 +29,11 @@
 #define _vg_lite_options_h_
 
 #define CHIPID          0x355
-#define REVISION        0x1216
-#define CID             0x0
+#define REVISION        0x1217
+#define CID             0x407
 #define ECOID           0x0
 
-#define gcFEATURE_VG_IM_INDEX_FORMAT            0
+#define gcFEATURE_VG_IM_INDEX_FORMAT            1
 #define gcFEATURE_VG_SCISSOR                    1
 #define gcFEATURE_VG_BORDER_CULLING             0
 #define gcFEATURE_VG_RGBA2_FORMAT               0
@@ -73,8 +73,8 @@
 #define gcFEATURE_VG_RECTANGLE_TILED_OUT        0
 #define gcFEATURE_VG_TESSELLATION_TILED_OUT     0
 #define gcFEATURE_VG_IM_REPEAT_REFLECT          0
-#define gcFEATURE_VG_YUY2_INPUT                 0
-#define gcFEATURE_VG_YUV_INPUT                  0
+#define gcFEATURE_VG_YUY2_INPUT                 1
+#define gcFEATURE_VG_YUV_INPUT                  1
 #define gcFEATURE_VG_YUV_TILED_INPUT            0
 #define gcFEATURE_VG_AYUV_INPUT                 0
 #define gcFEATURE_VG_16PIXELS_ALIGNED           1
