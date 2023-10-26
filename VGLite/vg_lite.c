@@ -82,6 +82,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_YUV_TILED_INPUT,
         gcFEATURE_VG_AYUV_INPUT,
         gcFEATURE_VG_16PIXELS_ALIGNED,
+        gcFEATURE_VG_DEC_COMPRESS_2_0,
     }
 };
 
@@ -146,25 +147,16 @@ static vg_lite_float_t _calc_decnano_compress_ratio(
 {
     vg_lite_float_t ratio = 1.0f;
 
-#if gcFEATURE_VG_DEC_COMPRESS
+#if gcFEATURE_VG_DEC_COMPRESS_2_0
     switch (compress_mode) {
     case VG_LITE_DEC_NON_SAMPLE:
         switch (format) {
-        case VG_LITE_ABGR8888:
-        case VG_LITE_ARGB8888:
         case VG_LITE_BGRA8888:
-        case VG_LITE_RGBA8888:
-            ratio = 0.625f;
-            break;
-        case VG_LITE_XBGR8888:
-        case VG_LITE_XRGB8888:
-        case VG_LITE_BGRX8888:
-        case VG_LITE_RGBX8888:
+        case VG_LITE_BGR888:
             ratio = 0.5f;
             break;
-        case VG_LITE_RGB888:
-        case VG_LITE_BGR888:
-            ratio = 0.667f;
+        case VG_LITE_BGRX8888:
+            ratio = 0.385f;
             break;
         default:
             return ratio;
@@ -173,19 +165,14 @@ static vg_lite_float_t _calc_decnano_compress_ratio(
 
     case VG_LITE_DEC_HSAMPLE:
         switch (format) {
-        case VG_LITE_ABGR8888:
-        case VG_LITE_ARGB8888:
         case VG_LITE_BGRA8888:
-        case VG_LITE_RGBA8888:
-        case VG_LITE_RGB888:
-        case VG_LITE_BGR888:
-            ratio = 0.5f;
+            ratio = 0.385f;
             break;
-        case VG_LITE_XBGR8888:
-        case VG_LITE_XRGB8888:
         case VG_LITE_BGRX8888:
-        case VG_LITE_RGBX8888:
-            ratio = 0.375f;
+            ratio = 0.25f;
+            break;
+        case VG_LITE_BGR888:
+            ratio = 0.334f;
             break;
         default:
             return ratio;
@@ -194,25 +181,93 @@ static vg_lite_float_t _calc_decnano_compress_ratio(
 
     case VG_LITE_DEC_HV_SAMPLE:
         switch (format) {
-        case VG_LITE_ABGR8888:
-        case VG_LITE_ARGB8888:
         case VG_LITE_BGRA8888:
-        case VG_LITE_RGBA8888:
-            ratio = 0.375f;
+            ratio = 0.385f;
             break;
-        case VG_LITE_XBGR8888:
-        case VG_LITE_XRGB8888:
         case VG_LITE_BGRX8888:
-        case VG_LITE_RGBX8888:
             ratio = 0.25f;
+            break;
+        case VG_LITE_BGR888:
+            ratio = 0.334f;
             break;
         default:
             return ratio;
         }
         break;
+
     default:
         return ratio;
     }
+#else
+    #if gcFEATURE_VG_DEC_COMPRESS
+        switch (compress_mode) {
+        case VG_LITE_DEC_NON_SAMPLE:
+            switch (format) {
+            case VG_LITE_ABGR8888:
+            case VG_LITE_ARGB8888:
+            case VG_LITE_BGRA8888:
+            case VG_LITE_RGBA8888:
+                ratio = 0.625f;
+                break;
+            case VG_LITE_XBGR8888:
+            case VG_LITE_XRGB8888:
+            case VG_LITE_BGRX8888:
+            case VG_LITE_RGBX8888:
+                ratio = 0.5f;
+                break;
+            case VG_LITE_RGB888:
+            case VG_LITE_BGR888:
+                ratio = 0.667f;
+                break;
+            default:
+                return ratio;
+            }
+            break;
+
+        case VG_LITE_DEC_HSAMPLE:
+            switch (format) {
+            case VG_LITE_ABGR8888:
+            case VG_LITE_ARGB8888:
+            case VG_LITE_BGRA8888:
+            case VG_LITE_RGBA8888:
+            case VG_LITE_RGB888:
+            case VG_LITE_BGR888:
+                ratio = 0.5f;
+                break;
+            case VG_LITE_XBGR8888:
+            case VG_LITE_XRGB8888:
+            case VG_LITE_BGRX8888:
+            case VG_LITE_RGBX8888:
+                ratio = 0.375f;
+                break;
+            default:
+                return ratio;
+            }
+            break;
+
+        case VG_LITE_DEC_HV_SAMPLE:
+            switch (format) {
+            case VG_LITE_ABGR8888:
+            case VG_LITE_ARGB8888:
+            case VG_LITE_BGRA8888:
+            case VG_LITE_RGBA8888:
+                ratio = 0.375f;
+                break;
+            case VG_LITE_XBGR8888:
+            case VG_LITE_XRGB8888:
+            case VG_LITE_BGRX8888:
+            case VG_LITE_RGBX8888:
+                ratio = 0.25f;
+                break;
+            default:
+                return ratio;
+            }
+            break;
+        default:
+            return ratio;
+        }
+    #endif
+
 #endif
 
     return ratio;

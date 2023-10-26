@@ -221,6 +221,7 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_YUV_TILED_INPUT,
         gcFEATURE_BIT_VG_AYUV_INPUT,
         gcFEATURE_BIT_VG_16PIXELS_ALIGN,
+        gcFEATURE_BIT_VG_DEC_COMPRESS_2_0,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 
