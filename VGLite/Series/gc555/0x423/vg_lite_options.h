@@ -81,6 +81,7 @@
 #define gcFEATURE_VG_MATH_PRECISION_FIX    1
 #define gcFEATURE_VG_SPLIT_PATH    0
 #define gcFEATURE_VG_DEC_COMPRESS_2_0    0
+#define gcFEATURE_VG_CALL_FIX    1
 
 /* SW Features */
 #define gcFEATURE_VG_STROKE_PATH    1

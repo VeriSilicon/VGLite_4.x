@@ -1499,7 +1499,9 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
 
     CMDBUF_OFFSET(*context) += 8;
 
+#if gcFEATURE_VG_CALL_FIX
     VG_LITE_RETURN_ERROR(push_stall(&s_context, 0x10));
+#endif
 
     return VG_LITE_SUCCESS;
 }
