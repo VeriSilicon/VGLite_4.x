@@ -27,7 +27,7 @@
 
 #include "vg_lite_context.h"
 
-static float offsetTable[7] = {0, 0.000575, -0.000575, 0.0001, -0.0001, 0.0000375, -0.0000375};
+static float offsetTable[7] = {0, 0.000575f, -0.000575f, 0.0001f, -0.0001f, 0.0000375f, -0.0000375f};
 #if VG_BLIT_WORKAROUND
 uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
 {
@@ -361,14 +361,14 @@ vg_lite_error_t check_compress(
 
 #if gcFEATURE_VG_DEC_COMPRESS_2_0
         if (format != VG_LITE_BGRA8888 && format != VG_LITE_BGRX8888 && format != VG_LITE_BGR888) {
-            printf("Invalid compression format!");
+            printf("Invalid compression format!\n");
             return VG_LITE_INVALID_ARGUMENT;
         }       
 #else
         if (format != VG_LITE_XBGR8888 && format != VG_LITE_XRGB8888 && format != VG_LITE_BGRX8888 && format != VG_LITE_RGBX8888 &&
             format != VG_LITE_ABGR8888 && format != VG_LITE_ARGB8888 && format != VG_LITE_BGRA8888 && format != VG_LITE_RGBA8888 &&
             format != VG_LITE_RGB888 && format != VG_LITE_BGR888) {
-            printf("Invalid compression format!");
+            printf("Invalid compression format!\n");
             return VG_LITE_INVALID_ARGUMENT;
         }    
 #endif
@@ -4184,6 +4184,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         stripe_mode = 0x20000000;
     }
 #endif
+
+    if (source->compress_mode != VG_LITE_DEC_DISABLE && target->compress_mode == VG_LITE_DEC_DISABLE) {
+        if (source->format != target->format) {
+            printf("The format of source and target buffers is inconsistent in decompressing!\n");
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
