@@ -2783,7 +2783,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     vg_lite_kernel_allocate_t memory;
     float new_matrix[6];
     float scale, bias;
-    uint32_t tiled;
+    uint32_t tiled = 0;
     uint32_t in_premult = 0;
 
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
@@ -2990,7 +2990,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     tiling = (s_context.capabilities.cap.tiled == 2) ? 0x2000000 : 0;
     fill = (fill_rule == VG_LITE_FILL_EVEN_ODD) ? 0x10 : 0;
     tessellation_size = s_context.tessbuf.tessbuf_size;
+#if gcFEATURE_VG_TESSELLATION_TILED_OUT
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+#endif
 
     /* Setup the command buffer. */
     /* Program color register. */
@@ -3213,7 +3215,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     vg_lite_matrix_t* matrix = matrix1;
     uint32_t pattern_tile = 0;
     uint32_t transparency_mode = 0;
-    uint32_t tiled;
+    uint32_t tiled = 0;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     /* The following code is from "draw path" */
@@ -3318,11 +3320,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_TESSELLATION_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #if !gcFEATURE_VG_STENCIL
     if (source->image_mode == VG_LITE_STENCIL_MODE) {
         return VG_LITE_NOT_SUPPORT;
@@ -3771,7 +3769,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     tiling = (s_context.capabilities.cap.tiled == 2) ? 0x2000000 : 0;
     fill = (fill_rule == VG_LITE_FILL_EVEN_ODD) ? 0x10 : 0;
     tessellation_size = s_context.tessbuf.tessbuf_size;
+#if gcFEATURE_VG_TESSELLATION_TILED_OUT
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+#endif
 
     if (source->paintType == VG_LITE_PAINT_PATTERN) {
         paintType = 1 << 24 | 1 << 25;
@@ -4000,11 +4000,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_TESSELLATION_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #if !gcFEATURE_VG_STENCIL
     if (source->image_mode == VG_LITE_STENCIL_MODE) {
         return VG_LITE_NOT_SUPPORT;
@@ -4690,11 +4686,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_TESSELLATION_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #if !gcFEATURE_VG_STENCIL
     if (source->image_mode == VG_LITE_STENCIL_MODE) {
         return VG_LITE_NOT_SUPPORT;

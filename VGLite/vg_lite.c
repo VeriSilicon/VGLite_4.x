@@ -2177,11 +2177,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     /* Flush target if necessary when switching. */
@@ -2452,12 +2448,13 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         return VG_LITE_SUCCESS;
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
-
+#if gcFEATURE_VG_RECTANGLE_TILED_OUT
     if (target->tiled == VG_LITE_TILED)
     {
         tiled = 0x40;
         stripe_mode = 0x20000000;
     }
+#endif
 
 #if gcFEATURE_VG_IM_FASTCLEAR
     if ((rect == NULL) ||
@@ -2920,11 +2917,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #if !gcFEATURE_VG_RGBA8_ETC2_EAC
     if (source->format == VG_LITE_RGBA8888_ETC2_EAC) {
         return VG_LITE_NOT_SUPPORT;
@@ -3487,11 +3480,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
-
+#if !gcFEATURE_VG_RECTANGLE_TILED_OUT
     if (target->tiled == VG_LITE_TILED) {
         tiled = 0x40;
         stripe_mode = 0x20000000;
     }
+#endif
 
     compress_mode = (uint32_t)source->compress_mode << 25;
 
@@ -3655,11 +3649,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+
 #if !gcFEATURE_VG_RGBA8_ETC2_EAC
     if (source->format == VG_LITE_RGBA8888_ETC2_EAC) {
         return VG_LITE_NOT_SUPPORT;
@@ -4179,11 +4169,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
-
+#if gcFEATURE_VG_RECTANGLE_TILED_OUT
     if (tiled == VG_LITE_TILED) {
         tiled = 0x40;
         stripe_mode = 0x20000000;
     }
+#endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
