@@ -359,10 +359,19 @@ vg_lite_error_t check_compress(
                 return VG_LITE_INVALID_ARGUMENT;
         }
 
+#if gcFEATURE_VG_DEC_COMPRESS_2_0
+        if (format != VG_LITE_BGRA8888 && format != VG_LITE_BGRX8888 && format != VG_LITE_BGR888) {
+            printf("Invalid compression format!");
+            return VG_LITE_INVALID_ARGUMENT;
+        }       
+#else
         if (format != VG_LITE_XBGR8888 && format != VG_LITE_XRGB8888 && format != VG_LITE_BGRX8888 && format != VG_LITE_RGBX8888 &&
             format != VG_LITE_ABGR8888 && format != VG_LITE_ARGB8888 && format != VG_LITE_BGRA8888 && format != VG_LITE_RGBA8888 &&
-            format != VG_LITE_RGB888 && format != VG_LITE_BGR888)
+            format != VG_LITE_RGB888 && format != VG_LITE_BGR888) {
+            printf("Invalid compression format!");
             return VG_LITE_INVALID_ARGUMENT;
+        }    
+#endif
     }
 
     return error;
