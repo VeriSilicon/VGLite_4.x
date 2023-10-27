@@ -46,6 +46,11 @@ vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
     matrix->m[2][0] = 0.0f;
     matrix->m[2][1] = 0.0f;
     matrix->m[2][2] = 1.0f;
+#if VG_BLIT_WORKAROUND
+    matrix->scaleX = 1.0f;
+    matrix->scaleY = 1.0f;
+    matrix->angle   = 0.0f;
+#endif /* VG_BLIT_WORKAROUND */
 
     return VG_LITE_SUCCESS;
 }
@@ -67,7 +72,11 @@ static void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
     }
     
     /* Copy temporary matrix into result. */
+#if VG_BLIT_WORKAROUND
+    memcpy(matrix, &temp, sizeof(vg_lite_float_t) * 9);
+#else
     memcpy(matrix, &temp, sizeof(temp));
+#endif /* VG_BLIT_WORKAROUND */
 }
 
 vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t * matrix)
@@ -102,6 +111,10 @@ vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, 
     
     /* Multiply with current matrix. */
     multiply(matrix, &s);
+#if VG_BLIT_WORKAROUND
+    matrix->scaleX = matrix->scaleX * scale_x;
+    matrix->scaleY = matrix->scaleY * scale_y;
+#endif /* VG_BLIT_WORKAROUND */
 
     return VG_LITE_SUCCESS;
 }
@@ -127,6 +140,13 @@ vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matri
 
     /* Multiply with current matrix. */
     multiply(matrix, &r);
+#if VG_BLIT_WORKAROUND
+    matrix->angle = matrix->angle + degrees;
+    if (matrix->angle >= 360) {
+        vg_lite_uint32_t count = (vg_lite_uint32_t)matrix->angle / 360;
+        matrix->angle = matrix->angle - count * 360;
+    }
+#endif /* VG_BLIT_WORKAROUND */
 
     return VG_LITE_SUCCESS;
 }

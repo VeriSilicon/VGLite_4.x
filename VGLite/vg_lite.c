@@ -27,6 +27,237 @@
 
 #include "vg_lite_context.h"
 
+static float offsetTable[7] = {0, 0.000575, -0.000575, 0.0001, -0.0001, 0.0000375, -0.0000375};
+#if VG_BLIT_WORKAROUND
+uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
+{
+    uint8_t index = 0;
+    switch (RotationStep) {
+        case 0: //rotate 0
+            switch (ScaleValue) {
+                case 10:
+                case 15:
+                case 25:
+                case 30:
+                case 70:
+                case 75:
+                    index = 1;
+                    break;
+                case 45:
+                case 50:
+                case 60:
+                case 65:
+                case 550:
+                    index = 3;
+                    break;
+                case 55:
+                case 250:
+                case 350:
+                    index = 4;
+                    break;
+                case 85:
+                case 90:
+                case 95:
+                case 150:
+                case 450:
+                case 650:
+                case 750:
+                case 850:
+                case 950:
+                    index = 5;
+                    break;
+                case 125:
+                    index = 2;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 2:  //rotate 90
+            switch (ScaleValue) {
+                case 10:
+                    index = 2;
+                    break;
+                case 15:
+                case 25:
+                case 30:
+                case 45:
+                case 75:
+                case 85:
+                case 90:
+                case 95:
+                case 150:
+                case 250:
+                case 350:
+                case 450:
+                case 550:
+                case 850:
+                    index = 5;
+                    break;
+                case 35:
+                case 750:
+                    index = 4;
+                    break;
+                case 50:
+                    index = 1;
+                    break;
+                case 55:
+                case 60:
+                case 65:
+                case 70:
+                    index = 3;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 3:  //rotate 135
+            switch (ScaleValue) {
+                case 10:
+                case 15:
+                case 20:
+                case 35:
+                case 45:
+                case 50:
+                case 60:
+                case 75:
+                    index = 2;
+                    break;
+                case 85:
+                case 90:
+                case 100:
+                case 400:
+                case 450:
+                case 500:
+                case 550:
+                case 850:
+                    index = 4;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 4:  //rotate 180
+            switch (ScaleValue) {
+                case 10:
+                case 15:
+                case 25:
+                case 30:
+                case 35:
+                case 50:
+                    index = 1;
+                    break;
+                case 45:
+                case 55:
+                case 65:
+                case 70:
+                case 75:
+                case 85:
+                case 90:
+                case 95:
+                case 150:
+                case 250:
+                case 350:
+                case 450:
+                case 550:
+                case 650:
+                case 750:
+                case 850:
+                case 950:
+                    index = 5;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 5: //rotate 225
+            switch (ScaleValue) {
+                case 10:
+                case 15:
+                case 20:
+                case 30:
+                case 35:
+                case 40:
+                case 45:
+                case 55:
+                case 60:
+                case 90:
+                    index = 6;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 6: //rotate 270
+            switch (ScaleValue) {
+                case 10:
+                case 25:
+                case 30:
+                case 35:
+                case 45:
+                case 55:
+                case 60:
+                case 65:
+                case 70:
+                case 75:
+                case 80:
+                case 85:
+                case 90:
+                case 95:
+                case 150:
+                case 350:
+                case 450:
+                case 550:
+                case 650:
+                case 750:
+                case 850:
+                case 950:
+                    index = 5;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        case 7: //rotate 315
+            switch (ScaleValue) {
+                case 20:
+                case 25:
+                case 30:
+                case 35:
+                case 40:
+                case 45:
+                case 50:
+                case 55:
+                case 60:
+                case 65:
+                case 70:
+                case 80:
+                case 85:
+                case 90:
+                case 95:
+                case 350:
+                case 550:
+                case 900:
+                    index = 5;
+                    break;
+                default:
+                    index = 0;
+                    break;
+            }
+            break;
+        default :
+            index = 0;
+            break;
+    }
+    return index;
+}
+#endif /* VG_BLIT_WORKAROUND */
 
 /* Global context variables and feature table.
 */
@@ -2656,6 +2887,23 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t stripe_mode = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+#if VG_BLIT_WORKAROUND
+    uint8_t* bufferPointer;
+    uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
+    vg_lite_buffer_t new_target;
+    vg_lite_point_t point0_0_afterTransform = { 0 };
+    uint8_t useWorkaround = 0;
+    int32_t matrixOffsetX = 0;
+    //only accept interger move
+    if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
+        matrix->m[0][2] = matrix->m[0][2] >= 0 ? (int)(matrix->m[0][2] + 0.5) : (int)(matrix->m[0][2] - 0.5);
+        matrix->m[1][2] = matrix->m[1][2] >= 0 ? (int)(matrix->m[1][2] + 0.5) : (int)(matrix->m[1][2] - 0.5);
+        //only non-perspective transform and contain scale or rotation could use workaround
+        if ((matrix->m[2][0] == 0.f && matrix->m[2][1] == 0.f && matrix->m[2][2] == 1.f) && (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.f)) {
+            useWorkaround = 1;
+        }
+    }
+#endif /* VG_BLIT_WORKAROUND */
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit %p %p %p %d 0x%08X %d\n", target, source, matrix, blend, color, filter);
@@ -2805,7 +3053,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-    
+#if VG_BLIT_WORKAROUND
+    point0_0_afterTransform = temp;
+#endif /* VG_BLIT_WORKAROUND */
+
     /* Transform image (0,height) to screen. */
     if (!transform(&temp, 0.0f, (vg_lite_float_t)source->height, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -2997,6 +3248,44 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 
+#if VG_BLIT_WORKAROUND
+    if (useWorkaround) {
+        get_format_bytes(target->format, &mul, &div, &required_align);
+        //update target memory address
+        bufferAddress = target->address;
+        bufferAddress = bufferAddress + point_min.y * target->stride + point_min.x * (mul / div);
+        //base address need align
+        bufferAlignAddress = bufferAddress & ~(required_align - 1);
+
+        //update buffer pointer address
+        bufferPointer = (uint8_t*)target->memory;
+        bufferPointer = bufferPointer + (bufferAlignAddress - target->address);
+
+        //update offset
+        addressOffset = bufferAddress - bufferAlignAddress;
+        //we need give some offset to match actual translate
+        matrixOffsetX = addressOffset * div / mul;
+
+        //update new_target and set  it as target
+        memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
+        new_target.address = bufferAddress;
+        new_target.memory = bufferPointer;
+        new_target.width = point_max.x - point_min.x + matrixOffsetX;
+        new_target.height = point_max.y - point_min.y;
+        target = &new_target;
+
+        //update matrix
+        matrix->m[0][2] = point0_0_afterTransform.x - point_min.x + matrixOffsetX;
+        matrix->m[1][2] = point0_0_afterTransform.y - point_min.y;
+
+        //modify point_min and point_max to let them start from (0, 0)
+        point_max.x = point_max.x - point_min.x;
+        point_max.y = point_max.y - point_min.y;
+        point_min.x = 0;
+        point_min.y = 0;
+    }
+#endif /* VG_BLIT_WORKAROUND */
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3117,6 +3406,24 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
 #endif
+
+#if VG_BLIT_WORKAROUND
+    //update C offset
+    if (useWorkaround) {
+        uint8_t indexC0 = 0;
+        uint8_t indexC1 = 0;
+        uint32_t temp0 = matrix->angle / 45;
+        uint32_t temp1 = matrix->scaleX * 100;
+        uint32_t temp2 = matrix->scaleY * 100;
+        indexC0 = GetIndex(temp0, temp1);
+        indexC1 = GetIndex(temp0, temp2);
+        c_step[0] = c_step[0] + offsetTable[indexC0];
+        c_step[1] = c_step[1] + offsetTable[indexC1];
+    }
+#else
+        c_step[0] = c_step[0] + offsetTable[0];
+        c_step[1] = c_step[1] + offsetTable[0];
+#endif /* VG_BLIT_WORKAROUND */
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -3256,8 +3563,20 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
-    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-                                        point_max.y - point_min.y));
+#if VG_BLIT_WORKAROUND
+    if (useWorkaround) {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x,
+            point_max.y - point_min.y));
+    }else {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
+            point_max.y - point_min.y));
+    }
+#else
+    {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
+            point_max.y - point_min.y));
+    }
+#endif /* VG_BLIT_WORKAROUND */
 
 #if gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));

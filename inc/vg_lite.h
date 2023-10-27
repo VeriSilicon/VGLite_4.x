@@ -28,6 +28,12 @@
 #ifndef _vg_lite_h_
 #define _vg_lite_h_
 
+#if gcFEATURE_VG_MATH_PRECISION_FIX == 0 //this workaround only valid when MATH_PRECISION_FIX == 0
+    #define VG_BLIT_WORKAROUND 1
+#else 
+    #define VG_BLIT_WORKAROUND 0
+#endif //end of gcFEATURE_VG_MATH_PRECISION_FIX
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -608,6 +614,11 @@ typedef unsigned int        vg_lite_color_t;
 
     typedef struct vg_lite_matrix {
         vg_lite_float_t m[3][3];                /*! The 3x3 matrix is in [row][column] order. */
+#if VG_BLIT_WORKAROUND
+        vg_lite_float_t scaleX;
+        vg_lite_float_t scaleY;
+        vg_lite_float_t angle;
+#endif /* VG_BLIT_WORKAROUND */
     } vg_lite_matrix_t;
 
     typedef struct vg_lite_yuvinfo
