@@ -29,7 +29,7 @@
 #define _vg_lite_h_
 
 #if gcFEATURE_VG_MATH_PRECISION_FIX == 0 //this workaround only valid when MATH_PRECISION_FIX == 0
-    #define VG_BLIT_WORKAROUND 1
+    #define VG_BLIT_WORKAROUND 0
 #else 
     #define VG_BLIT_WORKAROUND 0
 #endif //end of gcFEATURE_VG_MATH_PRECISION_FIX
