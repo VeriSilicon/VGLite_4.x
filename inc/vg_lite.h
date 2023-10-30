@@ -28,11 +28,13 @@
 #ifndef _vg_lite_h_
 #define _vg_lite_h_
 
-#if gcFEATURE_VG_MATH_PRECISION_FIX == 0 //this workaround only valid when MATH_PRECISION_FIX == 0
-    #define VG_BLIT_WORKAROUND 0
+#if(CHIPID != 0x355)
+#if !gcFEATURE_VG_MATH_PRECISION_FIX
+    #define VG_BLIT_WORKAROUND 1
 #else 
     #define VG_BLIT_WORKAROUND 0
-#endif //end of gcFEATURE_VG_MATH_PRECISION_FIX
+#endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {
