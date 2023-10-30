@@ -3496,6 +3496,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
+#if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
+    if (source->compress_mode != VG_LITE_DEC_DISABLE && target->compress_mode == VG_LITE_DEC_DISABLE) {
+        if (source->format != target->format) {
+            printf("The format of source and target buffers is inconsistent in decompressing!\n");
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
@@ -4185,12 +4193,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 
+#if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
     if (source->compress_mode != VG_LITE_DEC_DISABLE && target->compress_mode == VG_LITE_DEC_DISABLE) {
         if (source->format != target->format) {
             printf("The format of source and target buffers is inconsistent in decompressing!\n");
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
+#endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
