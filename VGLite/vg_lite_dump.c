@@ -29,7 +29,6 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <vg_lite.h>
 #include <stdlib.h>
 #include <string.h>
 #include "vg_lite_context.h"

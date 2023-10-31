@@ -28,7 +28,7 @@
 #include "vg_lite_context.h"
 
 static float offsetTable[7] = {0, 0.000575f, -0.000575f, 0.0001f, -0.0001f, 0.0000375f, -0.0000375f};
-#if VG_BLIT_WORKAROUND
+#if VG_SW_BLIT_PRECISION_OPT
 uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
 {
     uint8_t index = 0;
@@ -257,7 +257,7 @@ uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
     }
     return index;
 }
-#endif /* VG_BLIT_WORKAROUND */
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
 /* Global context variables and feature table.
 */
@@ -2893,23 +2893,25 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t stripe_mode = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
-#if VG_BLIT_WORKAROUND
+#if VG_SW_BLIT_PRECISION_OPT
     uint8_t* bufferPointer;
     uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
     vg_lite_point_t point0_0_afterTransform = { 0 };
-    uint8_t useWorkaround = 0;
+    uint8_t enableSwPreOpt = 0;
     int32_t matrixOffsetX = 0;
-    //only accept interger move
+
+    /* Only accept interger move */
     if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
-        matrix->m[0][2] = matrix->m[0][2] >= 0 ? (int)(matrix->m[0][2] + 0.5) : (int)(matrix->m[0][2] - 0.5);
-        matrix->m[1][2] = matrix->m[1][2] >= 0 ? (int)(matrix->m[1][2] + 0.5) : (int)(matrix->m[1][2] - 0.5);
-        //only non-perspective transform and contain scale or rotation could use workaround
-        if ((matrix->m[2][0] == 0.f && matrix->m[2][1] == 0.f && matrix->m[2][2] == 1.f) && (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.f)) {
-            useWorkaround = 1;
+        matrix->m[0][2] = (vg_lite_float_t)(matrix->m[0][2] >= 0 ? (int32_t)(matrix->m[0][2] + 0.5) : (int32_t)(matrix->m[0][2] - 0.5));
+        matrix->m[1][2] = (vg_lite_float_t)(matrix->m[1][2] >= 0 ? (int32_t)(matrix->m[1][2] + 0.5) : (int32_t)(matrix->m[1][2] - 0.5));
+        /* Only nonperspective transform with scale or rotation could enable optimization */
+        if ((matrix->m[2][0] == 0.0f && matrix->m[2][1] == 0.0f && matrix->m[2][2] == 1.0f) &&
+            (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
+            enableSwPreOpt = 1;
         }
     }
-#endif /* VG_BLIT_WORKAROUND */
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit %p %p %p %d 0x%08X %d\n", target, source, matrix, blend, color, filter);
@@ -3055,9 +3057,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-#if VG_BLIT_WORKAROUND
+#if VG_SW_BLIT_PRECISION_OPT
     point0_0_afterTransform = temp;
-#endif /* VG_BLIT_WORKAROUND */
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     /* Transform image (0,height) to screen. */
     if (!transform(&temp, 0.0f, (vg_lite_float_t)source->height, matrix))
@@ -3250,8 +3252,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 
-#if VG_BLIT_WORKAROUND
-    if (useWorkaround) {
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt) {
         get_format_bytes(target->format, &mul, &div, &required_align);
         //update target memory address
         bufferAddress = target->address;
@@ -3277,8 +3279,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         target = &new_target;
 
         //update matrix
-        matrix->m[0][2] = point0_0_afterTransform.x - point_min.x + matrixOffsetX;
-        matrix->m[1][2] = point0_0_afterTransform.y - point_min.y;
+        matrix->m[0][2] = (vg_lite_float_t)(point0_0_afterTransform.x - point_min.x + matrixOffsetX);
+        matrix->m[1][2] = (vg_lite_float_t)(point0_0_afterTransform.y - point_min.y);
 
         //modify point_min and point_max to let them start from (0, 0)
         point_max.x = point_max.x - point_min.x;
@@ -3286,7 +3288,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         point_min.x = 0;
         point_min.y = 0;
     }
-#endif /* VG_BLIT_WORKAROUND */
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
@@ -3409,14 +3411,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
-#if VG_BLIT_WORKAROUND
-    //update C offset
-    if (useWorkaround) {
+#if VG_SW_BLIT_PRECISION_OPT
+    /* Update C offset */
+    if (enableSwPreOpt) {
         uint8_t indexC0 = 0;
         uint8_t indexC1 = 0;
-        uint32_t temp0 = matrix->angle / 45;
-        uint32_t temp1 = matrix->scaleX * 100;
-        uint32_t temp2 = matrix->scaleY * 100;
+        uint32_t temp0 = (uint32_t)(matrix->angle / 45);
+        uint32_t temp1 = (uint32_t)(matrix->scaleX * 100);
+        uint32_t temp2 = (uint32_t)(matrix->scaleY * 100);
         indexC0 = GetIndex(temp0, temp1);
         indexC1 = GetIndex(temp0, temp2);
         c_step[0] = c_step[0] + offsetTable[indexC0];
@@ -3425,7 +3427,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #else
         c_step[0] = c_step[0] + offsetTable[0];
         c_step[1] = c_step[1] + offsetTable[0];
-#endif /* VG_BLIT_WORKAROUND */
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -3574,20 +3576,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
-#if VG_BLIT_WORKAROUND
-    if (useWorkaround) {
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt) {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x,
             point_max.y - point_min.y));
-    }else {
-        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-            point_max.y - point_min.y));
-    }
-#else
+    } else
+#endif /* VG_SW_BLIT_PRECISION_OPT */
     {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
             point_max.y - point_min.y));
     }
-#endif /* VG_BLIT_WORKAROUND */
 
 #if gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
