@@ -6202,7 +6202,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
 #if gcFEATURE_VG_ERROR_CHECK
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (source->image_mode == VG_LITE_RECOLOR_MODE)) {
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
