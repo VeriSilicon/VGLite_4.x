@@ -1036,7 +1036,17 @@ typedef unsigned int        vg_lite_color_t;
                                     vg_lite_matrix_t *matrix0,
                                     vg_lite_matrix_t *matrix1,
                                     vg_lite_blend_t blend,
-                                    vg_lite_filter_t filter);
+                                    vg_lite_filter_t  filter);
+
+    /* Copy a rectangle area of source image to target buffer without transformation, blending, color mixing, and filtering. */
+    vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target,
+                                    vg_lite_buffer_t *source,
+                                    vg_lite_int32_t   sx,
+                                    vg_lite_int32_t   sy,
+                                    vg_lite_int32_t   dx,
+                                    vg_lite_int32_t   dy,
+                                    vg_lite_int32_t   width,
+                                    vg_lite_int32_t   height);
 
     /* Draw a path to a target buffer with transformation, color, and blending */
     vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
@@ -1360,16 +1370,6 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                     vg_lite_int32_t count,
                                     vg_lite_float_t* params);
-
-    /* Copy source image to target buffer. */
-    vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t* target,
-        vg_lite_buffer_t* source,
-        vg_lite_int32_t sx,
-        vg_lite_int32_t sy,
-        vg_lite_int32_t dx,
-        vg_lite_int32_t dy,
-        vg_lite_int32_t w,
-        vg_lite_int32_t h);
 
 #endif /* VGLITE_VERSION_3_0 */
 

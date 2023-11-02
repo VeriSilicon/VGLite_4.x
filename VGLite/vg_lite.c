@@ -6163,14 +6163,10 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
     return error;
 }
 
-vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t* target,
-    vg_lite_buffer_t* source,
-    vg_lite_int32_t sx,
-    vg_lite_int32_t sy,
-    vg_lite_int32_t dx,
-    vg_lite_int32_t dy,
-    vg_lite_int32_t w,
-    vg_lite_int32_t h)
+vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *source,
+                                vg_lite_int32_t sx, vg_lite_int32_t sy,
+                                vg_lite_int32_t dx, vg_lite_int32_t dy,
+                                vg_lite_int32_t width, vg_lite_int32_t height)
 {
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
@@ -6189,7 +6185,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t* target,
     uint32_t tiled_source;
     int32_t left, top, right, bottom;
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
-    vg_lite_rectangle_t rectangle = { dx, dy, w, h };
+    vg_lite_rectangle_t rectangle = { dx, dy, width, height };
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     uint32_t compress_mode;
