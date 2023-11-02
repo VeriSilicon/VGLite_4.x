@@ -2405,7 +2405,6 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
         (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
         (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
         (target->format >= VG_lRGBX_8888_PRE && target->format <= VG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
