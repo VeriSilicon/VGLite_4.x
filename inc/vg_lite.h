@@ -269,6 +269,18 @@ typedef unsigned int        vg_lite_color_t;
         VG_A_1                                      = 13,
         VG_A_4                                      = 14,
 
+        VG_sRGBX_8888_PRE                           = 15,
+        VG_sRGB_565_PRE                             = 16,
+        VG_sRGBA_5551_PRE                           = 17,
+        VG_sRGBA_4444_PRE                           = 18,
+        VG_lRGBX_8888_PRE                           = 19,
+        VG_lRGB_565                                 = 20,
+        VG_lRGB_565_PRE                             = 21,
+        VG_lRGBA_5551                               = 22,
+        VG_lRGBA_5551_PRE                           = 23,
+        VG_lRGBA_4444                               = 24,
+        VG_lRGBA_4444_PRE                           = 25,
+
         /* {A,X}RGB channel ordering */
         VG_sXRGB_8888                               =  0 | (1 << 6),
         VG_sARGB_8888                               =  1 | (1 << 6),
@@ -1348,6 +1360,16 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                     vg_lite_int32_t count,
                                     vg_lite_float_t* params);
+
+    /* Copy source image to target buffer. */
+    vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t* target,
+        vg_lite_buffer_t* source,
+        vg_lite_int32_t sx,
+        vg_lite_int32_t sy,
+        vg_lite_int32_t dx,
+        vg_lite_int32_t dy,
+        vg_lite_int32_t w,
+        vg_lite_int32_t h);
 
 #endif /* VGLITE_VERSION_3_0 */
 
