@@ -3060,6 +3060,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
 #endif
 
+    if (width + point_min.x > target->width) {
+        width = target->width - point_min.x;
+    }
+
 #if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
@@ -3862,6 +3866,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
 #endif
 
+    if (width + point_min.x > target->width) {
+        width = target->width - point_min.x;
+    }
+
 #if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
 
@@ -4519,6 +4527,10 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
 #endif
+
+    if (width + point_min.x > target->width) {
+        width = target->width - point_min.x;
+    }
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {
@@ -5457,6 +5469,10 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[memory 0x%08X 0x%08X]", s_context.tessbuf.physical_addr, s_context.tessbuf.tessbuf_size);
 #endif
+
+    if (width + point_min.x > target->width) {
+        width = target->width - point_min.x;
+    }
 
 #if gcFEATURE_VG_PARALLEL_PATHS
     {
