@@ -28,7 +28,6 @@
 #include "vg_lite_context.h"
 
 
-#define PI                          3.141592653589793238462643383279502f
 #define SINF(x)                     ((vg_lite_float_t) sin(x))
 #define COSF(x)                     ((vg_lite_float_t) cos(x))
 #define FABSF(x)                    ((vg_lite_float_t) fabs(x))

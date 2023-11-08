@@ -4636,6 +4636,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
+    grad->linear_grad = s_context.grad_param;
 
     return error;
 #else

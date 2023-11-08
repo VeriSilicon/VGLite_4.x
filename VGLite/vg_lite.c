@@ -5367,15 +5367,15 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
     /* Reset the count. */
     trg_count = 0;
 
-    if ((linear_gradient.X0 == linear_gradient.X1) && (linear_gradient.Y0 == linear_gradient.Y1))
-        return VG_LITE_INVALID_ARGUMENT;
-
     grad->linear_grad = linear_gradient;
     grad->pre_multiplied = pre_multiplied;
     grad->spread_mode = spread_mode;
 
-    if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
-        goto Empty_sequence_handler;
+    if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL) {
+        memcpy(grad->converted_ramp, default_ramp, sizeof(default_ramp));
+        grad->converted_length = sizeof(default_ramp) / 5;
+        return VG_LITE_SUCCESS;
+    }
 
     for(i = 0; i < count;i++)
         grad->color_ramp[i] = color_ramp[i];
@@ -5418,7 +5418,17 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
         }
 
         /* Clamp color. */
-        ClampColor(COLOR_FROM_RAMP(src_ramp),COLOR_FROM_RAMP(trg_ramp),0);
+        {
+            vg_lite_float_t* Source, * Target;
+            Source = (((vg_lite_float_t*)src_ramp) + 1);
+            Target = (((vg_lite_float_t*)trg_ramp) + 1);
+            /* Clamp the color channels. */
+            Target[0] = CLAMP(Source[0], 0.0f, 1.f);
+            Target[1] = CLAMP(Source[1], 0.0f, 1.f);
+            Target[2] = CLAMP(Source[2], 0.0f, 1.f);
+            /* Clamp the alpha channel. */
+            Target[3] = CLAMP(Source[3], 0.0f, 1.f);
+        }
 
         /* First stop greater then zero? */
         if ((trg_count == 0) && (src_ramp->stop > 0.0f))
@@ -5470,23 +5480,16 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
         grad->converted_length = trg_count;
     }
     return VG_LITE_SUCCESS;
-
-Empty_sequence_handler:
-    memcpy(grad->converted_ramp, default_ramp, sizeof(default_ramp));
-    grad->converted_length = sizeof(default_ramp) / 5;
-
-    return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
-    uint32_t ramp_length;
-    vg_lite_color_ramp_t *color_ramp;
-    uint32_t common, stop;
-    uint32_t i, width;
+    vg_lite_uint32_t ramp_length, width, stop;
+    vg_lite_color_ramp_t* ramp;
+    vg_lite_float_t x0, y0, x1, y1, dx, dy, length, i;
     uint8_t* bits;
-    vg_lite_float_t x0,y0,x1,y1,length;
-    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_linear_gradient_parameter_t* grad_param;
+    vg_lite_matrix_t* grad_m;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_update_linear_grad %p\n", grad);
@@ -5494,115 +5497,151 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 
     /* Get shortcuts to the color ramp. */
     ramp_length = grad->converted_length;
-    color_ramp       = grad->converted_ramp;
+    ramp = grad->converted_ramp;
+    grad_param = &(grad->linear_grad);
+    s_context.grad_param = grad->linear_grad;
+    grad_m = &(grad->matrix);
 
-    x0 = grad->linear_grad.X0;
-    y0 = grad->linear_grad.Y0;
-    x1 = grad->linear_grad.X1;
-    y1 = grad->linear_grad.Y1;
-    length = (vg_lite_float_t)sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+    /* Compute the grad parameters. */
+    x0 = grad->matrix.m[0][0] * grad_param->X0 + grad->matrix.m[0][1] * grad_param->Y0 + grad->matrix.m[0][2];
+    y0 = grad->matrix.m[1][0] * grad_param->X0 + grad->matrix.m[1][1] * grad_param->Y0 + grad->matrix.m[1][2];
+    x1 = grad->matrix.m[0][0] * grad_param->X1 + grad->matrix.m[0][1] * grad_param->Y1 + grad->matrix.m[0][2];
+    y1 = grad->matrix.m[1][0] * grad_param->X1 + grad->matrix.m[1][1] * grad_param->Y1 + grad->matrix.m[1][2];
+    dx = x1 - x0;
+    dy = y1 - y0;
+    length = (vg_lite_float_t)sqrt(dx * dx + dy * dy);
+    width = ramp_length * 128;
 
-    if (length <= 0)
-        return VG_LITE_INVALID_ARGUMENT;
-    /* Find the common denominator of the color ramp stops. */
-    if (length < 1)
-    {
-        common = 1;
+    // TODO: free old color ramp surface buffer.
+
+    /* Deal with sepcial boundary condition. */
+    if (length < VG_FLOAT_EPSILON) {
+        /* Compute transform matrix from ramp surface to grad.*/
+        vg_lite_identity(grad_m);
+        /* Set grad to ramp surface. */
+        grad_param->X0 = 0.f;
+        grad_param->Y0 = 0.f;
+        grad_param->X1 = 1.f;
+        grad_param->Y1 = 0.f;
+        /* Allocate the color ramp surface. */
+        memset(&grad->image, 0, sizeof(grad->image));
+        grad->image.width = 1;
+        grad->image.height = 1;
+        grad->image.stride = 0;
+        grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
+        grad->image.format = VG_LITE_ABGR8888;
+        vg_lite_allocate(&grad->image);
+        /* Set pointer to color array. */
+        bits = (uint8_t*)grad->image.memory;
+        /* Fill the color array */
+        vg_lite_float_t color[4];
+        stop = (grad->spread_mode == VG_LITE_GRADIENT_SPREAD_REPEAT) ? 0 : (ramp_length - 1);
+        color[3] = ramp[stop].alpha;
+        color[2] = ramp[stop].blue;
+        color[1] = ramp[stop].green;
+        color[0] = ramp[stop].red;
+
+        *bits++ = PackColorComponent(color[3]);
+        *bits++ = PackColorComponent(color[2]);
+        *bits++ = PackColorComponent(color[1]);
+        *bits++ = PackColorComponent(color[0]);
+        return VG_LITE_SUCCESS;
     }
-    else
-    {
-        common = (uint32_t)length;
-    }
 
-    for (i = 0; i < ramp_length; ++i)
-    {
-        if (color_ramp[i].stop != 0.0f)
-        {
-            vg_lite_float_t mul  = common * color_ramp[i].stop;
-            vg_lite_float_t frac = mul - (vg_lite_float_t) floor(mul);
-            if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
-            {
-                common = MAX(common, (uint32_t) (1.0f / frac + 0.5f));
-            }
-        }
-    }
+    /* Compute transform matrix from ramp surface to grad.*/
+    vg_lite_identity(grad_m);
+    vg_lite_translate(x0, y0, grad_m);
+    vg_lite_rotate(
+        ((dy >= 0) ? acosf(dx / length) : (2 * PI - acosf(dx / length))) * 180.f / PI,
+        grad_m
+    );
+    vg_lite_scale(length / width, 1.f, grad_m);
 
-    /* Compute the width of the required color array. */
-    width = common + 1;
+    /* Set grad to ramp surface. */
+    grad_param->X0 = 0.f;
+    grad_param->Y0 = 0.f;
+    grad_param->X1 = (float)width;
+    grad_param->Y1 = 0.f;
 
     /* Allocate the color ramp surface. */
-    memset(&grad->image, 0, sizeof(grad->image));
-    grad->image.width = width;
-    grad->image.height = 1;
-    grad->image.stride = 0;
-    grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
-    grad->image.format = VG_LITE_ABGR8888;
+    if (grad->image.format != VG_LITE_ABGR8888) {
+        memset(&grad->image, 0, sizeof(grad->image));
+        grad->image.width = width;
+        grad->image.height = 1;
+        grad->image.stride = 0;
+        grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
+        grad->image.format = VG_LITE_ABGR8888;
+        vg_lite_allocate(&grad->image);
+        memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
+    }
 
-    /* Allocate the image for gradient. */
-    VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
-    memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
-    width = common + 1;
     /* Set pointer to color array. */
-    bits = (uint8_t *)grad->image.memory;
+    bits = (uint8_t*)grad->image.memory;
 
     /* Start filling the color array. */
     stop = 0;
-    for (i = 0; i < width; ++i)
-    {
-        vg_lite_float_t gradient;
-        vg_lite_float_t color[4];
-        vg_lite_float_t color1[4];
-        vg_lite_float_t color2[4];
-        vg_lite_float_t weight;
-
-        if (i == 241)
-            i = 241;
+    vg_lite_float_t gradient;
+    vg_lite_float_t color[4];
+    vg_lite_float_t color1[4];
+    vg_lite_float_t color2[4];
+    vg_lite_float_t weight, baseLength;
+    baseLength = (float)width;
+    for (i = 0; i < width; ++i) {
         /* Compute gradient for current color array entry. */
-        gradient = (vg_lite_float_t) i / (vg_lite_float_t) (width - 1);
+        if (baseLength > VG_FLOAT_EPSILON) {
+            gradient = i / baseLength;
+        }
+        else {
+            if (grad->spread_mode == VG_LITE_GRADIENT_SPREAD_REPEAT)
+                gradient = 0.f;
+            else
+                gradient = 1.f;
+        }
 
         /* Find the entry in the color ramp that matches or exceeds this
         ** gradient. */
-        while (gradient > color_ramp[stop].stop)
-        {
-            ++stop;
-        }
+        while (gradient > ramp[stop].stop)
+            if (stop < ramp_length - 1) {
+                ++stop;
+            }
+            else {  // exceeding
+                gradient = ramp[stop].stop;
+                break;
+            }
 
-        if (gradient == color_ramp[stop].stop)
+        if (gradient == ramp[stop].stop || stop == 0)
         {
             /* Perfect match weight 1.0. */
             weight = 1.0f;
 
             /* Use color ramp color. */
-            color1[3] = color_ramp[stop].alpha;
-            color1[2] = color_ramp[stop].blue;
-            color1[1] = color_ramp[stop].green;
-            color1[0] = color_ramp[stop].red;
+            color1[3] = ramp[stop].alpha;
+            color1[2] = ramp[stop].blue;
+            color1[1] = ramp[stop].green;
+            color1[0] = ramp[stop].red;
 
             color2[3] =
-            color2[2] =
-            color2[1] =
-            color2[0] = 0.0f;
+                color2[2] =
+                color2[1] =
+                color2[0] = 0.0f;
         }
         else
         {
-            if(stop == 0){
-                return VG_LITE_INVALID_ARGUMENT;
-            }
             /* Compute weight. */
-            weight = (color_ramp[stop].stop - gradient)
-                    / (color_ramp[stop].stop - color_ramp[stop - 1].stop);
+            weight = (ramp[stop].stop - gradient)
+                / (ramp[stop].stop - ramp[stop - 1].stop);
 
             /* Grab color ramp color of previous stop. */
-            color1[3] = color_ramp[stop - 1].alpha;
-            color1[2] = color_ramp[stop - 1].blue;
-            color1[1] = color_ramp[stop - 1].green;
-            color1[0] = color_ramp[stop - 1].red;
+            color1[3] = ramp[stop - 1].alpha;
+            color1[2] = ramp[stop - 1].blue;
+            color1[1] = ramp[stop - 1].green;
+            color1[0] = ramp[stop - 1].red;
 
             /* Grab color ramp color of current stop. */
-            color2[3] = color_ramp[stop].alpha;
-            color2[2] = color_ramp[stop].blue;
-            color2[1] = color_ramp[stop].green;
-            color2[0] = color_ramp[stop].red;
+            color2[3] = ramp[stop].alpha;
+            color2[2] = ramp[stop].blue;
+            color2[1] = ramp[stop].green;
+            color2[0] = ramp[stop].red;
         }
 
         if (grad->pre_multiplied)
@@ -5618,13 +5657,20 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
             color2[0] *= color2[3];
         }
 
+#define LERP(v1, v2, w)             ((v1) * (w) + (v2) * (1.0f - (w)))
         /* Filter the colors per channel. */
         color[3] = LERP(color1[3], color2[3], weight);
         color[2] = LERP(color1[2], color2[2], weight);
         color[1] = LERP(color1[1], color2[1], weight);
         color[0] = LERP(color1[0], color2[0], weight);
+#undef LERP
 
-        /* Pack the final color. */
+        if (grad->pre_multiplied) {
+            /* Pre-multiply the final color. */
+            color[2] /= color[3];
+            color[1] /= color[3];
+            color[0] /= color[3];
+        }
         *bits++ = PackColorComponent(color[3]);
         *bits++ = PackColorComponent(color[2]);
         *bits++ = PackColorComponent(color[1]);
@@ -5667,7 +5713,7 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     /* Reset the count. */
     trgCount = 0;
 
-    if (radial_grad.r <= 0)
+    if (radial_grad.r < 0)
         return VG_LITE_INVALID_ARGUMENT;
 
     grad->radial_grad = radial_grad;
@@ -5675,7 +5721,11 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     grad->spread_mode = spread_mode;
 
     if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
-        goto Empty_sequence_handler;
+    {
+        memcpy(grad->converted_ramp, defaultRamp, sizeof(defaultRamp));
+        grad->converted_length = sizeof(defaultRamp) / 5;
+        return VG_LITE_SUCCESS;
+    }
 
     for(i = 0; i < count;i++)
         grad->color_ramp[i] = color_ramp[i];
@@ -5718,7 +5768,17 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
         }
 
         /* Clamp color. */
-        ClampColor(COLOR_FROM_RAMP(srcRamp),COLOR_FROM_RAMP(trgRamp),0);
+        {
+            vg_lite_float_t* Source, * Target;
+            Source = (((vg_lite_float_t*)srcRamp) + 1);
+            Target = (((vg_lite_float_t*)trgRamp) + 1);
+            /* Clamp the color channels. */
+            Target[0] = CLAMP(Source[0], 0.0f, 1.f);
+            Target[1] = CLAMP(Source[1], 0.0f, 1.f);
+            Target[2] = CLAMP(Source[2], 0.0f, 1.f);
+            /* Clamp the alpha channel. */
+            Target[3] = CLAMP(Source[3], 0.0f, 1.f);
+        }
 
         /* First stop greater then zero? */
         if ((trgCount == 0) && (srcRamp->stop > 0.0f))
@@ -5770,23 +5830,18 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
         grad->converted_length = trgCount;
     }
     return VG_LITE_SUCCESS;
-
-Empty_sequence_handler:
-    memcpy(grad->converted_ramp,defaultRamp,sizeof(defaultRamp));
-    grad->converted_length = sizeof(defaultRamp) / 5;
-
-    return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
 {
     uint32_t ramp_length;
-    vg_lite_color_ramp_t *colorRamp;
+    vg_lite_color_ramp_t* ramp;
     uint32_t common, stop;
     uint32_t i, width;
     uint8_t* bits;
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t align, mul, div;
+    vg_lite_float_t r, fx, fy;
+    vg_lite_matrix_t* grad_m;
+    vg_lite_radial_gradient_parameter_t* grad_param;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_update_radial_grad %p\n", grad);
@@ -5794,37 +5849,74 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
 
     /* Get shortcuts to the color ramp. */
     ramp_length = grad->converted_length;
-    colorRamp   = grad->converted_ramp;
+    ramp = grad->converted_ramp;
+    grad_m = &grad->matrix;
+    grad_param = &grad->radial_grad;
+    r = grad_param->r;
+    fx = grad_param->fx;
+    fy = grad_param->fy;
 
-    if (grad->radial_grad.r <= 0)
-        return VG_LITE_INVALID_ARGUMENT;
+    // TODO: free old color ramp surface buffer.
 
-    /* Find the common denominator of the color ramp stops. */
+    /* Deal with sepcial boundary condition. */
+    if (r < VG_FLOAT_EPSILON) {
+        /* Compute transform matrix from ramp surface to grad.*/
+        vg_lite_identity(grad_m);
+        /* Set grad to ramp surface. */
+        grad_param->cx = 0.f;
+        grad_param->cy = 0.f;
+        grad_param->fx = 0.f;
+        grad_param->fy = 0.f;
+        /* Allocate the color ramp surface. */
+        memset(&grad->image, 0, sizeof(grad->image));
+        grad->image.width = 1;
+        grad->image.height = 1;
+        grad->image.stride = 0;
+        grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
+        grad->image.format = VG_LITE_ABGR8888;
+        vg_lite_allocate(&grad->image);
+        /* Set pointer to color array. */
+        bits = (uint8_t*)grad->image.memory;
+        /* Fill the color array */
+        vg_lite_float_t color[4];
+        stop = (grad->spread_mode == VG_LITE_GRADIENT_SPREAD_REPEAT) ? 0 : (ramp_length - 1);
+        color[3] = ramp[stop].alpha;
+        color[2] = ramp[stop].blue;
+        color[1] = ramp[stop].green;
+        color[0] = ramp[stop].red;
+        *bits++ = PackColorComponent(color[3]);
+        *bits++ = PackColorComponent(color[2]);
+        *bits++ = PackColorComponent(color[1]);
+        *bits++ = PackColorComponent(color[0]);
+        return VG_LITE_SUCCESS;
+    }
+
+    /* Compute color ramp surface parameters. */
     if (grad->radial_grad.r < 1)
     {
         common = 1;
+
+        for (i = 0; i < ramp_length; ++i)
+        {
+            if (ramp[i].stop != 0.0f)
+            {
+                vg_lite_float_t mul = common * ramp[i].stop;
+                vg_lite_float_t frac = mul - (vg_lite_float_t)floor(mul);
+                if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
+                {
+                    common = MAX(common, (uint32_t)(1.0f / frac + 0.5f));
+                }
+            }
+        }
+
+        /* Compute the width of the required color array. */
+        width = common + 1;
+        width = (width + 15) & (~0xf);
     }
     else
     {
-        common = (uint32_t)grad->radial_grad.r;
+        width = ramp_length * 128;
     }
-
-    for (i = 0; i < ramp_length; ++i)
-    {
-        if (colorRamp[i].stop != 0.0f)
-        {
-            vg_lite_float_t mul  = common * colorRamp[i].stop;
-            vg_lite_float_t frac = mul - (vg_lite_float_t) floor(mul);
-            if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
-            {
-                common = MAX(common, (uint32_t) (1.0f / frac + 0.5f));
-            }
-        }
-    }
-
-    /* Compute the width of the required color array. */
-    width = common + 1;
-    width = (width + 15) & (~0xf);
 
     /* Allocate the color ramp surface. */
     memset(&grad->image, 0, sizeof(grad->image));
@@ -5833,69 +5925,76 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
     grad->image.stride = 0;
     grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
     grad->image.format = VG_LITE_ABGR8888;
-
-    /* Allocate the image for gradient. */
-    VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
-
-    get_format_bytes(VG_LITE_ABGR8888, &mul, &div, &align);
-    width = grad->image.stride * div / mul;
+    vg_lite_allocate(&grad->image);
+    memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
 
     /* Set pointer to color array. */
-    bits = (uint8_t *)grad->image.memory;
+    bits = (uint8_t*)grad->image.memory;
 
     /* Start filling the color array. */
     stop = 0;
-    for (i = 0; i < width; ++i)
-    {
-        vg_lite_float_t gradient;
-        vg_lite_float_t color[4];
-        vg_lite_float_t color1[4];
-        vg_lite_float_t color2[4];
-        vg_lite_float_t weight;
-
+    vg_lite_float_t gradient;
+    vg_lite_float_t color[4];
+    vg_lite_float_t color1[4];
+    vg_lite_float_t color2[4];
+    vg_lite_float_t weight, baseLength;
+    baseLength = (float)width;
+    for (i = 0; i < width; ++i) {
         /* Compute gradient for current color array entry. */
-        gradient = (vg_lite_float_t) i / (vg_lite_float_t) (width - 1);
+        if (baseLength > VG_FLOAT_EPSILON) {
+            gradient = i / baseLength;
+        }
+        else {
+            if (grad->spread_mode == VG_LITE_GRADIENT_SPREAD_REPEAT)
+                gradient = 0.f;
+            else
+                gradient = 1.f;
+        }
 
         /* Find the entry in the color ramp that matches or exceeds this
         ** gradient. */
-        while (gradient > colorRamp[stop].stop)
-        {
-            ++stop;
-        }
+        while (gradient > ramp[stop].stop)
+            if (stop < ramp_length - 1) {
+                ++stop;
+            }
+            else {  // exceeding
+                gradient = ramp[stop].stop;
+                break;
+            }
 
-        if (gradient == colorRamp[stop].stop)
+        if (gradient == ramp[stop].stop || stop == 0)
         {
             /* Perfect match weight 1.0. */
             weight = 1.0f;
 
             /* Use color ramp color. */
-            color1[3] = colorRamp[stop].alpha;
-            color1[2] = colorRamp[stop].blue;
-            color1[1] = colorRamp[stop].green;
-            color1[0] = colorRamp[stop].red;
+            color1[3] = ramp[stop].alpha;
+            color1[2] = ramp[stop].blue;
+            color1[1] = ramp[stop].green;
+            color1[0] = ramp[stop].red;
 
             color2[3] =
-            color2[2] =
-            color2[1] =
-            color2[0] = 0.0f;
+                color2[2] =
+                color2[1] =
+                color2[0] = 0.0f;
         }
         else
         {
             /* Compute weight. */
-            weight = (colorRamp[stop].stop - gradient)
-                    / (colorRamp[stop].stop - colorRamp[stop - 1].stop);
+            weight = (ramp[stop].stop - gradient)
+                / (ramp[stop].stop - ramp[stop - 1].stop);
 
             /* Grab color ramp color of previous stop. */
-            color1[3] = colorRamp[stop - 1].alpha;
-            color1[2] = colorRamp[stop - 1].blue;
-            color1[1] = colorRamp[stop - 1].green;
-            color1[0] = colorRamp[stop - 1].red;
+            color1[3] = ramp[stop - 1].alpha;
+            color1[2] = ramp[stop - 1].blue;
+            color1[1] = ramp[stop - 1].green;
+            color1[0] = ramp[stop - 1].red;
 
             /* Grab color ramp color of current stop. */
-            color2[3] = colorRamp[stop].alpha;
-            color2[2] = colorRamp[stop].blue;
-            color2[1] = colorRamp[stop].green;
-            color2[0] = colorRamp[stop].red;
+            color2[3] = ramp[stop].alpha;
+            color2[2] = ramp[stop].blue;
+            color2[1] = ramp[stop].green;
+            color2[0] = ramp[stop].red;
         }
 
         if (grad->pre_multiplied)
@@ -5911,13 +6010,20 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
             color2[0] *= color2[3];
         }
 
+#define LERP(v1, v2, w)             ((v1) * (w) + (v2) * (1.0f - (w)))
         /* Filter the colors per channel. */
         color[3] = LERP(color1[3], color2[3], weight);
         color[2] = LERP(color1[2], color2[2], weight);
         color[1] = LERP(color1[1], color2[1], weight);
         color[0] = LERP(color1[0], color2[0], weight);
+#undef LERP
 
-        /* Pack the final color. */
+        if (grad->pre_multiplied)
+        {
+            color[2] /= color[3];
+            color[1] /= color[3];
+            color[0] /= color[3];
+        }
         *bits++ = PackColorComponent(color[3]);
         *bits++ = PackColorComponent(color[2]);
         *bits++ = PackColorComponent(color[1]);
