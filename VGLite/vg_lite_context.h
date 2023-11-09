@@ -104,8 +104,7 @@
 #define MATRIX_ROWS                 3
 #define GET_MATRIX_VALUES(Pointer)  ((float *) (Pointer))
 #define MAT(Matrix, Row, Column)    (GET_MATRIX_VALUES(Matrix)[Row * MATRIX_ROWS + Column])
-#define VG_FLOAT_EPSILON            1e-12f
-#define PI                          3.141592653589793238462643383279502f
+
 
 #if !gcFEATURE_VG_MATH_PRECISION_FIX && (CHIPID!=0x355)
 #define VG_SW_BLIT_PRECISION_OPT 1
@@ -199,7 +198,6 @@ typedef struct vg_lite_context {
     vg_lite_filter_t            filter;
     uint8_t                     pre_div;
     uint8_t                     pre_mul;
-    vg_lite_linear_gradient_parameter_t grad_param;
 #if (CHIPID == 0x355)
     uint8_t                     from_blit_rect;
 #endif
