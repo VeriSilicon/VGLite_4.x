@@ -214,6 +214,10 @@ static void gpu(int enable)
         value.control.clock_gate = 0;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
         vg_lite_hal_delay(1);
+#if gcFEATURE_VG_CLOCK_GATING
+        vg_lite_hal_poke(0x104, 0x800);
+        vg_lite_hal_delay(1);
+#endif
         /* Set clock speed. */
         value.control.scale = 64;
         value.control.scale_load = 1;
@@ -229,6 +233,10 @@ static void gpu(int enable)
             vg_lite_hal_delay(reset_timer);
             reset_timer *= 2;   // If reset failed, try again with a longer wait. Need to check why if dead lopp happens here.
         } while (!VG_LITE_KERNEL_IS_GPU_IDLE());
+#if gcFEATURE_VG_CLOCK_GATING
+        vg_lite_hal_poke(0x104, 0x800);
+        vg_lite_hal_delay(1);
+#endif
 
 #if gcdVG_ENABLE_AUTO_CLOCK_GATING
         /* Enable Module Clock gating */
