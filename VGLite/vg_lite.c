@@ -747,65 +747,61 @@ void get_format_bytes(vg_lite_buffer_format_t format,
             break;
 
         /* OpenVG format*/
-        case VG_sRGBX_8888:
-        case VG_sRGBX_8888_PRE:
-        case VG_sRGBA_8888:
-        case VG_sRGBA_8888_PRE:
-        case VG_lRGBX_8888:
-        case VG_lRGBX_8888_PRE:
-        case VG_lRGBA_8888:
-        case VG_lRGBA_8888_PRE:
-        case VG_sXRGB_8888:
-        case VG_sARGB_8888:
-        case VG_sARGB_8888_PRE:
-        case VG_lXRGB_8888:
-        case VG_lARGB_8888:
-        case VG_lARGB_8888_PRE:
-        case VG_sBGRX_8888:
-        case VG_sBGRA_8888:
-        case VG_sBGRA_8888_PRE:
-        case VG_lBGRX_8888:
-        case VG_lBGRA_8888:
-        case VG_sXBGR_8888:
-        case VG_sABGR_8888:
-        case VG_lBGRA_8888_PRE:
-        case VG_sABGR_8888_PRE:
-        case VG_lXBGR_8888:
-        case VG_lABGR_8888:
-        case VG_lABGR_8888_PRE:
+        case OPENVG_sRGBX_8888:
+        case OPENVG_sRGBA_8888:
+        case OPENVG_sRGBA_8888_PRE:
+        case OPENVG_lRGBX_8888:
+        case OPENVG_lRGBA_8888:
+        case OPENVG_lRGBA_8888_PRE:
+        case OPENVG_sXRGB_8888:
+        case OPENVG_sARGB_8888:
+        case OPENVG_sARGB_8888_PRE:
+        case OPENVG_lXRGB_8888:
+        case OPENVG_lARGB_8888:
+        case OPENVG_lARGB_8888_PRE:
+        case OPENVG_sBGRX_8888:
+        case OPENVG_sBGRA_8888:
+        case OPENVG_sBGRA_8888_PRE:
+        case OPENVG_lBGRX_8888:
+        case OPENVG_lBGRA_8888:
+        case OPENVG_sXBGR_8888:
+        case OPENVG_sABGR_8888:
+        case OPENVG_lBGRA_8888_PRE:
+        case OPENVG_sABGR_8888_PRE:
+        case OPENVG_lXBGR_8888:
+        case OPENVG_lABGR_8888:
+        case OPENVG_lABGR_8888_PRE:
             *mul = 4;
             break;
 
-        case VG_sRGBA_5551:
-        case VG_sRGBA_5551_PRE:
-        case VG_lRGBA_5551:
-        case VG_lRGBA_5551_PRE:
-        case VG_sRGBA_4444:
-        case VG_sRGBA_4444_PRE:
-        case VG_lRGBA_4444:
-        case VG_lRGBA_4444_PRE:
-        case VG_sARGB_1555:
-        case VG_sARGB_4444:
-        case VG_sBGRA_5551:
-        case VG_sBGRA_4444:
-        case VG_sABGR_1555:
-        case VG_sABGR_4444:
-        case VG_sRGB_565:
-        case VG_sRGB_565_PRE:
-        case VG_sBGR_565:
-        case VG_lRGB_565:
-        case VG_lRGB_565_PRE:
+        case OPENVG_sRGBA_5551:
+        case OPENVG_sRGBA_5551_PRE:
+        case OPENVG_lRGBA_5551:
+        case OPENVG_lRGBA_5551_PRE:
+        case OPENVG_sRGBA_4444:
+        case OPENVG_sRGBA_4444_PRE:
+        case OPENVG_lRGBA_4444:
+        case OPENVG_lRGBA_4444_PRE:
+        case OPENVG_sARGB_1555:
+        case OPENVG_sARGB_4444:
+        case OPENVG_sBGRA_5551:
+        case OPENVG_sBGRA_4444:
+        case OPENVG_sABGR_1555:
+        case OPENVG_sABGR_4444:
+        case OPENVG_sRGB_565:
+        case OPENVG_sBGR_565:
+        case OPENVG_lRGB_565:
             * mul = 2;
             break;
 
-        case VG_sL_8:
-        case VG_lL_8:
-        case VG_A_8:
+        case OPENVG_sL_8:
+        case OPENVG_lL_8:
+        case OPENVG_A_8:
             break;
 
-        case VG_BW_1:
-        case VG_A_4:
-        case VG_A_1:
+        case OPENVG_BW_1:
+        case OPENVG_A_4:
+        case OPENVG_A_1:
             * div = 2;
             break;
 
@@ -939,165 +935,161 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
 
         /* OpenVG VGImageFormat */
 
-        case VG_sRGBX_8888:
-        case VG_sRGBX_8888_PRE:
+        case OPENVG_sRGBX_8888:
             return 0x12;
             break;
 
-        case VG_sRGBA_8888:
-        case VG_sRGBA_8888_PRE:
+        case OPENVG_sRGBA_8888:
+        case OPENVG_sRGBA_8888_PRE:
             return 0x13;
             break;
 
-        case VG_sRGB_565:
-        case VG_sRGB_565_PRE:
+        case OPENVG_sRGB_565:
             return 0x1;
             break;
 
-        case VG_sRGBA_5551:
-        case VG_sRGBA_5551_PRE:
+        case OPENVG_sRGBA_5551:
+        case OPENVG_sRGBA_5551_PRE:
             return 0x15;
             break;
 
-        case VG_sRGBA_4444:
-        case VG_sRGBA_4444_PRE:
+        case OPENVG_sRGBA_4444:
+        case OPENVG_sRGBA_4444_PRE:
             return 0x14;
             break;
 
-        case VG_sL_8:
+        case OPENVG_sL_8:
             return 0x6;
             break;
 
-        case VG_lRGBX_8888:
-        case VG_lRGBX_8888_PRE:
+        case OPENVG_lRGBX_8888:
             return 0x12;
             break;
 
-        case VG_lRGBA_8888:
-        case VG_lRGBA_8888_PRE:
+        case OPENVG_lRGBA_8888:
+        case OPENVG_lRGBA_8888_PRE:
             return 0x13;
             break;
 
-        case VG_lRGB_565:
-        case VG_lRGB_565_PRE:
+        case OPENVG_lRGB_565:
             return 0x1;
             break;
 
-        case VG_lRGBA_5551:
-        case VG_lRGBA_5551_PRE:
+        case OPENVG_lRGBA_5551:
+        case OPENVG_lRGBA_5551_PRE:
             return 0x15;
             break;
 
-        case VG_lRGBA_4444:
-        case VG_lRGBA_4444_PRE:
+        case OPENVG_lRGBA_4444:
+        case OPENVG_lRGBA_4444_PRE:
             return 0x14;
             break;
 
-        case VG_lL_8:
+        case OPENVG_lL_8:
             return 0x6;
             break;
 
-        case VG_A_8:
+        case OPENVG_A_8:
             return 0x0;
             break;
 
-        case VG_sXRGB_8888:
+        case OPENVG_sXRGB_8888:
             return 0x2;
             break;
 
-        case VG_sARGB_8888:
+        case OPENVG_sARGB_8888:
             return 0x3;
             break;
 
-        case VG_sARGB_8888_PRE:
+        case OPENVG_sARGB_8888_PRE:
             return 0x3;
             break;
 
-        case VG_sARGB_1555:
+        case OPENVG_sARGB_1555:
             return 0x5;
             break;
 
-        case VG_sARGB_4444:
+        case OPENVG_sARGB_4444:
             return 0x4;
             break;
 
-        case VG_lXRGB_8888:
+        case OPENVG_lXRGB_8888:
             return 0x2;
             break;
 
-        case VG_lARGB_8888:
+        case OPENVG_lARGB_8888:
             return 0x3;
             break;
 
-        case VG_lARGB_8888_PRE:
+        case OPENVG_lARGB_8888_PRE:
             return 0x3;
             break;
 
-        case VG_sBGRX_8888:
+        case OPENVG_sBGRX_8888:
             return 0x32;
             break;
 
-        case VG_sBGRA_8888:
+        case OPENVG_sBGRA_8888:
             return 0x33;
             break;
 
-        case VG_sBGRA_8888_PRE:
+        case OPENVG_sBGRA_8888_PRE:
             return 0x33;
             break;
 
-        case VG_sBGR_565:
+        case OPENVG_sBGR_565:
             return 0x21;
             break;
 
-        case VG_sBGRA_5551:
+        case OPENVG_sBGRA_5551:
             return 0x35;
             break;
 
-        case VG_sBGRA_4444:
+        case OPENVG_sBGRA_4444:
             return 0x34;
             break;
 
-        case VG_lBGRX_8888:
+        case OPENVG_lBGRX_8888:
             return 0x32;
             break;
 
-        case VG_lBGRA_8888:
+        case OPENVG_lBGRA_8888:
             return 0x33;
             break;
 
-        case VG_lBGRA_8888_PRE:
+        case OPENVG_lBGRA_8888_PRE:
             return 0x33;
             break;
 
-        case VG_sXBGR_8888:
+        case OPENVG_sXBGR_8888:
             return 0x22;
             break;
 
-        case VG_sABGR_8888:
+        case OPENVG_sABGR_8888:
             return 0x23;
             break;
 
-        case VG_sABGR_8888_PRE:
+        case OPENVG_sABGR_8888_PRE:
             return 0x23;
             break;
 
-        case VG_sABGR_1555:
+        case OPENVG_sABGR_1555:
             return 0x25;
             break;
 
-        case VG_sABGR_4444:
+        case OPENVG_sABGR_4444:
             return 0x24;
             break;
 
-        case VG_lXBGR_8888:
+        case OPENVG_lXBGR_8888:
             return 0x22;
             break;
 
-        case VG_lABGR_8888:
+        case OPENVG_lABGR_8888:
             return 0x23;
             break;
 
-        case VG_lABGR_8888_PRE:
+        case OPENVG_lABGR_8888_PRE:
             return 0x23;
             break;
 
@@ -1341,177 +1333,173 @@ uint32_t convert_source_format(vg_lite_buffer_format_t format)
         case VG_LITE_BGRA5658_PLANAR:
             return 0x60000000;
 
-    /* OpenVG VGImageFormat */
-        case VG_sRGBX_8888:
-        case VG_sRGBX_8888_PRE:
+        /* OpenVG VGImageFormat */
+        case OPENVG_sRGBX_8888:
             return 0x16;
             break;
 
-        case VG_sRGBA_8888:
-        case VG_sRGBA_8888_PRE:
+        case OPENVG_sRGBA_8888:
+        case OPENVG_sRGBA_8888_PRE:
             return 0x17;
             break;
 
-        case VG_sRGB_565:
-        case VG_sRGB_565_PRE:
+        case OPENVG_sRGB_565:
             return 0x5;
             break;
 
-        case VG_sRGBA_5551:
-        case VG_sRGBA_5551_PRE:
+        case OPENVG_sRGBA_5551:
+        case OPENVG_sRGBA_5551_PRE:
             return 0x14;
             break;
 
-        case VG_sRGBA_4444:
-        case VG_sRGBA_4444_PRE:
+        case OPENVG_sRGBA_4444:
+        case OPENVG_sRGBA_4444_PRE:
             return 0x13;
             break;
 
-        case VG_sL_8:
+        case OPENVG_sL_8:
             return 0x0;
             break;
 
-        case VG_lRGBX_8888:
-        case VG_lRGBX_8888_PRE:
+        case OPENVG_lRGBX_8888:
             return 0x16;
             break;
 
-        case VG_lRGBA_8888:
-        case VG_lRGBA_8888_PRE:
+        case OPENVG_lRGBA_8888:
+        case OPENVG_lRGBA_8888_PRE:
             return 0x17;
             break;
 
-        case VG_lRGB_565:
-        case VG_lRGB_565_PRE:
+        case OPENVG_lRGB_565:
             return 0x5;
             break;
 
-        case VG_lRGBA_5551:
-        case VG_lRGBA_5551_PRE:
+        case OPENVG_lRGBA_5551:
+        case OPENVG_lRGBA_5551_PRE:
             return 0x14;
             break;
 
-        case VG_lRGBA_4444:
-        case VG_lRGBA_4444_PRE:
+        case OPENVG_lRGBA_4444:
+        case OPENVG_lRGBA_4444_PRE:
             return 0x13;
             break;
 
-        case VG_lL_8:
+        case OPENVG_lL_8:
             return 0x0;
             break;
 
-        case VG_A_8:
+        case OPENVG_A_8:
             return 0x2;
             break;
 
-        case VG_BW_1:
+        case OPENVG_BW_1:
             return 0x200;
             break;
 
-        case VG_A_1:
+        case OPENVG_A_1:
             return 0x1;
             break;
 
-        case VG_A_4:
+        case OPENVG_A_4:
             return 0x1;
             break;
 
-        case VG_sXRGB_8888:
+        case OPENVG_sXRGB_8888:
             return 0x6;
             break;
 
-        case VG_sARGB_8888:
+        case OPENVG_sARGB_8888:
             return 0x7;
             break;
 
-        case VG_sARGB_8888_PRE:
+        case OPENVG_sARGB_8888_PRE:
             return 0x7;
             break;
 
-        case VG_sARGB_1555:
+        case OPENVG_sARGB_1555:
             return 0x4;
             break;
 
-        case VG_sARGB_4444:
+        case OPENVG_sARGB_4444:
             return 0x3;
             break;
 
-        case VG_lXRGB_8888:
+        case OPENVG_lXRGB_8888:
             return 0x6;
             break;
 
-        case VG_lARGB_8888:
+        case OPENVG_lARGB_8888:
             return 0x7;
             break;
-        case VG_lARGB_8888_PRE:
+        case OPENVG_lARGB_8888_PRE:
             return 0x7;
             break;
 
-        case VG_sBGRX_8888:
+        case OPENVG_sBGRX_8888:
             return 0x36;
             break;
 
-        case VG_sBGRA_8888:
+        case OPENVG_sBGRA_8888:
             return 0x37;
             break;
 
-        case VG_sBGRA_8888_PRE:
+        case OPENVG_sBGRA_8888_PRE:
             return 0x37;
             break;
 
-        case VG_sBGR_565:
+        case OPENVG_sBGR_565:
             return 0x25;
             break;
 
-        case VG_sBGRA_5551:
+        case OPENVG_sBGRA_5551:
             return 0x34;
             break;
 
-        case VG_sBGRA_4444:
+        case OPENVG_sBGRA_4444:
             return 0x33;
             break;
 
-        case VG_lBGRX_8888:
+        case OPENVG_lBGRX_8888:
             return 0x36;
             break;
 
-        case VG_lBGRA_8888:
+        case OPENVG_lBGRA_8888:
             return 0x37;
             break;
 
-        case VG_lBGRA_8888_PRE:
+        case OPENVG_lBGRA_8888_PRE:
             return 0x37;
             break;
 
-        case VG_sXBGR_8888:
+        case OPENVG_sXBGR_8888:
             return 0x26;
             break;
 
-        case VG_sABGR_8888:
+        case OPENVG_sABGR_8888:
             return 0x27;
             break;
 
-        case VG_sABGR_8888_PRE:
+        case OPENVG_sABGR_8888_PRE:
             return 0x27;
             break;
 
-        case VG_sABGR_1555:
+        case OPENVG_sABGR_1555:
             return 0x24;
             break;
 
-        case VG_sABGR_4444:
+        case OPENVG_sABGR_4444:
             return 0x23;
             break;
 
-        case VG_lXBGR_8888:
+        case OPENVG_lXBGR_8888:
             return 0x26;
             break;
 
-        case VG_lABGR_8888:
+        case OPENVG_lABGR_8888:
             return 0x27;
             break;
 
-        case VG_lABGR_8888_PRE:
+        case OPENVG_lABGR_8888_PRE:
             return 0x27;
             break;
 
@@ -2401,11 +2389,11 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     s_context.gamma_src = 1;
 
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
-        (target->format >= VG_lRGBX_8888_PRE && target->format <= VG_lRGBA_4444_PRE))
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -2434,22 +2422,18 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
     switch (target->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_dst = 1;
         break;
     default:
@@ -3176,11 +3160,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
-        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
-        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
-        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE) ||
-        (source->format >= VG_lRGBX_8888_PRE && source->format <= VG_lRGBA_4444_PRE))
+    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
+        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
+        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
+        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
+        (source->format >= OPENVG_lRGB_565 && source->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_src = 0;
     }
@@ -3189,11 +3173,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         s_context.gamma_src = 1;
     }
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
-        (target->format >= VG_lRGBX_8888_PRE && target->format <= VG_lRGBA_4444_PRE))
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -3241,44 +3225,36 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     in_premult = 0x00000000;
 
     switch (source->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_src = 1;
         break;
     default:
         break;
     };
     switch (target->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_dst = 1;
         break;
     default:
@@ -3974,11 +3950,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
-        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
-        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
-        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE) ||
-        (source->format >= VG_lRGBX_8888_PRE && source->format <= VG_lRGBA_4444_PRE))
+    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
+        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
+        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
+        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
+        (source->format >= OPENVG_lRGB_565 && source->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_src = 0;
     }
@@ -3987,11 +3963,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         s_context.gamma_src = 1;
     }
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
-        (target->format >= VG_lRGBX_8888_PRE && target->format <= VG_lRGBA_4444_PRE))
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -4039,44 +4015,36 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     in_premult = 0x00000000;
 
     switch (source->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_src = 1;
         break;
     default:
         break;
     };
     switch (target->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_dst = 1;
         break;
     default:
@@ -4870,10 +4838,10 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
     if (buffer->format < VG_LITE_RGBA8888)
     {   /* For all OpenVG VG_* formats */
 #if gcFEATURE_VG_HW_PREMULTIPLY
-        if (buffer->format == VG_sRGBA_8888_PRE || buffer->format == VG_lRGBA_8888_PRE ||
-            buffer->format == VG_sARGB_8888_PRE || buffer->format == VG_lARGB_8888_PRE ||
-            buffer->format == VG_sBGRA_8888_PRE || buffer->format == VG_lBGRA_8888_PRE ||
-            buffer->format == VG_sABGR_8888_PRE || buffer->format == VG_lABGR_8888_PRE) {
+        if (buffer->format == OPENVG_sRGBA_8888_PRE || buffer->format == OPENVG_lRGBA_8888_PRE ||
+            buffer->format == OPENVG_sARGB_8888_PRE || buffer->format == OPENVG_lARGB_8888_PRE ||
+            buffer->format == OPENVG_sBGRA_8888_PRE || buffer->format == OPENVG_lBGRA_8888_PRE ||
+            buffer->format == OPENVG_sABGR_8888_PRE || buffer->format == OPENVG_lABGR_8888_PRE) {
             buffer->premultiplied = 1;
         }
         else {
@@ -6435,11 +6403,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
-    if ((source->format >= VG_lRGBX_8888 && source->format <= VG_A_4) ||
-        (source->format >= VG_lXRGB_8888 && source->format <= VG_lARGB_8888_PRE) ||
-        (source->format >= VG_lBGRX_8888 && source->format <= VG_lBGRA_8888_PRE) ||
-        (source->format >= VG_lXBGR_8888 && source->format <= VG_lABGR_8888_PRE) ||
-        (source->format >= VG_lRGBX_8888_PRE && source->format <= VG_lRGBA_4444_PRE))
+    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
+        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
+        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
+        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
+        (source->format >= OPENVG_lRGB_565 && source->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_src = 0;
     }
@@ -6448,11 +6416,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         s_context.gamma_src = 1;
     }
     /* Set gamma configuration of dst buffer */
-    if ((target->format >= VG_lRGBX_8888 && target->format <= VG_A_4) ||
-        (target->format >= VG_lXRGB_8888 && target->format <= VG_lARGB_8888_PRE) ||
-        (target->format >= VG_lBGRX_8888 && target->format <= VG_lBGRA_8888_PRE) ||
-        (target->format >= VG_lXBGR_8888 && target->format <= VG_lABGR_8888_PRE) ||
-        (target->format >= VG_lRGBX_8888_PRE && target->format <= VG_lRGBA_4444_PRE))
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -6499,44 +6467,36 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     in_premult = 0x00000000;
 
     switch (source->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_src = 1;
         break;
     default:
         break;
     };
     switch (target->format) {
-    case VG_sRGBA_8888_PRE:
-    case VG_lRGBA_8888_PRE:
-    case VG_sARGB_8888_PRE:
-    case VG_lARGB_8888_PRE:
-    case VG_sBGRA_8888_PRE:
-    case VG_lBGRA_8888_PRE:
-    case VG_sABGR_8888_PRE:
-    case VG_lABGR_8888_PRE:
-    case VG_sRGBX_8888_PRE:
-    case VG_lRGBX_8888_PRE:
-    case VG_sRGB_565_PRE:
-    case VG_lRGB_565_PRE:
-    case VG_sRGBA_5551_PRE:
-    case VG_lRGBA_5551_PRE:
-    case VG_sRGBA_4444_PRE:
-    case VG_lRGBA_4444_PRE:
+    case OPENVG_sRGBA_8888_PRE:
+    case OPENVG_lRGBA_8888_PRE:
+    case OPENVG_sARGB_8888_PRE:
+    case OPENVG_lARGB_8888_PRE:
+    case OPENVG_sBGRA_8888_PRE:
+    case OPENVG_lBGRA_8888_PRE:
+    case OPENVG_sABGR_8888_PRE:
+    case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBA_5551_PRE:
+    case OPENVG_lRGBA_5551_PRE:
+    case OPENVG_sRGBA_4444_PRE:
+    case OPENVG_lRGBA_4444_PRE:
         s_context.premultiply_dst = 1;
         break;
     default:
