@@ -4436,6 +4436,16 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
     VGLITE_LOG("vg_lite_init %d %d\n", tess_width, tess_height);
 #endif
 
+    if (s_context.rtbuffer) {
+        if (s_context.tess_width >= tess_width && s_context.tess_height >= tess_height) {
+            /* VGLite is already initialized properly. Return */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            vg_lite_close();
+        }
+    }
+
     s_context.rtbuffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
     if (!s_context.rtbuffer)
         return VG_LITE_OUT_OF_RESOURCES;
@@ -4486,8 +4496,8 @@ vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_he
     }
     s_context.custom_tessbuf = 0;
     s_context.custom_cmdbuf = 0;
-    s_context.target_width = tess_width;
-    s_context.target_height = tess_height;
+    s_context.tess_width = tess_width;
+    s_context.tess_height = tess_height;
 
     /* Init scissor rect. */
     s_context.scissor[0] =

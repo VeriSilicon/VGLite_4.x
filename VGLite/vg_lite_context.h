@@ -181,6 +181,8 @@ typedef struct vg_lite_context {
     uint8_t                     custom_tessbuf;
     uint32_t                    enable_mask;
     uint32_t                    matrix_enable;
+    uint32_t                    tess_width;
+    uint32_t                    tess_height;
     uint32_t                    target_width;
     uint32_t                    target_height;
     uint8_t                     enable_scissor;
