@@ -5460,10 +5460,10 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
     uint32_t ramp_length;
     vg_lite_color_ramp_t *color_ramp;
-    uint32_t common, stop;
+    uint32_t stop;
     uint32_t i, width;
     uint8_t* bits;
-    vg_lite_float_t x0,y0,x1,y1,length;
+    vg_lite_float_t x0,y0,x1,y1,length,dx,dy;
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
 #if gcFEATURE_VG_TRACE_API
@@ -5474,39 +5474,33 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
     ramp_length = grad->converted_length;
     color_ramp       = grad->converted_ramp;
 
-    x0 = grad->linear_grad.X0;
-    y0 = grad->linear_grad.Y0;
-    x1 = grad->linear_grad.X1;
-    y1 = grad->linear_grad.Y1;
-    length = (vg_lite_float_t)sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+    x0 = grad->matrix.m[0][0] * grad->linear_grad.X0 + grad->matrix.m[0][1] * grad->linear_grad.Y0 + grad->matrix.m[0][2];
+    y0 = grad->matrix.m[1][0] * grad->linear_grad.X0 + grad->matrix.m[1][1] * grad->linear_grad.Y0 + grad->matrix.m[1][2];
+    x1 = grad->matrix.m[0][0] * grad->linear_grad.X1 + grad->matrix.m[0][1] * grad->linear_grad.Y1 + grad->matrix.m[0][2];
+    y1 = grad->matrix.m[1][0] * grad->linear_grad.X1 + grad->matrix.m[1][1] * grad->linear_grad.Y1 + grad->matrix.m[1][2];
+    dx = x1 - x0;
+    dy = y1 - y0;
+    length = (vg_lite_float_t)sqrt(dx * dx + dy * dy);
+    width = ramp_length * 128;
 
     if (length <= 0)
         return VG_LITE_INVALID_ARGUMENT;
     /* Find the common denominator of the color ramp stops. */
-    if (length < 1)
-    {
-        common = 1;
-    }
-    else
-    {
-        common = (uint32_t)length;
-    }
 
-    for (i = 0; i < ramp_length; ++i)
-    {
-        if (color_ramp[i].stop != 0.0f)
-        {
-            vg_lite_float_t mul  = common * color_ramp[i].stop;
-            vg_lite_float_t frac = mul - (vg_lite_float_t) floor(mul);
-            if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
-            {
-                common = MAX(common, (uint32_t) (1.0f / frac + 0.5f));
-            }
-        }
-    }
+    /* Compute transform matrix from ramp surface to grad.*/
+    vg_lite_identity(&(grad->matrix));
+    vg_lite_translate(x0, y0, &(grad->matrix));
+    vg_lite_rotate(
+        ((dy >= 0) ? acosf(dx / length) : (2 * PI - acosf(dx / length))) * 180.f / PI,
+        &(grad->matrix)
+    );
+    vg_lite_scale(length / width, 1.f, &(grad->matrix));
 
-    /* Compute the width of the required color array. */
-    width = common + 1;
+    /* Set grad to ramp surface. */
+    grad->linear_grad.X0 = 0.f;
+    grad->linear_grad.Y0 = 0.f;
+    grad->linear_grad.X1 = (float)width;
+    grad->linear_grad.Y1 = 0.f;
 
     /* Allocate the color ramp surface. */
     memset(&grad->image, 0, sizeof(grad->image));
@@ -5519,7 +5513,6 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
     /* Allocate the image for gradient. */
     VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
     memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
-    width = common + 1;
     /* Set pointer to color array. */
     bits = (uint8_t *)grad->image.memory;
 
@@ -5777,32 +5770,30 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
     if (grad->radial_grad.r <= 0)
         return VG_LITE_INVALID_ARGUMENT;
 
-    /* Find the common denominator of the color ramp stops. */
     if (grad->radial_grad.r < 1)
     {
-        common = 1;
+         common = 1;
+         for (i = 0; i < ramp_length; ++i)
+         {
+             if (colorRamp[i].stop != 0.0f)
+             {
+                 vg_lite_float_t mul = common * colorRamp[i].stop;
+                 vg_lite_float_t frac = mul - (vg_lite_float_t)floor(mul);
+                 if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
+                 {
+                     common = MAX(common, (uint32_t)(1.0f / frac + 0.5f));
+                 }
+             }
+         }
+
+        /* Compute the width of the required color array. */
+        width = common + 1;
+        width = (width + 15) & (~0xf);
     }
     else
     {
-        common = (uint32_t)grad->radial_grad.r;
+        width = ramp_length * 128;
     }
-
-    for (i = 0; i < ramp_length; ++i)
-    {
-        if (colorRamp[i].stop != 0.0f)
-        {
-            vg_lite_float_t mul  = common * colorRamp[i].stop;
-            vg_lite_float_t frac = mul - (vg_lite_float_t) floor(mul);
-            if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
-            {
-                common = MAX(common, (uint32_t) (1.0f / frac + 0.5f));
-            }
-        }
-    }
-
-    /* Compute the width of the required color array. */
-    width = common + 1;
-    width = (width + 15) & (~0xf);
 
     /* Allocate the color ramp surface. */
     memset(&grad->image, 0, sizeof(grad->image));
