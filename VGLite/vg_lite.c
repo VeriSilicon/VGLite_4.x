@@ -4366,7 +4366,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 static vg_lite_error_t program_tessellation(vg_lite_context_t *context)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t tessellation_size;
+    uint32_t tessellation_size = 0;
 
 #if (CHIPID==0x355 || CHIPID==0x255)
 
