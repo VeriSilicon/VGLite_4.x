@@ -2844,7 +2844,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
         (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
         (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -2885,6 +2885,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     case OPENVG_lBGRA_8888_PRE:
     case OPENVG_sABGR_8888_PRE:
     case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBX_8888_PRE:
+    case OPENVG_lRGBX_8888_PRE:
+    case OPENVG_sRGB_565_PRE:
+    case OPENVG_lRGB_565_PRE:
     case OPENVG_sRGBA_5551_PRE:
     case OPENVG_lRGBA_5551_PRE:
     case OPENVG_sRGBA_4444_PRE:
@@ -3365,7 +3369,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
         (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
         (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
-        (source->format >= OPENVG_lRGB_565 && source->format <= OPENVG_lRGBA_4444_PRE))
+        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_src = 0;
     }
@@ -3378,7 +3382,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
         (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
         (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -3428,6 +3432,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     case OPENVG_lBGRA_8888_PRE:
     case OPENVG_sABGR_8888_PRE:
     case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBX_8888_PRE:
+    case OPENVG_lRGBX_8888_PRE:
+    case OPENVG_sRGB_565_PRE:
+    case OPENVG_lRGB_565_PRE:
     case OPENVG_sRGBA_5551_PRE:
     case OPENVG_lRGBA_5551_PRE:
     case OPENVG_sRGBA_4444_PRE:
@@ -3446,6 +3454,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     case OPENVG_lBGRA_8888_PRE:
     case OPENVG_sABGR_8888_PRE:
     case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBX_8888_PRE:
+    case OPENVG_lRGBX_8888_PRE:
+    case OPENVG_sRGB_565_PRE:
+    case OPENVG_lRGB_565_PRE:
     case OPENVG_sRGBA_5551_PRE:
     case OPENVG_lRGBA_5551_PRE:
     case OPENVG_sRGBA_4444_PRE:
@@ -4065,7 +4077,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
         (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
         (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -4110,6 +4122,10 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     case OPENVG_lBGRA_8888_PRE:
     case OPENVG_sABGR_8888_PRE:
     case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBX_8888_PRE:
+    case OPENVG_lRGBX_8888_PRE:
+    case OPENVG_sRGB_565_PRE:
+    case OPENVG_lRGB_565_PRE:
     case OPENVG_sRGBA_5551_PRE:
     case OPENVG_lRGBA_5551_PRE:
     case OPENVG_sRGBA_4444_PRE:
@@ -4767,7 +4783,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
         (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
         (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGB_565 && target->format <= OPENVG_lRGBA_4444_PRE))
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
     {
         s_context.gamma_dst = 0;
     }
@@ -4812,6 +4828,10 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     case OPENVG_lBGRA_8888_PRE:
     case OPENVG_sABGR_8888_PRE:
     case OPENVG_lABGR_8888_PRE:
+    case OPENVG_sRGBX_8888_PRE:
+    case OPENVG_lRGBX_8888_PRE:
+    case OPENVG_sRGB_565_PRE:
+    case OPENVG_lRGB_565_PRE:
     case OPENVG_sRGBA_5551_PRE:
     case OPENVG_lRGBA_5551_PRE:
     case OPENVG_sRGBA_4444_PRE:
