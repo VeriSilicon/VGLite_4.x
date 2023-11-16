@@ -246,7 +246,9 @@ typedef unsigned int        vg_lite_color_t;
     /* Format of pixel buffer. */
     typedef enum vg_lite_buffer_format
     {
-        /* OpenVG VGImageFormat enums:
+        /* The following OPENVG_* enums are defined corresponding to OpenVG
+         * VGImageFormat enums so VGLite API can take OpenVG VGImageFormat enums directly.
+         * 
          * Note: The bits for each color channel are stored within a machine word
          * from MSB to LSB in the order indicated by the pixel format name.
          * This is opposite of VG_LITE_* formats (from LSB to MSB).
@@ -269,6 +271,11 @@ typedef unsigned int        vg_lite_color_t;
         OPENVG_A_1                                      = 13,
         OPENVG_A_4                                      = 14,
 
+        /* The following enums 15 ~ 25 do not exist in OpenVG VGImageFormat.
+         * They are defined to support OpenVG CTS internalFormat which is set
+         * base on "sRGB_NONPRE", "lRGB_NONPRE", "sRGB_PRE", "lRGB_PRE"
+         * destination surface configurations.
+         */
         OPENVG_sRGBX_8888_PRE                           = 15,
         OPENVG_sRGB_565_PRE                             = 16,
         OPENVG_sRGBA_5551_PRE                           = 17,
@@ -312,7 +319,8 @@ typedef unsigned int        vg_lite_color_t;
         OPENVG_lABGR_8888                               =  8 | (1 << 6) | (1 << 7),
         OPENVG_lABGR_8888_PRE                           =  9 | (1 << 6) | (1 << 7),
 
-        /* Original VGLite API image format enums:
+        /* The following VG_LITE_* enums are original VGLite API image format enums.
+         * 
          * Note: The bits for each color channel are stored within a machine word
          * from LSB to MSB in the order indicated by the pixel format name.
          * This is opposite of OPENVG VG_* formats (from MSB to LSB).
