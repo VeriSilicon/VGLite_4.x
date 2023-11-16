@@ -745,7 +745,8 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                 switch (path->format) {
                 case VG_LITE_S8:
                     path_s8 = (int8_t*)(pathc + offset);
-                    path_s8[0] = *data_s8++;
+                    path_s8[0] = *data_s8;
+                    data_s8++;
                     if (rel) {
                         cx = px + (float)path_s8[0];
                         cy = py + (float)path_s8[1];
@@ -758,7 +759,8 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_S16:
                     path_s16 = (int16_t*)(pathc + offset);
-                    path_s16[0] = *data_s16++;
+                    path_s16[0] = *data_s16;
+                    data_s16++;
                     if (rel) {
                         cx = px + (float)path_s16[0];
                         cy = py + (float)path_s16[1];
@@ -771,7 +773,8 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_S32:
                     path_s32 = (int32_t*)(pathc + offset);
-                    path_s32[0] = *data_s32++;
+                    path_s32[0] = *data_s32;
+                    data_s32++;
                     if (rel) {
                         cx = px + (float)path_s32[0];
                         cy = py + (float)path_s32[1];
@@ -784,7 +787,8 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_FP32:
                     pathf = (float*)(pathc + offset);
-                    pathf[0] = *dataf++;
+                    pathf[0] = *dataf;
+                    dataf++;
                     if (rel) {
                         cx = px + (float)pathf[0];
                         cy = py + (float)pathf[1];
@@ -811,8 +815,10 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                     switch (path->format) {
                     case VG_LITE_S8:
                         path_s8 = (int8_t *)(pathc + offset);
-                        path_s8[j * 2] = *data_s8++;
-                        path_s8[j * 2 + 1] = *data_s8++;
+                        path_s8[j * 2] = *data_s8;
+                        data_s8++;
+                        path_s8[j * 2 + 1] = *data_s8;
+                        data_s8++;
 
                         if (rel) {
                             cx = px + path_s8[j * 2];
@@ -825,8 +831,10 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                         break;
                     case VG_LITE_S16:
                         path_s16 = (int16_t *)(pathc + offset);
-                        path_s16[j * 2] = *data_s16++;
-                        path_s16[j * 2 + 1] = *data_s16++;
+                        path_s16[j * 2] = *data_s16;
+                        data_s16++;
+                        path_s16[j * 2 + 1] = *data_s16;
+                        data_s16++;
 
                         if (rel) {
                             cx = px + path_s16[j * 2];
@@ -839,8 +847,10 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                         break;
                     case VG_LITE_S32:
                         path_s32 = (int32_t *)(pathc + offset);
-                        path_s32[j * 2] = *data_s32++;
-                        path_s32[j * 2 + 1] = *data_s32++;
+                        path_s32[j * 2] = *data_s32;
+                        data_s32++;
+                        path_s32[j * 2 + 1] = *data_s32;
+                        data_s32++;
 
                         if (rel) {
                             cx = px + path_s32[j * 2];
@@ -853,8 +863,10 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                         break;
                     case VG_LITE_FP32:
                         pathf = (float *)(pathc + offset);
-                        pathf[j * 2] = *dataf++;
-                        pathf[j * 2 + 1] = *dataf++;
+                        pathf[j * 2] = *dataf;
+                        dataf++;
+                        pathf[j * 2 + 1] = *dataf;
+                        dataf++;
 
                         if (rel) {
                             cx = px + pathf[j * 2];
@@ -885,11 +897,16 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                 switch (path->format) {
                 case VG_LITE_S8:
                     path_s8 = (int8_t*)(pathc + offset);
-                    path_s8[0] = *data_s8++;
-                    path_s8[1] = *data_s8++;
-                    path_s8[2] = *data_s8++;
-                    path_s8[3] = *data_s8++;
-                    path_s8[4] = *data_s8++;
+                    path_s8[0] = *data_s8;
+                    data_s8++;
+                    path_s8[1] = *data_s8;
+                    data_s8++;
+                    path_s8[2] = *data_s8;
+                    data_s8++;
+                    path_s8[3] = *data_s8;
+                    data_s8++;
+                    path_s8[4] = *data_s8;
+                    data_s8++;
 
                     if (rel) {
                         cx = px + path_s8[3];
@@ -908,11 +925,16 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_S16:
                     path_s16 = (int16_t*)(pathc + offset);
-                    path_s16[0] = *data_s16++;
-                    path_s16[1] = *data_s16++;
-                    path_s16[2] = *data_s16++;
-                    path_s16[3] = *data_s16++;
-                    path_s16[4] = *data_s16++;
+                    path_s16[0] = *data_s16;
+                    data_s16++;
+                    path_s16[1] = *data_s16;
+                    data_s16++;
+                    path_s16[2] = *data_s16;
+                    data_s16++;
+                    path_s16[3] = *data_s16;
+                    data_s16++;
+                    path_s16[4] = *data_s16;
+                    data_s16++;
 
                     if (rel) {
                         cx = px + path_s16[3];
@@ -931,11 +953,16 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_S32:
                     path_s32 = (int32_t*)(pathc + offset);
-                    path_s32[0] = *data_s32++;
-                    path_s32[1] = *data_s32++;
-                    path_s32[2] = *data_s32++;
-                    path_s32[3] = *data_s32++;
-                    path_s32[4] = *data_s32++;
+                    path_s32[0] = *data_s32;
+                    data_s32++;
+                    path_s32[1] = *data_s32;
+                    data_s32++;
+                    path_s32[2] = *data_s32;
+                    data_s32++;
+                    path_s32[3] = *data_s32;
+                    data_s32++;
+                    path_s32[4] = *data_s32;
+                    data_s32++;
 
                     if (rel) {
                         cx = px + path_s32[3];
@@ -954,11 +981,16 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
 
                 case VG_LITE_FP32:
                     pathf = (float*)(pathc + offset);
-                    pathf[0] = *dataf++;
-                    pathf[1] = *dataf++;
-                    pathf[2] = *dataf++;
-                    pathf[3] = *dataf++;
-                    pathf[4] = *dataf++;
+                    pathf[0] = *dataf;
+                    dataf++;
+                    pathf[1] = *dataf;
+                    dataf++;
+                    pathf[2] = *dataf;
+                    dataf++;
+                    pathf[3] = *dataf;
+                    dataf++;
+                    pathf[4] = *dataf;
+                    dataf++;
 
                     if (rel) {
                         cx = px + pathf[3];
