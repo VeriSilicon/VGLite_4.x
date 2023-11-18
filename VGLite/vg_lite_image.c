@@ -767,7 +767,13 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t
     vg_lite_uint8_t alpha;
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_scissor_rects %d %p\n", nums, rect);
+    for (i = 0; i < nums; i++) {
+        VGLITE_LOG("    Rect(%d, %d, %d, %d)\n", rect[i].x, rect[i].y, rect[i].width, rect[i].height);
+    }
 #endif
+
+    /* Return if rect[] nums is 0 */
+    if (nums == 0) return error;
 
     /* Record scissor enable flag and disable scissor. */
     vg_lite_uint8_t enable = s_context.scissor_enable;

@@ -6198,7 +6198,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     vg_lite_color_t color = 0;
 
 #if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_blit_rect %p %p %p\n", target, source, rect);
+    VGLITE_LOG("vg_lite_copy_image %p %p %d %d %d %d %d %d\n", target, source, sx, sy, dx, dy, width, height);
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
