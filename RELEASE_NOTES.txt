@@ -25,6 +25,18 @@ LIMITATION
 
 CHANGES
 =======
+November 2023: vglite_4_0_47
+	1. Add fill stroke support.
+	2. Update gc265 new revision blend mode config.
+	3. 265 add src_premultiply in draw pattern api.
+	4. Add gcFEATURE_VG_MATH_PRECISION_FIX for enabling the new driver code for math precision fix.
+	5. Remove gcFEATURE_VG_SIMPLYFIED_BEZIER and the old _flatten_quad_bezier(), _flatten_cubic_bezier() functions. Use the new simplied bezier implementation by default.
+	6. After GPU hang, use reset operation to restart the GPU.
+	7. Add a new API vg_lite_get_parameter to get scissor parameter by user.
+	8. Delete vg_lite_set_premultiply API as vg_lite_blend_t now covers all blend modes (non-premultiplied and premultiplied).
+	9. [kernel]: add gcdVG_ENABLE_AUTO_CLOCK_GATING to determine if auto clock gating feature is enabled.
+	10. Add dec2.0 feature.
+	11. Refine vg_lite_copy_image() API in vg_lite.h header and its parameters.
 
 May 2023: vglite_4_0_22
 -------------------------
