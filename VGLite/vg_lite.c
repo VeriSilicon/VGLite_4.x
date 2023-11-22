@@ -2196,7 +2196,7 @@ static vg_lite_error_t flush_target()
     vg_lite_context_t *context = GET_CONTEXT();
     
     do {
-        VG_LITE_BREAK_ERROR(push_state(context, 0x0A1B, 0x00000001));
+        VG_LITE_BREAK_ERROR(push_state(context, 0x0A1B, 0x00000011));
         VG_LITE_BREAK_ERROR(push_stall(context, 7));
     } while (0);
     
@@ -2557,7 +2557,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         }
 
         /* flush VGPE after clear */
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000001));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
     }
 
     s_context.premultiply_dst = 0;
