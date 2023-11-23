@@ -55,7 +55,7 @@
 #define gcFEATURE_VG_LINEAR_GRADIENT_EXT        1
 #define gcFEATURE_VG_MASK                       1
 #define gcFEATURE_VG_MIRROR                     1
-#define gcFEATURE_VG_GAMMA                      0
+#define gcFEATURE_VG_GAMMA                      1
 #define gcFEATURE_VG_NEW_BLEND_MODE             0
 #define gcFEATURE_VG_STENCIL                    1
 #define gcFEATURE_VG_SRC_PREMULTIPLIED          0
