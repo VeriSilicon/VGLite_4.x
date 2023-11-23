@@ -2260,8 +2260,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         uv_swiz = convert_uv_swizzle(target->yuv.swizzle);
     }
 
-    s_context.target_width = target->width;
-    s_context.target_height = target->height;
     /* Program render target. */
     if (s_context.rtbuffer != target || memcmp(s_context.rtbuffer,target,sizeof(vg_lite_buffer_t)) || (s_context.flexa_dirty != 0) ||
        (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0)) {
@@ -4458,7 +4456,7 @@ static vg_lite_error_t program_tessellation(vg_lite_context_t *context)
     return error;
 }
 
-vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_height)
+vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height)
 {
     vg_lite_error_t error;
     vg_lite_kernel_initialize_t initialize;
@@ -4559,9 +4557,10 @@ vg_lite_error_t vg_lite_close(void)
     VGLITE_LOG("vg_lite_close\n");
 #endif
 
-    if (s_context.scissor_layer && s_context.scissor_layer->handle)
+    if (s_context.scissor_layer)
     {
         vg_lite_free(s_context.scissor_layer);
+        vg_lite_os_free(s_context.scissor_layer);
     }
 
     if (s_context.custom_cmdbuf)
@@ -5330,6 +5329,8 @@ vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
     VGLITE_LOG("vg_lite_init_grad %p\n", grad);
 #endif
 
+    grad->count = 0;
+
     /* Set the member values according to driver defaults. */
     grad->image.width = VLC_GRADIENT_BUFFER_WIDTH;
     grad->image.height = 1;
@@ -5337,10 +5338,8 @@ vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
     grad->image.format = VG_LITE_BGRA8888;
     
     /* Allocate the image for gradient. */
-    error = vg_lite_allocate(&grad->image);
-    
-    grad->count = 0;
-    
+    VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
+
     return error;
 }
 
@@ -6167,7 +6166,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *source,
                                 vg_lite_int32_t sx, vg_lite_int32_t sy,
                                 vg_lite_int32_t dx, vg_lite_int32_t dy,
-                                vg_lite_int32_t width, vg_lite_int32_t height)
+                                vg_lite_uint32_t width, vg_lite_uint32_t height)
 {
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;

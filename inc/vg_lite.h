@@ -973,7 +973,7 @@ typedef unsigned int        vg_lite_color_t;
 /* VGLite API Functions *******************************************************************************************************************/
 
     /* Initialize a vglite context. */
-    vg_lite_error_t vg_lite_init(vg_lite_int32_t tess_width, vg_lite_int32_t tess_height);
+    vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height);
 
     /* Destroy a vglite context. */
     vg_lite_error_t vg_lite_close();
@@ -1053,8 +1053,8 @@ typedef unsigned int        vg_lite_color_t;
                                     vg_lite_int32_t   sy,
                                     vg_lite_int32_t   dx,
                                     vg_lite_int32_t   dy,
-                                    vg_lite_int32_t   width,
-                                    vg_lite_int32_t   height);
+                                    vg_lite_uint32_t  width,
+                                    vg_lite_uint32_t  height);
 
     /* Draw a path to a target buffer with transformation, color, and blending */
     vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
@@ -1232,7 +1232,7 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lite_int32_t right, vg_lite_int32_t bottom);
 
     /* Set scissor rectangles on mask layer. Scissor rects are enabled/disabled by following APIs. */
-    vg_lite_error_t vg_lite_scissor_rects(vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
+    vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
 
     /* Enable scissor rects defined on mask layer. */
     vg_lite_error_t vg_lite_enable_scissor();

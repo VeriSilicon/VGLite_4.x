@@ -577,10 +577,12 @@ vg_lite_error_t vg_lite_clear_path(vg_lite_path_t* path)
 
 vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
 {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t bytes;
     vg_lite_buffer_t Buf, *buffer;
+
     buffer = &Buf;
-    
+
     /* Compute the number of bytes required for path + command buffer prefix/postfix. */
     bytes = (8 + path->path_length + 7 + 8) & ~7;
 
@@ -589,9 +591,7 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
     buffer->height = 1;
     buffer->stride = 0;
     buffer->format = VG_LITE_A8;
-    if (vg_lite_allocate(buffer) != VG_LITE_SUCCESS) {
-        return VG_LITE_OUT_OF_MEMORY;
-    }
+    VG_LITE_RETURN_ERROR(vg_lite_allocate(buffer));
 
     /* Initialize command buffer prefix. */
     ((uint32_t *) buffer->memory)[0] = VG_LITE_DATA((path->path_length + 7) / 8);
@@ -614,7 +614,7 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
     VLM_PATH_ENABLE_UPLOAD(*path);      /* Implicitly enable path uploading. */
     
     /* Return pointer to vg_lite_buffer structure. */
-    return VG_LITE_SUCCESS;
+    return error;
 }
 
 vg_lite_uint32_t vg_lite_get_path_length(vg_lite_uint8_t *cmd, vg_lite_uint32_t count, vg_lite_format_t format)
