@@ -1174,6 +1174,77 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_buffer_t *target,
     return VG_LITE_SUCCESS;
 }
 
+static vg_lite_error_t set_interpolation_steps_draw_paint(vg_lite_buffer_t* target,
+    vg_lite_int32_t s_width,
+    vg_lite_int32_t s_height,
+    vg_lite_matrix_t* matrix)
+{
+    vg_lite_matrix_t    im;
+    vg_lite_rectangle_t src_bbx, bounding_box, clip;
+    vg_lite_float_t     xs[3], ys[3], cs[3];
+    vg_lite_error_t     error = VG_LITE_SUCCESS;
+    float               dx = 0.0f, dy = 0.0f;
+
+#define ERR_LIMIT   0.0000610351562f
+
+    /* Get bounding box. */
+    memset(&src_bbx, 0, sizeof(vg_lite_rectangle_t));
+    memset(&clip, 0, sizeof(vg_lite_rectangle_t));
+    src_bbx.width = (int32_t)s_width;
+    src_bbx.height = (int32_t)s_height;
+
+    if (s_context.scissor_set) {
+        clip.x = s_context.scissor[0];
+        clip.y = s_context.scissor[1];
+        clip.width = s_context.scissor[2];
+        clip.height = s_context.scissor[3];
+    }
+    else {
+        clip.x = clip.y = 0;
+        clip.width = s_context.rtbuffer->width;
+        clip.height = s_context.rtbuffer->height;
+    }
+    transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL);
+    /* Compute inverse matrix. */
+    if (!inverse(&im, matrix))
+        return VG_LITE_INVALID_ARGUMENT;
+    /* Compute interpolation steps. */
+    /* X step */
+    xs[0] = im.m[0][0] / s_width;
+    xs[1] = im.m[1][0] / s_height;
+    xs[2] = im.m[2][0];
+    /* Y step */
+    ys[0] = im.m[0][1] / s_width;
+    ys[1] = im.m[1][1] / s_height;
+    ys[2] = im.m[2][1];
+    /* C step 2 */
+    cs[2] = 0.5f * (im.m[2][0] + im.m[2][1]) + im.m[2][2];
+
+    /* C step 0, 1*/
+    cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
+    cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
+
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A04, (void*)&cs[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A05, (void*)&cs[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A06, (void*)&xs[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A07, (void*)&xs[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A08, (void*)&ys[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A09, (void*)&ys[1]));
+    /* Set command buffer */
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void*)&cs[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void*)&cs[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void*)&cs[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void*)&xs[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void*)&xs[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void*)&xs[2]));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void*)&ys[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void*)&ys[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void*)&ys[2]));
+
+    return VG_LITE_SUCCESS;
+}
+
 /* GC355/GC255 vg_lite_draw API implementation
  */
 vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
@@ -1435,6 +1506,14 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
 
+    if (source->paintType == VG_LITE_PAINT_PATTERN)
+    {
+        matrix1->m[2][0] = 0;
+        matrix1->m[2][1] = 0;
+        matrix1->m[2][2] = 1;
+        matrix = matrix1;
+    }
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
         target, path, fill_rule, matrix0, source, matrix1, blend, pattern_mode, pattern_color, filter);
@@ -1608,19 +1687,35 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
         break;
     }
 
-    /* Setup the command buffer. */
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
+    if (source->paintType == VG_LITE_PAINT_PATTERN)
+    {
+        VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(target, source->width, source->height, matrix));
+        /* enable pre-multiplied in imager unit */
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
+            filter_mode | pattern_tile | conversion));
 
-    /* enable pre-multiplied in imager unit */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
-                                                            filter_mode | pattern_tile | conversion));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, pattern_color));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source->address));
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, pattern_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2A, source->stride | tiled_source));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2C, 0));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2E, source->width | (source->height << 16)));
+    }
+    else
+    {
+        VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
+        /* enable pre-multiplied in imager unit */
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
+            filter_mode | pattern_tile | conversion));
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, pattern_color));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
+
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
+    }
+
     
     /* Work on path states. */
     matrix = matrix0;
