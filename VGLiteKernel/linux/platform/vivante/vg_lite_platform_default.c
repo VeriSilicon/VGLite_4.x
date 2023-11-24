@@ -109,7 +109,7 @@ int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args)
     /* Initialize based on the memory reserved by the system */ 
     for (i = 0; i < VG_SYSTEM_RESERVE_COUNT - 1; i++) {
         args->contiguous_bases[i + 1] =  args->contiguous_bases[i] + args->contiguous_sizes[i];
-        args->contiguous_sizes[i + 1] =  args->contiguous_sizes[i];
+        args->contiguous_sizes[i + 1] =  MAX_CONTIGUOUS_SIZE - args->contiguous_sizes[i];
     }
 
     return 0;

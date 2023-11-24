@@ -89,7 +89,7 @@ module_param(registerMemSize, uint, 0644);
 static uint irqLine         = 0;
 module_param(irqLine, uint, 0644);
 
-static uint contiguousSize = 0x01000000;
+static uint contiguousSize = 0x00f00000;
 module_param(contiguousSize, uint, 0644);
 
 static ulong contiguousBase = 0x38000000;

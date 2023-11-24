@@ -599,6 +599,21 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
     } vg_lite_param_type_t;
 
+    /* Vg lite buffer type */
+    typedef enum vg_lite_buffer_type
+    {
+        VG_LITE_COMMAND_BUFFER,
+        VG_LITE_TESSELLATION_BUFFER,
+        VG_LITE_RENDER_BUFFER,
+    } vg_lite_buffer_type_t;
+
+    /* Reserve memory index */
+    typedef enum vg_lite_memory_pool
+    {
+        VG_LITE_MEMORY_POOL_1 = 0,
+        VG_LITE_MEMORY_POOL_2 = 1,
+    } vg_lite_memory_pool_t;
+
 /* VGLite API Structures ******************************************************************************************************************/
 
     /* VGLite driver information */
@@ -808,6 +823,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_pointer handle;                 /*! The memory handle of the buffer's memory as allocated by the VGLite kernel. */
         vg_lite_pointer memory;                 /*! The logical pointer to the buffer's memory for the CPU. */
         vg_lite_uint32_t address;               /*! The address to the buffer's memory for the hardware. */
+        vg_lite_memory_pool_t pool;             /*! The buffer's memory pool. */
         vg_lite_yuvinfo_t yuv;                  /*! The yuv format details. */
         vg_lite_image_mode_t image_mode;        /*! The blit image mode. */
         vg_lite_transparency_t transparency_mode; /*! image transparency mode. */
@@ -1378,6 +1394,12 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                     vg_lite_int32_t count,
                                     vg_lite_float_t* params);
+
+    /* Set memory pool for different buffer allocations. By default all memory buffers are allocated from VG_LITE_MEMORY_POOL_1.
+     * This API must be called before vg_lite_init() for setting VG_LITE_COMMAND_BUFFER or VG_LITE_TESSELLATION_BUFFER memory pools.
+     * This API can be called anytime for VG_LITE_RENDER_BUFFER to affect the following vg_lite_allocate() calls.
+     */
+    vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool);
 
 #endif /* VGLITE_VERSION_3_0 */
 

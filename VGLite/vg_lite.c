@@ -4495,6 +4495,8 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     initialize.command_buffer_size = command_buffer_size;
     initialize.tess_width = tess_width;
     initialize.tess_height = tess_height;
+    initialize.command_buffer_pool = s_context.command_buffer_pool;
+    initialize.tess_buffer_pool = s_context.tess_buffer_pool;
     initialize.context = &s_context.context;
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_INITIALIZE, &initialize));
 
@@ -4947,12 +4949,14 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         allocate.bytes = VG_LITE_ALIGN(allocate.bytes, 64);
 #endif
         allocate.contiguous = 1;
+        allocate.pool = s_context.render_buffer_pool;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
 
         /* Save the buffer allocation. */
         buffer->handle  = allocate.memory_handle;
         buffer->memory  = allocate.memory;
         buffer->address = allocate.memory_gpu;
+        buffer->pool    = allocate.pool;
 
         if ((buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_AYUY2_TILED) || ((buffer->format >= VG_LITE_ABGR8565_PLANAR)
              && (buffer->format <= VG_LITE_RGBA5658_PLANAR))) {
@@ -6715,4 +6719,29 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #else
     return VG_LITE_NOT_SUPPORT;
 #endif
+}
+
+vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool)
+{
+    if (!(pool >= VG_LITE_MEMORY_POOL_1 && pool <= VG_LITE_MEMORY_POOL_2))
+        return VG_LITE_INVALID_ARGUMENT;
+
+    switch (type) {
+      case VG_LITE_COMMAND_BUFFER:
+        s_context.command_buffer_pool = pool;
+        break;
+
+      case VG_LITE_TESSELLATION_BUFFER:
+        s_context.tess_buffer_pool = pool;
+        break;
+
+      case VG_LITE_RENDER_BUFFER:
+        s_context.render_buffer_pool = pool;
+        break;
+
+      default:
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    return VG_LITE_SUCCESS;
 }

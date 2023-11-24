@@ -150,8 +150,14 @@ typedef struct vg_lite_context {
     uint32_t                    command_buffer_size;
     uint32_t                    command_offset[CMDBUF_COUNT];
     uint32_t                    command_buffer_current;
+    vg_lite_memory_pool_t       command_buffer_pool;
+
     vg_lite_tess_buffer_t       tessbuf;
+    vg_lite_memory_pool_t       tess_buffer_pool;
+
     vg_lite_buffer_t           *rtbuffer;                   /* DDRLess: this is used as composing buffer. */
+    vg_lite_memory_pool_t       render_buffer_pool;
+
     vg_lite_float_t             path_lastX;
     vg_lite_float_t             path_lastY;
     uint32_t                    scissor_set;

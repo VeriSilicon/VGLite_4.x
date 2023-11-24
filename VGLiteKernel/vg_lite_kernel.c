@@ -357,7 +357,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
             /* Allocate the memory. */
             error = vg_lite_kernel_vidmem_allocate(&data->command_buffer_size,
                                                    flags,
-                                                   VG_LITE_POOL_RESERVED_MEMORY1,
+                                                   data->command_buffer_pool,
                                                    &context->command_buffer_logical[i],
                                                    &context->command_buffer_klogical[i],
                                                    &context->command_buffer_physical[i],
@@ -496,7 +496,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         /* Allocate the memory. */
         error = vg_lite_kernel_vidmem_allocate((uint32_t*)&total_size,
                                                flags,
-                                               VG_LITE_POOL_RESERVED_MEMORY1,
+                                               data->tess_buffer_pool,
                                                &context->tessbuf_logical,
                                                &context->tessbuf_klogical,
                                                &context->tessbuf_physical,
@@ -655,7 +655,6 @@ static vg_lite_error_t do_allocate(vg_lite_kernel_allocate_t * data)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-    data->pool = VG_LITE_POOL_RESERVED_MEMORY1;
     error = vg_lite_kernel_vidmem_allocate(&data->bytes, data->flags, data->pool, &data->memory, &data->kmemory, &data->memory_gpu, &data->memory_handle);
 
     return error;

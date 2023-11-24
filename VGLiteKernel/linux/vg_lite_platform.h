@@ -82,7 +82,7 @@
 #include <linux/rtc.h>
 
 #define VG_DEVICE_NAME          "vg_lite"
-#define VG_SYSTEM_RESERVE_COUNT 1         /* Set according to the reserved memory number */
+#define VG_SYSTEM_RESERVE_COUNT 2         /* Set according to the reserved memory number */
 
 /* Struct definitions. */
 struct heap_node {
