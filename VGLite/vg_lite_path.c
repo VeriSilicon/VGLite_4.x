@@ -1404,7 +1404,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | s_context.color_transform));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program tessellation control: for TS module. */
@@ -1767,7 +1767,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     /* Program color register. */
 
     /* enable pre-multiplied from VG to VGPE */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x2 | in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | s_context.color_transform));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x2 | in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000400 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
@@ -2144,7 +2144,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     /* Program color register. */
 
     /* enable pre-multiplied from VG to VGPE */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x01000002 | s_context.capabilities.cap.tiled | in_premult | image_mode | blend_mode | transparency_mode | s_context.color_transform));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x01000002 | s_context.capabilities.cap.tiled | in_premult | image_mode | blend_mode | transparency_mode | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000400 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
@@ -2791,7 +2791,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     /* Program color register. */
 
     /* enable pre-multiplied from VG to VGPE */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x02000002 | s_context.capabilities.cap.tiled | in_premult | imageMode | blend_mode | transparency_mode | s_context.color_transform));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x02000002 | s_context.capabilities.cap.tiled | in_premult | imageMode | blend_mode | transparency_mode | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000400 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
