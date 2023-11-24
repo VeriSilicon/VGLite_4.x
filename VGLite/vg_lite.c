@@ -3875,8 +3875,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             rect_y = rect->y;
 
 #if (CHIPID == 0x355)
-        rect_w = rect->width + 1;
-        s_context.from_blit_rect = 1;
+        if (rect_x + rect->width < (uint32_t)source->width)
+        {
+            rect_w = rect->width + 1;
+            s_context.from_blit_rect = 1;
+        }
+        else
+        {
+            rect_w = rect->width;
+        }
 #else
         rect_w = rect->width;
 #endif
@@ -6342,8 +6349,15 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
             rect_y = rect->y;
 
 #if (CHIPID == 0x355)
-        rect_w = rect->width + 1;
-        s_context.from_blit_rect = 1;
+        if (rect_x + rect->width < (uint32_t)source->width)
+        {
+            rect_w = rect->width + 1;
+            s_context.from_blit_rect = 1;
+        }
+        else
+        {
+            rect_w = rect->width;
+        }
 #else
         rect_w = rect->width;
 #endif
