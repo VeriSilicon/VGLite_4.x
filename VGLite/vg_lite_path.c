@@ -1512,6 +1512,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
         matrix1->m[2][1] = 0;
         matrix1->m[2][2] = 1;
         matrix = matrix1;
+        source->image_mode = VG_LITE_NORMAL_IMAGE_MODE;
     }
 
 #if gcFEATURE_VG_TRACE_API
@@ -3447,6 +3448,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         matrix1->m[2][1] = 0;
         matrix1->m[2][2] = 1;
         matrix = matrix1;
+        source->image_mode = VG_LITE_NONE_IMAGE_MODE;
     }
 
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
