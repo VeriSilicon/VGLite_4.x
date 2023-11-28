@@ -1714,6 +1714,16 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     {
         pattern_tile = 0x1000;
     }
+#if gcFEATURE_VG_IM_REPEAT_REFLECT
+    else if (pattern_mode == VG_LITE_PATTERN_REPEAT)
+    {
+        pattern_tile = 0x2000;
+    }
+    else if (pattern_mode == VG_LITE_PATTERN_REFLECT)
+    {
+        pattern_tile = 0x3000;
+    }
+#endif
     else
     {
         return VG_LITE_INVALID_ARGUMENT;
