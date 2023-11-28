@@ -1543,7 +1543,7 @@ void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t p
 
         struct vm_area_struct *vma = NULL;
         vg_lite_int32_t page_count;
-        vg_lite_flag_t vm_flags;
+        vg_lite_flag_t vm_flags = 0;
         vg_lite_uintptr_t memory = (vg_lite_uintptr_t)logical;
         vg_lite_uint32_t offset = memory & (PAGE_SIZE -1);
 

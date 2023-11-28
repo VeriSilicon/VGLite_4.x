@@ -296,7 +296,12 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 
 #if defined(__linux__) && !defined(EMULATOR)
     vg_lite_kernel_context_t __user * context_usr;
-    vg_lite_kernel_context_t mycontext = { 0 };
+    vg_lite_kernel_context_t mycontext = {
+        .command_buffer = { 0 },
+        .command_buffer_logical = { 0 },
+        .command_buffer_klogical = { 0 },
+        .command_buffer_physical = { 0 },
+    };
 
     // Construct the context.
     context_usr = (vg_lite_kernel_context_t  __user *) data->context;
@@ -560,7 +565,12 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
 {
     vg_lite_kernel_context_t *context = NULL;
 #if defined(__linux__) && !defined(EMULATOR)
-    vg_lite_kernel_context_t mycontext = {0};
+    vg_lite_kernel_context_t mycontext = {
+    .command_buffer = { 0 },
+    .command_buffer_logical = { 0 },
+    .command_buffer_klogical = { 0 },
+    .command_buffer_physical = { 0 },
+    };
     if (copy_from_user(&mycontext, data->context, sizeof(vg_lite_kernel_context_t)) != 0) {
       return VG_LITE_NO_CONTEXT;
     }
@@ -676,7 +686,12 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     uint32_t physical = data->context->command_buffer_physical[data->command_id];
 
 #if defined(__linux__) && !defined(EMULATOR)
-    vg_lite_kernel_context_t mycontext = { 0 };
+    vg_lite_kernel_context_t mycontext = {
+    .command_buffer = { 0 },
+    .command_buffer_logical = { 0 },
+    .command_buffer_klogical = { 0 },
+    .command_buffer_physical = { 0 },
+    };
 
     if (copy_from_user(&mycontext, data->context, sizeof(vg_lite_kernel_context_t)) != 0) {
       return VG_LITE_NO_CONTEXT;
