@@ -64,7 +64,7 @@
 #define gcFEATURE_VG_LVGL_SUPPORT               0
 #define gcFEATURE_VG_INDEX_ENDIAN               0
 #define gcFEATURE_VG_24BIT_PLANAR               0
-#define gcFEATURE_VG_PIXEL_MATRIX               1
+#define gcFEATURE_VG_PIXEL_MATRIX               0
 #define gcFEATURE_VG_NEW_IMAGE_INDEX            0
 #define gcFEATURE_VG_PARALLEL_PATHS             0
 #define gcFEATURE_VG_STRIPE_MODE                0
