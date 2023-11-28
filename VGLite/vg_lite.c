@@ -2138,14 +2138,6 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
         return 1;
     }
 
-#if (CHIPID == 0x355)
-    if (s_context.from_blit_rect) {
-        if (x != 0) {
-            x = x - 1;
-        }
-    }
-#endif
-
     if (((matrix->m[0][1] != 0.0f) || (matrix->m[1][0] != 0.0f) || (matrix->m[2][0] != 0.0f) || (matrix->m[2][1] != 0.0f) || (matrix->m[2][2] != 1.0f)) &&
         (s_context.filter == VG_LITE_FILTER_LINEAR || s_context.filter == VG_LITE_FILTER_BI_LINEAR)) {
         if (x != 0) {
@@ -3874,19 +3866,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         else
             rect_y = rect->y;
 
-#if (CHIPID == 0x355)
-        if (rect_x + rect->width < (uint32_t)source->width)
-        {
-            rect_w = rect->width + 1;
-            s_context.from_blit_rect = 1;
-        }
-        else
-        {
-            rect_w = rect->width;
-        }
-#else
         rect_w = rect->width;
-#endif
         rect_h = rect->height;
         
         if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
@@ -3972,10 +3952,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* No need to draw. */
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
-
-#if (CHIPID == 0x355)
-    s_context.from_blit_rect = 0;
-#endif
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
@@ -6348,19 +6324,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         else
             rect_y = rect->y;
 
-#if (CHIPID == 0x355)
-        if (rect_x + rect->width < (uint32_t)source->width)
-        {
-            rect_w = rect->width + 1;
-            s_context.from_blit_rect = 1;
-        }
-        else
-        {
-            rect_w = rect->width;
-        }
-#else
         rect_w = rect->width;
-#endif
         rect_h = rect->height;
 
         if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
@@ -6446,10 +6410,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     /* No need to draw. */
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
-
-#if (CHIPID == 0x355)
-    s_context.from_blit_rect = 0;
-#endif
 
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
