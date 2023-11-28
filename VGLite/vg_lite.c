@@ -2254,7 +2254,8 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
     /* Program render target. */
     if (s_context.rtbuffer != target || memcmp(s_context.rtbuffer,target,sizeof(vg_lite_buffer_t)) || (s_context.flexa_dirty != 0) ||
-       (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0)) {
+       (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0))
+    {
         VG_LITE_RETURN_ERROR(check_compress(target->format, target->compress_mode, target->tiled, target->width, target->height));
         if (target->tiled == VG_LITE_TILED) {
             if ((target->stride % DEST_ALIGNMENT_LIMITATION) != 0)
@@ -2289,8 +2290,8 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == 0xFF) {
-            printf("error: Target format is not supported.\n");
-            return VG_LITE_INVALID_ARGUMENT;
+            printf("Target format: 0x%x is not supported.\n", target->format);
+            return VG_LITE_NOT_SUPPORT;
         }
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
@@ -6260,6 +6261,12 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         printf("Target format: 0x%x is not supported.\n", target->format);
         return VG_LITE_NOT_SUPPORT;
     }
+    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
+        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
+        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
+        printf("Source format: 0x%x is not supported.\n", source->format);
+        return VG_LITE_NOT_SUPPORT;
+    }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
@@ -6631,13 +6638,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACF, source->fc_buffer[0].address));   /* FC buffer address. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD0, source->fc_buffer[0].color));     /* FC clear value. */
     }
-#endif
-
-#if (CHIPID == 0x355)
-    if (source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
-        return VG_LITE_NOT_SUPPORT;
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
