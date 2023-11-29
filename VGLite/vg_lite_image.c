@@ -30,6 +30,7 @@
 #define MATRIX_FP_ABS(x)            (((x) < 0) ? -(x) : (x))
 #define MATRIX_FP_EPS               2.2204460492503131e-14
 
+extern vg_lite_matrix_t identity_mtx;
 
 /* Get the plane memory pointer and strides info. */
 static uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
@@ -661,6 +662,10 @@ vg_lite_error_t vg_lite_render_masklayer(
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_render_masklayer %p %d %p %d %d %p\n", masklayer, operation, path, fill_rule, color, matrix);
 #endif
+
+    if (!matrix) {
+        matrix = &identity_mtx;
+    }
 
     switch (operation)
     {

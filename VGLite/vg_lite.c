@@ -28,6 +28,7 @@
 #include "vg_lite_context.h"
 
 static float offsetTable[7] = {0, 0.000575f, -0.000575f, 0.0001f, -0.0001f, 0.0000375f, -0.0000375f};
+
 #if VG_SW_BLIT_PRECISION_OPT
 uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
 {
@@ -264,6 +265,8 @@ uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
 vg_lite_context_t   s_context = { 0 };
 uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE;
 uint32_t            submit_flag = 0;
+
+vg_lite_matrix_t    identity_mtx = {{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
 /* Initialize the feature table of a chip. */
 vg_lite_ftable_t    s_ftable = {
@@ -2629,20 +2632,25 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
+    if (!matrix0) {
+        matrix0 = &identity_mtx;
+    }
+    if (!matrix1) {
+        matrix1 = &identity_mtx;
+    }
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
     }
 
     /* Check if the specified matrix has rotation or perspective. */
-    if (   (matrix0 != NULL)
-        && (   (matrix0->m[0][1] != 0.0f)
-            || (matrix0->m[1][0] != 0.0f)
-            || (matrix0->m[2][0] != 0.0f)
-            || (matrix0->m[2][1] != 0.0f)
-            || (matrix0->m[2][2] != 1.0f)
-            )
-        ) {
+    if (  (matrix0->m[0][1] != 0.0f)
+       || (matrix0->m[1][0] != 0.0f)
+       || (matrix0->m[2][0] != 0.0f)
+       || (matrix0->m[2][1] != 0.0f)
+       || (matrix0->m[2][2] != 1.0f)
+       ) {
         /* Mark that we have rotation. */
         rotation = 0x8000;
     }
@@ -3049,6 +3057,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
+    if (!matrix) {
+        matrix = &identity_mtx;
+    }
+
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -3065,8 +3077,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     s_context.filter = filter;
 
     /* Check if the specified matrix has rotation or perspective. */
-    if (   (matrix != NULL)
-        && (   (matrix->m[0][1] != 0.0f)
+    if (   (   (matrix->m[0][1] != 0.0f)
             || (matrix->m[1][0] != 0.0f)
             || (matrix->m[2][0] != 0.0f)
             || (matrix->m[2][1] != 0.0f)
@@ -3804,6 +3815,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
+    if (!matrix) {
+        matrix = &identity_mtx;
+    }
+
 #if gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         index_endian = 1 << 14;
@@ -3820,8 +3835,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     s_context.filter = filter;
 
     /* Check if the specified matrix has rotation or perspective. */
-    if (   (matrix != NULL)
-        && (   (matrix->m[0][1] != 0.0f)
+    if (   (   (matrix->m[0][1] != 0.0f)
             || (matrix->m[1][0] != 0.0f)
             || (matrix->m[2][0] != 0.0f)
             || (matrix->m[2][1] != 0.0f)

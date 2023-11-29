@@ -42,7 +42,7 @@ extern uint32_t convert_source_format(vg_lite_buffer_format_t format);
 extern vg_lite_error_t check_compress(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode, vg_lite_buffer_layout_t tiled, uint32_t width, uint32_t height);
 extern void get_format_bytes(vg_lite_buffer_format_t format, uint32_t* mul, uint32_t* div, uint32_t* bytes_align);
 
-vg_lite_matrix_t ident_mtx = {{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
+extern vg_lite_matrix_t identity_mtx;
 
 /* Convert VGLite data format to HW value. */
 static uint32_t convert_path_format(vg_lite_format_t format)
@@ -1293,7 +1293,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     }
 
     if (!matrix) {
-        matrix = &ident_mtx;
+        matrix = &identity_mtx;
     }
 
 #if gcFEATURE_VG_GAMMA
@@ -1508,12 +1508,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
 
 /* GC355/GC255 vg_lite_draw_pattern API implementation
  */
-vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
-                                     vg_lite_path_t * path,
+vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
+                                     vg_lite_path_t *path,
                                      vg_lite_fill_t fill_rule,
-                                     vg_lite_matrix_t * matrix0,
-                                     vg_lite_buffer_t * source,
-                                     vg_lite_matrix_t * matrix1,
+                                     vg_lite_matrix_t *path_matrix,
+                                     vg_lite_buffer_t *source,
+                                     vg_lite_matrix_t *pattern_matrix,
                                      vg_lite_blend_t blend,
                                      vg_lite_pattern_mode_t pattern_mode,
                                      vg_lite_color_t  pattern_color,
@@ -1528,7 +1528,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     uint32_t mul, div, align;
     uint32_t conversion = 0;
     uint32_t tiled_source;
-    vg_lite_matrix_t * matrix = matrix1;
+    vg_lite_matrix_t matrix;
     uint32_t pattern_tile = 0;
     uint32_t transparency_mode = 0;
     
@@ -1541,18 +1541,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
 
-    if (source->paintType == VG_LITE_PAINT_PATTERN)
-    {
-        matrix1->m[2][0] = 0;
-        matrix1->m[2][1] = 0;
-        matrix1->m[2][2] = 1;
-        matrix = matrix1;
-        source->image_mode = VG_LITE_NORMAL_IMAGE_MODE;
-    }
-
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
-        target, path, fill_rule, matrix0, source, matrix1, blend, pattern_mode, pattern_color, filter);
+        target, path, fill_rule, path_matrix, source, pattern_matrix, blend, pattern_mode, pattern_color, filter);
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
@@ -1579,6 +1570,22 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
+    }
+
+    if (!path_matrix) {
+        path_matrix = &identity_mtx;
+    }
+    if (!pattern_matrix) {
+        pattern_matrix = &identity_mtx;
+    }
+
+    matrix = *pattern_matrix;
+    if (source->paintType == VG_LITE_PAINT_PATTERN)
+    {
+        matrix.m[2][0] = 0;
+        matrix.m[2][1] = 0;
+        matrix.m[2][2] = 1;
+        source->image_mode = VG_LITE_NORMAL_IMAGE_MODE;
     }
 
 #if gcFEATURE_VG_GAMMA
@@ -1785,7 +1792,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
 
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
-        VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(target, source->width, source->height, matrix));
+        VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(target, source->width, source->height, &matrix));
         /* enable pre-multiplied in imager unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion));
@@ -1799,7 +1806,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     }
     else
     {
-        VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
+        VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, &matrix));
         /* enable pre-multiplied in imager unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion));
@@ -1812,27 +1819,25 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
     }
 
-    
     /* Work on path states. */
-    matrix = matrix0;
 
     if (ts_is_fullscreen == 0){
-        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], &matrix);
         point_min = point_max = temp;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[1], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[1], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
         if (temp.y > point_max.y) point_max.y = temp.y;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[3], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[3], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
         if (temp.y > point_max.y) point_max.y = temp.y;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[3], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[3], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
@@ -1869,12 +1874,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t * target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
     /* Program matrix. */
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A40, (void *) &matrix->m[0][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A41, (void *) &matrix->m[0][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A42, (void *) &matrix->m[0][2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A43, (void *) &matrix->m[1][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A44, (void *) &matrix->m[1][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix->m[1][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A40, (void *) &matrix.m[0][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A41, (void *) &matrix.m[0][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A42, (void *) &matrix.m[0][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A43, (void *) &matrix.m[1][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A44, (void *) &matrix.m[1][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix.m[1][2]));
 
     /* Setup tessellation loop. */
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
@@ -2000,7 +2005,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path_matrix) {
-        path_matrix = &ident_mtx;
+        path_matrix = &identity_mtx;
     }
 
 #if gcFEATURE_VG_GAMMA
@@ -2514,7 +2519,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     }
 
     if (!path_matrix) {
-        path_matrix = &ident_mtx;
+        path_matrix = &identity_mtx;
     }
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
@@ -3182,7 +3187,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     float scale, bias;
     uint32_t tiled = 0;
     uint32_t in_premult = 0;
-
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -3228,7 +3232,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     }
 
     if (!matrix) {
-        matrix = &ident_mtx;
+        matrix = &identity_mtx;
     }
 
 #if gcFEATURE_VG_GAMMA
@@ -3598,12 +3602,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
 /* GC555 vg_lite_draw_pattern API implementation
  */
-vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
-                                    vg_lite_path_t* path,
+vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
+                                    vg_lite_path_t *path,
                                     vg_lite_fill_t fill_rule,
-                                    vg_lite_matrix_t* matrix0,
-                                    vg_lite_buffer_t* source,
-                                    vg_lite_matrix_t* matrix1,
+                                    vg_lite_matrix_t *path_matrix,
+                                    vg_lite_buffer_t *source,
+                                    vg_lite_matrix_t *pattern_matrix,
                                     vg_lite_blend_t blend,
                                     vg_lite_pattern_mode_t pattern_mode,
                                     vg_lite_color_t  pattern_color,
@@ -3622,7 +3626,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     int32_t stride;
     uint32_t conversion = 0;
     uint32_t tiled_source;
-    vg_lite_matrix_t* matrix = matrix1;
+    vg_lite_matrix_t matrix;
     uint32_t pattern_tile = 0;
     uint32_t transparency_mode = 0;
     uint32_t tiled = 0;
@@ -3650,16 +3654,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     uint32_t index_endian = 0;
     uint32_t in_premult = 0;
     uint32_t paintType = 0;
-
-    if (source->paintType == VG_LITE_PAINT_PATTERN)
-    {
-        matrix1->m[2][0] = 0;
-        matrix1->m[2][1] = 0;
-        matrix1->m[2][2] = 1;
-        matrix = matrix1;
-        source->image_mode = VG_LITE_NONE_IMAGE_MODE;
-    }
-
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -3672,7 +3666,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
-        target, path, fill_rule, matrix0, source, matrix1, blend, pattern_mode, pattern_color, filter);
+        target, path, fill_rule, path_matrix, source, pattern_matrix, blend, pattern_mode, pattern_color, filter);
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
@@ -3751,8 +3745,20 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
     }
 
-    if (!matrix0) {
-        matrix0 = &ident_mtx;
+    if (!path_matrix) {
+        path_matrix = &identity_mtx;
+    }
+    if (!pattern_matrix) {
+        pattern_matrix = &identity_mtx;
+    }
+
+    matrix = *pattern_matrix;
+    if (source->paintType == VG_LITE_PAINT_PATTERN)
+    {
+        matrix.m[2][0] = 0;
+        matrix.m[2][1] = 0;
+        matrix.m[2][2] = 1;
+        source->image_mode = VG_LITE_NONE_IMAGE_MODE;
     }
 
 #if gcFEATURE_VG_INDEX_ENDIAN
@@ -3946,7 +3952,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
 
     /* Compute inverse matrix. */
-    if (!inverse(&inverse_matrix, matrix))
+    if (!inverse(&inverse_matrix, &matrix))
         return VG_LITE_INVALID_ARGUMENT;
 
 #if gcFEATURE_VG_MATH_PRECISION_FIX
@@ -4144,25 +4150,24 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     }
     
     /* Work on path states. */
-    matrix = matrix0;
 
     if (ts_is_fullscreen == 0) {
-        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], &matrix);
         point_min = point_max = temp;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[1], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[1], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
         if (temp.y > point_max.y) point_max.y = temp.y;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[3], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[2], (vg_lite_float_t)path->bounding_box[3], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
         if (temp.y > point_max.y) point_max.y = temp.y;
     
-        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[3], matrix);
+        transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[3], &matrix);
         if (temp.x < point_min.x) point_min.x = temp.x;
         if (temp.y < point_min.y) point_min.y = temp.y;
         if (temp.x > point_max.x) point_max.x = temp.x;
@@ -4185,12 +4190,12 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     height = point_max.y - point_min.y;
     Scale = 1.0f;
     Bias = 0.0f;
-    new_matrix[0] = matrix->m[0][0] * Scale;
-    new_matrix[1] = matrix->m[0][1] * Scale;
-    new_matrix[2] = (matrix->m[0][0] + matrix->m[0][1]) * Bias + matrix->m[0][2];
-    new_matrix[3] = matrix->m[1][0] * Scale;
-    new_matrix[4] = matrix->m[1][1] * Scale;
-    new_matrix[5] = (matrix->m[1][0] + matrix->m[1][1]) * Bias + matrix->m[1][2];
+    new_matrix[0] = matrix.m[0][0] * Scale;
+    new_matrix[1] = matrix.m[0][1] * Scale;
+    new_matrix[2] = (matrix.m[0][0] + matrix.m[0][1]) * Bias + matrix.m[0][2];
+    new_matrix[3] = matrix.m[1][0] * Scale;
+    new_matrix[4] = matrix.m[1][1] * Scale;
+    new_matrix[5] = (matrix.m[1][0] + matrix.m[1][1]) * Bias + matrix.m[1][2];
 
     /* Convert states into hardware values. */
     format = convert_path_format(path->format);
@@ -4223,8 +4228,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A43, (void *) &new_matrix[3]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A44, (void *) &new_matrix[4]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &new_matrix[5]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0ACD, (void *) &matrix->m[0][2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0ACE, (void *) &matrix->m[1][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0ACD, (void *) &matrix.m[0][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0ACE, (void *) &matrix.m[1][2]));
 
     if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1)
     {
@@ -4462,7 +4467,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
 
     if (!path_matrix) {
-        path_matrix = &ident_mtx;
+        path_matrix = &identity_mtx;
     }
 
 #if gcFEATURE_VG_GAMMA
@@ -5166,7 +5171,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
 
     if (!path_matrix) {
-        path_matrix = &ident_mtx;
+        path_matrix = &identity_mtx;
     }
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
