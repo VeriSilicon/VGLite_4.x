@@ -2235,11 +2235,6 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-    /* Flush target if necessary when switching. */
-    if (s_context.rtbuffer && s_context.rtbuffer->memory) {
-        vg_lite_finish();
-    }
-
 #if gcFEATURE_VG_IM_FASTCLEAR
     update_fc_buffer(target);
 #endif
@@ -2308,7 +2303,10 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         {
             return VG_LITE_SUCCESS;
         }
-
+        /* Flush target if necessary when switching. */
+        if (s_context.rtbuffer && s_context.rtbuffer->memory) {
+            vg_lite_finish();
+        }
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
 
