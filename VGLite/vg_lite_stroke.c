@@ -3449,7 +3449,7 @@ vg_lite_error_t vg_lite_update_stroke(
     if (path->stroke_size == 0) {
         path->stroke_path = vg_lite_os_malloc(_commandSize_float[VLC_OP_END]);
         if (!path->stroke_path)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         *(uint8_t*)path->stroke_path = VLC_OP_END;
         path->stroke_size = _commandSize_float[VLC_OP_END];
     }
@@ -3683,7 +3683,7 @@ vg_lite_error_t _convert_hline(
 
     linePath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (linePath == NULL)
-        return VG_LITE_OUT_OF_MEMORY;
+        return VG_LITE_OUT_OF_RESOURCES;
     memcpy(linePath, (char*)*path_data, *offset);
     vg_lite_os_free(*path_data);
 
@@ -3759,7 +3759,7 @@ vg_lite_error_t _convert_vline(
 
     linePath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (linePath == NULL)
-        return VG_LITE_OUT_OF_MEMORY;
+        return VG_LITE_OUT_OF_RESOURCES;
     memcpy(linePath, (char*)*path_data, *offset);
     vg_lite_os_free(*path_data);
 
@@ -3842,7 +3842,7 @@ vg_lite_error_t _convert_scubic(
 
     cubicPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (cubicPath == NULL)
-        return VG_LITE_OUT_OF_MEMORY;
+        return VG_LITE_OUT_OF_RESOURCES;
     memcpy(cubicPath, (char*)*path_data, *offset);
     vg_lite_os_free(*path_data);
 
@@ -3932,7 +3932,7 @@ vg_lite_error_t _convert_squad(
 
     quadPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (quadPath == NULL)
-        return VG_LITE_OUT_OF_MEMORY;
+        return VG_LITE_OUT_OF_RESOURCES;
     memcpy(quadPath, (char*)*path_data, *offset);
     vg_lite_os_free(*path_data);
 
@@ -4144,7 +4144,7 @@ vg_lite_error_t _convert_arc(
 
         arcPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
         if (arcPath == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         memcpy(arcPath, (char*)*path_data, *offset);
         vg_lite_os_free(*path_data);
 
@@ -4223,7 +4223,7 @@ vg_lite_error_t _convert_arc(
 
         arcPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
         if (arcPath == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         memcpy(arcPath, (char*)*path_data, *offset);
         vg_lite_os_free(*path_data);
 
@@ -4329,7 +4329,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         bytes = path_length * 4;
         path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         memset(path_data_fp32, 0, bytes);
         path_data_fp32_ptr = path_data_fp32;
         path_data_s8_ptr = (int8_t*)path_data;
@@ -4350,7 +4350,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         bytes = path_length * 2;
         path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         memset(path_data_fp32, 0, bytes);
         path_data_fp32_ptr = path_data_fp32;
         path_data_s16_ptr = (int16_t*)path_data;
@@ -4371,7 +4371,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         bytes = path_length;
         path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
-            return VG_LITE_OUT_OF_MEMORY;
+            return VG_LITE_OUT_OF_RESOURCES;
         memset(path_data_fp32, 0, bytes);
         path_data_fp32_ptr = path_data_fp32;
         path_data_s32_ptr = (int32_t*)path_data;
@@ -4390,6 +4390,8 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         /* src_fp32, dst_fp32 */
         bytes = path_length;
         path_data_fp32 = vg_lite_os_malloc(bytes);
+        if (path_data_fp32 == NULL)
+            return VG_LITE_OUT_OF_RESOURCES;
         memcpy(path_data_fp32, path_data, bytes);
         break;
     }
@@ -4425,7 +4427,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     path->bounding_box[3] = max_y;
     pathdata = (char*)vg_lite_os_malloc(path_length);
     if (pathdata == NULL)
-        return VG_LITE_OUT_OF_MEMORY;
+        return VG_LITE_OUT_OF_RESOURCES;
     pfloat = (vg_lite_float_t*)path_data_fp32;
     i = 0;
     while (i < path_length)

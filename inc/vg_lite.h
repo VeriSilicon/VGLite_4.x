@@ -160,7 +160,7 @@ typedef unsigned int        vg_lite_color_t;
     {
         VG_LITE_SUCCESS = 0,            /*! Success. */
         VG_LITE_INVALID_ARGUMENT,       /*! An invalid argument was specified. */
-        VG_LITE_OUT_OF_MEMORY,          /*! Out of memory. */
+        VG_LITE_OUT_OF_MEMORY,          /*! Out of GPU memory. */
         VG_LITE_NO_CONTEXT,             /*! No context or an unintialized context specified. */
         VG_LITE_TIMEOUT,                /*! A timeout has occurred during a wait. */
         VG_LITE_OUT_OF_RESOURCES,       /*! Out of system resources. */
