@@ -1579,6 +1579,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         pattern_matrix = &identity_mtx;
     }
 
+    /* Work on pattern states. */
     matrix = *pattern_matrix;
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
@@ -1820,6 +1821,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 
     /* Work on path states. */
+    matrix = *path_matrix;
 
     if (ts_is_fullscreen == 0){
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], &matrix);
@@ -3752,6 +3754,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         pattern_matrix = &identity_mtx;
     }
 
+    /* Work on pattern states. */
     matrix = *pattern_matrix;
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
@@ -4148,8 +4151,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
     }
-    
+
     /* Work on path states. */
+    matrix = *path_matrix;
 
     if (ts_is_fullscreen == 0) {
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], &matrix);
