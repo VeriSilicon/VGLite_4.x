@@ -3486,7 +3486,6 @@ vg_lite_error_t vg_lite_set_stroke(
         memset(path->stroke, 0, sizeof(vg_lite_stroke_t));
     }
     else {
-#if gcFEATURE_VG_STROKE_PATH
         if (path->stroke) {
             if (path->stroke->path_list_divide) {
                 vg_lite_path_list_ptr cur_list;
@@ -3504,7 +3503,7 @@ vg_lite_error_t vg_lite_set_stroke(
                     vg_lite_os_free(path->stroke->path_list_divide);
                     path->stroke->path_list_divide = cur_list;
                 }
-                cur_list = 0;
+                cur_list = NULL;
             }
 
             if (path->stroke->stroke_paths) {
@@ -3529,7 +3528,7 @@ vg_lite_error_t vg_lite_set_stroke(
             if (path->stroke->dash_pattern)
                 vg_lite_os_free(path->stroke->dash_pattern);
         }
-#endif
+
         memset(path->stroke, 0, sizeof(vg_lite_stroke_t));
         path->stroke_size = 0;
     }
@@ -3537,12 +3536,11 @@ vg_lite_error_t vg_lite_set_stroke(
     /* Clamp dash pattern and phase. */
     pattern_count &= 0xFFFFFFFE;
     float* dash_pattern_copy = NULL;
-    if (pattern_count > 0)
-    {
+    if (pattern_count > 0) {
         dash_pattern_copy = vg_lite_os_malloc(pattern_count * sizeof(float));
+        if (!dash_pattern_copy)
+            return VG_LITE_OUT_OF_RESOURCES;
     }
-    if (!path->stroke)
-        return VG_LITE_OUT_OF_RESOURCES;
     for (uint32_t i = 0; i < pattern_count; ++i)
         dash_pattern_copy[i] = (dash_pattern[i] > 0.f) ? dash_pattern[i] : 0.f;
     if (dash_phase < 0.f) {
