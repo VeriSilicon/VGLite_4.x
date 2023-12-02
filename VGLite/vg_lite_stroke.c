@@ -4318,7 +4318,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     default:
         break;
     }
-    
+
     /* Convert path format into float. */
     switch (data_format)
     {
@@ -4333,10 +4333,14 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path_data_s8_ptr = (int8_t*)path_data;
         i = 0;
         while (i < path_length){
-            cmd = *(uint8_t*)path_data_s8_ptr++;
-            *(uint8_t*)path_data_fp32_ptr++ = cmd;
-            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
-                *path_data_fp32_ptr++ = (float)*path_data_s8_ptr++;
+            cmd = *(uint8_t*)path_data_s8_ptr;
+            *(uint8_t*)path_data_fp32_ptr = cmd;
+            path_data_s8_ptr++;
+            path_data_fp32_ptr++;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; j++) {
+                *path_data_fp32_ptr = (float)(*path_data_s8_ptr);
+                path_data_fp32_ptr++;
+                path_data_s8_ptr++;
             }
             i += _commandSize_float[cmd] / 4;
         }
@@ -4354,10 +4358,14 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path_data_s16_ptr = (int16_t*)path_data;
         i = 0;
         while (i < path_length) {
-            cmd = *(uint8_t*)path_data_s16_ptr++;
-            *(uint8_t*)path_data_fp32_ptr++ = cmd;
-            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
-                *path_data_fp32_ptr++ = (float)*path_data_s16_ptr++;
+            cmd = *(uint8_t*)path_data_s16_ptr;
+            *(uint8_t*)path_data_fp32_ptr = cmd;
+            path_data_s16_ptr++;
+            path_data_fp32_ptr++;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; j++) {
+                *path_data_fp32_ptr = (float)(*path_data_s16_ptr);
+                path_data_fp32_ptr++;
+                path_data_s16_ptr++;
             }
             i += _commandSize_float[cmd] / 2;
         }
@@ -4375,10 +4383,14 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path_data_s32_ptr = (int32_t*)path_data;
         i = 0;
         while (i < path_length) {
-            cmd = *(uint8_t*)path_data_s32_ptr++;
-            *(uint8_t*)path_data_fp32_ptr++ = cmd;
-            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; ++j) {
-                *path_data_fp32_ptr++ = (float)*path_data_s32_ptr++;
+            cmd = *(uint8_t*)path_data_s32_ptr;
+            *(uint8_t*)path_data_fp32_ptr = cmd;
+            path_data_s32_ptr++;
+            path_data_fp32_ptr++;
+            for (j = 0; j < _commandSize_float[cmd] / 4 - 1; j++) {
+                *path_data_fp32_ptr = (float)(*path_data_s32_ptr);
+                path_data_fp32_ptr++;
+                path_data_s32_ptr++;
             }
             i += _commandSize_float[cmd];
         }
@@ -4397,9 +4409,10 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     default:
         break;
     }
-    data_format = VG_LITE_FP32;
 
     vg_lite_clear_path(path);
+
+    data_format = VG_LITE_FP32;
     if (!path_length)
     {
         path->format = data_format;
@@ -4456,8 +4469,10 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             i += _commandSize_float[VLC_OP_CLOSE];
             break;
         case VLC_OP_MOVE:
-            moveToX = *pfloat++;
-            moveToY = *pfloat++;
+            moveToX = *pfloat;
+            pfloat++;
+            moveToY = *pfloat;
+            pfloat++;
 
             /* Update the control coordinates. */
             coords.startX = moveToX;
@@ -4471,21 +4486,27 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_MOVE;
             fpath++;
-            *fpath++ = moveToX;
-            *fpath++ = moveToY;
+            *fpath = moveToX;
+            fpath++;
+            *fpath = moveToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_MOVE];
             i += _commandSize_float[VLC_OP_MOVE];
             break;
         case VLC_OP_MOVE_REL:
-            moveToX = *pfloat++;
-            moveToY = *pfloat++;
+            moveToX = *pfloat;
+            pfloat++;
+            moveToY = *pfloat;
+            pfloat++;
 
             cpath = (char*)pathdata + offset;
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_MOVE_REL;
             fpath++;
-            *fpath++ = moveToX;
-            *fpath++ = moveToY;
+            *fpath = moveToX;
+            fpath++;
+            *fpath = moveToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_MOVE_REL];
             i += _commandSize_float[VLC_OP_MOVE_REL];
 
@@ -4502,8 +4523,10 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             coords.controlY = moveToY;
             break;
         case VLC_OP_LINE:
-            lineToX = *pfloat++;
-            lineToY = *pfloat++;
+            lineToX = *pfloat;
+            pfloat++;
+            lineToY = *pfloat;
+            pfloat++;
 
             /* Update the control coordinates. */
             coords.lastX = lineToX;
@@ -4515,21 +4538,27 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_LINE;
             fpath++;
-            *fpath++ = lineToX;
-            *fpath++ = lineToY;
+            *fpath = lineToX;
+            fpath++;
+            *fpath = lineToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_LINE];
             i += _commandSize_float[VLC_OP_LINE];
             break;
         case VLC_OP_LINE_REL:
-            lineToX = *pfloat++;
-            lineToY = *pfloat++;
+            lineToX = *pfloat;
+            pfloat++;
+            lineToY = *pfloat;
+            pfloat++;
 
             cpath = (char*)pathdata + offset;
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_LINE_REL;
             fpath++;
-            *fpath++ = lineToX;
-            *fpath++ = lineToY;
+            *fpath = lineToX;
+            fpath++;
+            *fpath = lineToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_LINE_REL];
             i += _commandSize_float[VLC_OP_LINE_REL];
 
@@ -4544,10 +4573,14 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             coords.controlY = lineToY;
             break;
         case VLC_OP_QUAD:
-            controlX = *pfloat++;
-            controlY = *pfloat++;
-            quadToX = *pfloat++;
-            quadToY = *pfloat++;
+            controlX = *pfloat;
+            pfloat++;
+            controlY = *pfloat;
+            pfloat++;
+            quadToX = *pfloat;
+            pfloat++;
+            quadToY = *pfloat;
+            pfloat++;
             compute_quadpathbounds(path, coords.lastX, coords.lastY, controlX, controlY, quadToX, quadToY);
             /* Update the control coordinates. */
             coords.lastX = quadToX;
@@ -4559,42 +4592,58 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_QUAD;
             fpath++;
-            *fpath++ = controlX;
-            *fpath++ = controlY;
-            *fpath++ = quadToX;
-            *fpath++ = quadToY;
+            *fpath = controlX;
+            fpath++;
+            *fpath = controlY;
+            fpath++;
+            *fpath = quadToX;
+            fpath++;
+            *fpath = quadToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_QUAD];
             i += _commandSize_float[VLC_OP_QUAD];
             break;
         case VLC_OP_SQUAD:
-            quadToX = *pfloat++;
-            quadToY = *pfloat++;
+            quadToX = *pfloat;
+            pfloat++;
+            quadToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SQUAD];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_squad(quadToX, quadToY, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             compute_quadpathbounds(path, coords.startX, coords.startY, coords.controlX, coords.controlY, quadToX, quadToY);
             break;
         case VLC_OP_SQUAD_REL:
-            quadToX = *pfloat++;
-            quadToY = *pfloat++;
+            quadToX = *pfloat;
+            pfloat++;
+            quadToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SQUAD_REL];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_squad(quadToX, quadToY, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_QUAD_REL:
-            controlX = *pfloat++;
-            controlY = *pfloat++;
-            quadToX = *pfloat++;
-            quadToY = *pfloat++;
+            controlX = *pfloat;
+            pfloat++;
+            controlY = *pfloat;
+            pfloat++;
+            quadToX = *pfloat;
+            pfloat++;
+            quadToY = *pfloat;
+            pfloat++;
 
             cpath = (char*)pathdata + offset;
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_QUAD_REL;
             fpath++;
-            *fpath++ = controlX;
-            *fpath++ = controlY;
-            *fpath++ = quadToX;
-            *fpath++ = quadToY;
+            *fpath = controlX;
+            fpath++;
+            *fpath = controlY;
+            fpath++;
+            *fpath = quadToX;
+            fpath++;
+            *fpath = quadToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_QUAD_REL];
             i += _commandSize_float[VLC_OP_QUAD_REL];
 
@@ -4611,12 +4660,18 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             coords.controlY = controlY;
             break;
         case VLC_OP_CUBIC:
-            controlX1 = *pfloat++;
-            controlY1 = *pfloat++;
-            controlX2 = *pfloat++;
-            controlY2 = *pfloat++;
-            cubicToX = *pfloat++;
-            cubicToY = *pfloat++;
+            controlX1 = *pfloat;
+            pfloat++;
+            controlY1 = *pfloat;
+            pfloat++;
+            controlX2 = *pfloat;
+            pfloat++;
+            controlY2 = *pfloat;
+            pfloat++;
+            cubicToX = *pfloat;
+            pfloat++;
+            cubicToY = *pfloat;
+            pfloat++;
 
             /* Update the control coordinates. */
             coords.lastX = cubicToX;
@@ -4628,33 +4683,51 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_CUBIC;
             fpath++;
-            *fpath++ = controlX1;
-            *fpath++ = controlY1;
-            *fpath++ = controlX2;
-            *fpath++ = controlY2;
-            *fpath++ = cubicToX;
-            *fpath++ = cubicToY;
+            *fpath = controlX1;
+            fpath++;
+            *fpath = controlY1;
+            fpath++;
+            *fpath = controlX2;
+            fpath++;
+            *fpath = controlY2;
+            fpath++;
+            *fpath = cubicToX;
+            fpath++;
+            *fpath = cubicToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_CUBIC];
             i += _commandSize_float[VLC_OP_CUBIC];
             break;
         case VLC_OP_CUBIC_REL:
-            controlX1 = *pfloat++;
-            controlY1 = *pfloat++;
-            controlX2 = *pfloat++;
-            controlY2 = *pfloat++;
-            cubicToX = *pfloat++;
-            cubicToY = *pfloat++;
+            controlX1 = *pfloat;
+            pfloat++;
+            controlY1 = *pfloat;
+            pfloat++;
+            controlX2 = *pfloat;
+            pfloat++;
+            controlY2 = *pfloat;
+            pfloat++;
+            cubicToX = *pfloat;
+            pfloat++;
+            cubicToY = *pfloat;
+            pfloat++;
 
             cpath = (char*)pathdata + offset;
             fpath = (vg_lite_float_t*)cpath;
             *cpath = VLC_OP_CUBIC_REL;
             fpath++;
-            *fpath++ = controlX1;
-            *fpath++ = controlY1;
-            *fpath++ = controlX2;
-            *fpath++ = controlY2;
-            *fpath++ = cubicToX;
-            *fpath++ = cubicToY;
+            *fpath = controlX1;
+            fpath++;
+            *fpath = controlY1;
+            fpath++;
+            *fpath = controlX2;
+            fpath++;
+            *fpath = controlY2;
+            fpath++;
+            *fpath = cubicToX;
+            fpath++;
+            *fpath = cubicToY;
+            fpath++;
             offset += _commandSize_float[VLC_OP_CUBIC_REL];
             i += _commandSize_float[VLC_OP_CUBIC_REL];
 
@@ -4671,32 +4744,42 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             coords.controlY = controlY2;
             break;
         case VLC_OP_SCUBIC:
-            controlX1 = *pfloat++;
-            controlY1 = *pfloat++;
-            cubicToX = *pfloat++;
-            cubicToY = *pfloat++;
+            controlX1 = *pfloat;
+            pfloat++;
+            controlY1 = *pfloat;
+            pfloat++;
+            cubicToX = *pfloat;
+            pfloat++;
+            cubicToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCUBIC];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_scubic(cubicToX, cubicToY, controlX1, controlY1, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_SCUBIC_REL:
-            controlX1 = *pfloat++;
-            controlY1 = *pfloat++;
-            cubicToX = *pfloat++;
-            cubicToY = *pfloat++;
+            controlX1 = *pfloat;
+            pfloat++;
+            controlY1 = *pfloat;
+            pfloat++;
+            cubicToX = *pfloat;
+            pfloat++;
+            cubicToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCUBIC_REL];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_scubic(cubicToX, cubicToY, controlX1, controlY1, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_HLINE:
-            lineToX = *pfloat++;
+            lineToX = *pfloat;
+            pfloat++;
             lineToY = coords.lastY;
             i += _commandSize_float[VLC_OP_HLINE];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_hline(lineToX, lineToY, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_HLINE_REL:
-            lineToX = *pfloat++;
+            lineToX = *pfloat;
+            pfloat++;
             lineToY = coords.lastY;
             i += _commandSize_float[VLC_OP_HLINE_REL];
             /* Update the control coordinates. */
@@ -4704,87 +4787,129 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
             break;
         case VLC_OP_VLINE:
             lineToX = coords.lastX;
-            lineToY = *pfloat++;
+            lineToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_VLINE];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_vline(lineToX, lineToY, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_VLINE_REL:
             lineToX = coords.lastX;
-            lineToY = *pfloat++;
+            lineToY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_VLINE_REL];
             /* Update the control coordinates. */
             VG_LITE_ERROR_HANDLER(_convert_vline(lineToX, lineToY, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_SCCWARC:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_FALSE, VGL_FALSE, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_SCCWARC_REL:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_FALSE, VGL_FALSE, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_SCWARC:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_TRUE, VGL_FALSE, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_SCWARC_REL:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_TRUE, VGL_FALSE, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_LCCWARC:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_FALSE, VGL_TRUE, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_LCCWARC_REL:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_FALSE, VGL_TRUE, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_LCWARC:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_TRUE, VGL_TRUE, VGL_FALSE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
         case VLC_OP_LCWARC_REL:
-            horRadius = *pfloat++;
-            verRadius = *pfloat++;
-            rotAngle = *pfloat++;
-            endX = *pfloat++;
-            endY = *pfloat++;
+            horRadius = *pfloat;
+            pfloat++;
+            verRadius = *pfloat;
+            pfloat++;
+            rotAngle = *pfloat;
+            pfloat++;
+            endX = *pfloat;
+            pfloat++;
+            endY = *pfloat;
+            pfloat++;
             i += _commandSize_float[VLC_OP_SCCWARC_REL];
             VG_LITE_ERROR_HANDLER(_convert_arc(horRadius, verRadius, rotAngle, endX, endY, VGL_TRUE, VGL_TRUE, VGL_TRUE, &coords, (void*)&pathdata, &offset, path_length - i));
             break;
