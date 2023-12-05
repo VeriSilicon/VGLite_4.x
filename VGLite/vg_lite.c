@@ -2965,7 +2965,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         /* Only nonperspective transform with scale or rotation could enable optimization */
         if ((matrix->m[2][0] == 0.0f && matrix->m[2][1] == 0.0f && matrix->m[2][2] == 1.0f) &&
             (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
-            enableSwPreOpt = 1;
+            if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
+                enableSwPreOpt = 1;
+            }
         }
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
