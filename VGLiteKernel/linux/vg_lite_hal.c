@@ -2107,7 +2107,6 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     struct heap_node *node;
     vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    vg_lite_kernel_map_memory_t map_memory = {0};
 
     device->pdev = pdev;
 

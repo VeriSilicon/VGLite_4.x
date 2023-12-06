@@ -91,7 +91,6 @@ static vg_platform_t default_platform = {
 
 int _adjust_param(vg_platform_t * platform, vg_module_parameters_t * args)
 {
-    uint32_t i;
 
 #ifdef ENABLE_PCIE
     struct vg_platform_pcie *pcie_platform = (struct vg_platform_pcie *)platform;
