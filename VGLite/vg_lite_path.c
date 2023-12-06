@@ -3221,6 +3221,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw %p %p %d %p %d 0x%08X\n", target, path, fill_rule, matrix, blend, color);
+    VGLITE_LOG("    path_type %d, path_length %d, stroke_size %d\n", path->path_type, path->path_length, path->stroke_size);
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
