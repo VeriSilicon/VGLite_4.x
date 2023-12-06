@@ -89,7 +89,7 @@ module_param(registerMemSize, uint, 0644);
 static uint irqLine         = 0;
 module_param(irqLine, uint, 0644);
 
-static uint contiguousSize = 0x00f00000;
+static uint contiguousSize = 0x04000000;
 module_param(contiguousSize, uint, 0644);
 
 static ulong contiguousBase = 0x38000000;
@@ -1988,9 +1988,10 @@ int drv_mmap(struct file *file, struct vm_area_struct *vm)
     private->device->contiguous_bases_logical[0] = private->contiguous_mapped[0];
     private->contiguous_klogical[0] = private->device->virtual[0];
 
+    /* If memory pool >= 2, set the size of each memory pool to 32M. */
     for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
-        private->contiguous_mapped[i] = private->device->contiguous_bases_logical[i];
-        private->contiguous_klogical[i] = private->device->virtual[i];
+        private->contiguous_mapped[i] = (void*)((uint32_t)private->contiguous_mapped[i-1] + 0x02000000);
+        private->contiguous_klogical[i] = (void*)((uint32_t)private->contiguous_klogical[i-1] + 0x02000000);
     }
 
     if (verbose)
@@ -2144,21 +2145,21 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     device->physical[0] = virt_to_phys(device->virtual[0]);
     device->size[0] = ((1 << (device->order + PAGE_SHIFT)) > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : (1 << (device->order + PAGE_SHIFT));
 #else
-    for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
-        device->physical[i] = device->contiguous_bases[i];
-        device->size[i] = (device->contiguous_sizes[i] > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : device->contiguous_sizes[i];
-        device->virtual[i] = map_contiguous_memory_to_kernel(device->physical[i], device->size[i]);
-    }
+
+    device->physical[0] = device->contiguous_bases[0];
+    device->size[0] = (device->contiguous_sizes[0] > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : device->contiguous_sizes[0];
+    device->virtual[0] = map_contiguous_memory_to_kernel(device->physical[0], device->size[0]);
+
+    /* If mempry pool >= 2, set the size of each memory pool to 32M. */
+    device->size[0] = VG_SYSTEM_RESERVE_COUNT == 1 ? device->size[0] : 0x02000000;
 #endif
 
-    dump_param();
-
     for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
-        map_memory.physical = device->physical[i];
-        map_memory.bytes    = device->size[i];
-        ONERROR(vg_lite_hal_map_memory(&map_memory));
-        device->contiguous_bases_logical[i] = map_memory.logical;
+        device->physical[i] = (vg_lite_uintptr_t)((uint32_t)device->physical[i-1] + 0x02000000);
+        device->size[i] = 0x02000000;
     }
+
+    dump_param();
 
     for (i = 0; i < VG_SYSTEM_RESERVE_COUNT; i++) {
         /* Create the heap. */
