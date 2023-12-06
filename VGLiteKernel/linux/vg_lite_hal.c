@@ -1990,8 +1990,8 @@ int drv_mmap(struct file *file, struct vm_area_struct *vm)
 
     /* If memory pool >= 2, set the size of each memory pool to 32M. */
     for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
-        private->contiguous_mapped[i] = (void*)((uint32_t)private->contiguous_mapped[i-1] + 0x02000000);
-        private->contiguous_klogical[i] = (void*)((uint32_t)private->contiguous_klogical[i-1] + 0x02000000);
+        private->contiguous_mapped[i] = (void*)((vg_lite_uintptr_t)private->contiguous_mapped[i-1] + 0x02000000);
+        private->contiguous_klogical[i] = (void*)((vg_lite_uintptr_t)private->contiguous_klogical[i-1] + 0x02000000);
     }
 
     if (verbose)
@@ -2154,7 +2154,7 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
 #endif
 
     for (i = 1; i < VG_SYSTEM_RESERVE_COUNT; i++) {
-        device->physical[i] = (vg_lite_uintptr_t)((uint32_t)device->physical[i-1] + 0x02000000);
+        device->physical[i] = device->physical[i-1] + 0x02000000;
         device->size[i] = 0x02000000;
     }
 
