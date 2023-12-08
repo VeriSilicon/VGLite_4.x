@@ -42,7 +42,13 @@ extern uint32_t convert_source_format(vg_lite_buffer_format_t format);
 extern vg_lite_error_t check_compress(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode, vg_lite_buffer_layout_t tiled, uint32_t width, uint32_t height);
 extern void get_format_bytes(vg_lite_buffer_format_t format, uint32_t* mul, uint32_t* div, uint32_t* bytes_align);
 
-vg_lite_matrix_t ident_mtx = {{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
+vg_lite_matrix_t ident_mtx = {
+        {
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        0.0f, 0.0f, 0.0f };
 
 /* Convert VGLite data format to HW value. */
 static uint32_t convert_path_format(vg_lite_format_t format)
