@@ -596,6 +596,7 @@ typedef unsigned int        vg_lite_color_t;
     /*VGLite parameters variable*/
     typedef enum vg_lite_param_type
     {
+        VG_LITE_GPU_IDLE_STATE,                 /*! count must be 1 for GPU idle state TRUE or FALSE */
         VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
     } vg_lite_param_type_t;
 
@@ -1393,7 +1394,7 @@ typedef unsigned int        vg_lite_color_t;
     /* Return VGLite parameters in params[] array */
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                     vg_lite_int32_t count,
-                                    vg_lite_float_t* params);
+                                    vg_lite_pointer params);
 
     /* Set memory pool for different buffer allocations. By default all memory buffers are allocated from VG_LITE_MEMORY_POOL_1.
      * This API must be called before vg_lite_init() for setting VG_LITE_COMMAND_BUFFER or VG_LITE_TESSELLATION_BUFFER memory pools.

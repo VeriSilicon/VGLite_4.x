@@ -6141,9 +6141,12 @@ vg_lite_error_t vg_lite_dump_command_buffer()
 
 vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                       vg_lite_int32_t count,
-                                      vg_lite_float_t* params)
+                                      vg_lite_pointer params)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_uint32_t gpu_idle = 0;
+    vg_lite_float_t *fparams;
+    vg_lite_uint32_t *uiparams;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_get_parameter %d %p\n", count, params);
@@ -6151,10 +6154,23 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 
     switch (type)
     {
+    case VG_LITE_GPU_IDLE_STATE:
+        if (count != 1) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        vg_lite_get_register(0x04, &gpu_idle);
+        uiparams = (vg_lite_uint32_t*)params;
+        *uiparams = ((gpu_idle & 0x0B05) == 0x0B05);
+        break;
+
     case VG_LITE_SCISSOR_RECT:
+        if ((count % 4) != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        fparams = (vg_lite_float_t*)params;
         for (vg_lite_int32_t i = 0; i < count; i++)
         {
-            *(params+i) = (vg_lite_float_t)s_context.scissor[i];
+            *(fparams + i) = (vg_lite_float_t)s_context.scissor[i];
         }
         break;
 
@@ -6162,6 +6178,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
         error = VG_LITE_INVALID_ARGUMENT;
         break;
     }
+
     return error;
 }
 
