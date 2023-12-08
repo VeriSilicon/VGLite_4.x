@@ -266,7 +266,13 @@ vg_lite_context_t   s_context = { 0 };
 uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE;
 uint32_t            submit_flag = 0;
 
-vg_lite_matrix_t    identity_mtx = {{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
+vg_lite_matrix_t    identity_mtx = {
+        {
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        0.0f, 0.0f, 0.0f };
 
 /* Initialize the feature table of a chip. */
 vg_lite_ftable_t    s_ftable = {
@@ -521,8 +527,6 @@ static int32_t has_valid_command_buffer(vg_lite_context_t *context)
     if (context == NULL)
         return 0;
     if (context->command_buffer_current >= CMDBUF_COUNT)
-        return 0;
-    if (context->command_buffer == NULL)
         return 0;
     if (context->command_buffer[context->command_buffer_current] == NULL)
         return 0;
