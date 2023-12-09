@@ -2906,9 +2906,9 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2C, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2E, source1->width | (source1->height << 16)));
 
-    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-                                        point_max.y - point_min.y));
-    flush_target();
+    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
+    VG_LITE_RETURN_ERROR(flush_target());
+
     vglitemDUMP_BUFFER("image", (size_t)source0->address, source0->memory, 0, (source0->stride)*(source0->height));
     vglitemDUMP_BUFFER("image", (size_t)source1->address, source1->memory, 0, (source1->stride)*(source1->height));
 #if DUMP_IMAGE
@@ -3668,8 +3668,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     } else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
     {
-        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-            point_max.y - point_min.y));
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
     }
 
 #if gcFEATURE_VG_STRIPE_MODE
@@ -3875,31 +3874,20 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
     /* Set source region. */
     if (rect != NULL) {
-        if (rect->x < 0)
-            rect_x = 0;
-        else
-            rect_x = rect->x;
-
-        if (rect->y < 0)
-            rect_y = 0;
-        else
-            rect_y = rect->y;
-
+        rect_x = (rect->x < 0) ? 0 : rect->x;
+        rect_y = (rect->y < 0) ? 0 : rect->y;
         rect_w = rect->width;
         rect_h = rect->height;
-        
         if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
             (rect_w == 0) || (rect_h == 0))
         {
             /*No intersection*/
             return VG_LITE_INVALID_ARGUMENT;
         }
-
         if (rect_x + rect_w > (uint32_t)source->width)
         {
             rect_w = source->width - rect_x;
         }
-
         if (rect_y + rect_h > (uint32_t)source->height)
         {
             rect_h = source->height - rect_y;
@@ -4364,8 +4352,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
-    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-                                        point_max.y - point_min.y));
+    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
 
 #if gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
@@ -6318,28 +6305,10 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000 : 0);
-    /*s_context.filter = filter;*/
 
-    /* Check if the specified matrix has rotation or perspective. */
     vg_lite_matrix_t* matrix = &n;
     vg_lite_identity(matrix);
     vg_lite_translate((vg_lite_float_t)sx, (vg_lite_float_t)sy, matrix);
-    if ((matrix != NULL)
-        && ((matrix->m[0][1] != 0.0f)
-            || (matrix->m[1][0] != 0.0f)
-            || (matrix->m[2][0] != 0.0f)
-            || (matrix->m[2][1] != 0.0f)
-            || (matrix->m[2][2] != 1.0f)
-            )
-        ) {
-#if gcFEATURE_VG_BORDER_CULLING
-        /* Mark that we have rotation. */
-        transparency_mode = 0x8000;
-#endif
-#if gcFEATURE_VG_STRIPE_MODE
-        stripe_mode = 1 << 29;
-#endif
-    }
 
     /* Check whether L8 is supported or not. */
     if ((target->format == VG_LITE_L8) && ((source->format != VG_LITE_L8) && (source->format != VG_LITE_A8))) {
@@ -6353,43 +6322,26 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         return error;
     }
 #endif
-    vg_lite_rectangle_t* rect = &rectangle;
+
     /* Set source region. */
-    if (rect != NULL) {
-        if (rect->x < 0)
-            rect_x = 0;
-        else
-            rect_x = rect->x;
-
-        if (rect->y < 0)
-            rect_y = 0;
-        else
-            rect_y = rect->y;
-
-        rect_w = rect->width;
-        rect_h = rect->height;
-
-        if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
-            (rect_w == 0) || (rect_h == 0))
-        {
-            /*No intersection*/
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-
-        if (rect_x + rect_w > (uint32_t)source->width)
-        {
-            rect_w = source->width - rect_x;
-        }
-
-        if (rect_y + rect_h > (uint32_t)source->height)
-        {
-            rect_h = source->height - rect_y;
-        }
+    vg_lite_rectangle_t* rect = &rectangle;
+    rect_x = (rect->x < 0) ? 0 : rect->x;
+    rect_y = (rect->y < 0) ? 0 : rect->y;
+    rect_w = rect->width;
+    rect_h = rect->height;
+    if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
+        (rect_w == 0) || (rect_h == 0))
+    {
+        /*No intersection*/
+        return VG_LITE_INVALID_ARGUMENT;
     }
-    else {
-        rect_x = rect_y = 0;
-        rect_w = source->width;
-        rect_h = source->height;
+    if (rect_x + rect_w > (uint32_t)source->width)
+    {
+        rect_w = source->width - rect_x;
+    }
+    if (rect_y + rect_h > (uint32_t)source->height)
+    {
+        rect_h = source->height - rect_y;
     }
 
     /* Transform image (0,0) to screen. */
@@ -6700,8 +6652,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
-    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x,
-        point_max.y - point_min.y));
+    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
 
 #if gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
