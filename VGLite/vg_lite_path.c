@@ -3670,9 +3670,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
     float new_matrix[6];
     float Scale, Bias;
-#if !gcFEATURE_VG_SPLIT_PATH
-    uint32_t ahb_read_split = 0;
-#endif
+
     uint32_t compress_mode;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
@@ -4108,20 +4106,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
             uv_swiz = convert_uv_swizzle(source->yuv.swizzle);
     }
     blend_mode = convert_blend(blend);
-#if !gcFEATURE_VG_SPLIT_PATH
-    if (blend_mode) {
-        /* The hw bit for improve read image buffer performance when enable alpha blending. */
-        ahb_read_split = 1 << 7;
-    }
-#endif
 
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
-#if !gcFEATURE_VG_SPLIT_PATH
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-#else
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
-#endif
+
         if (source->yuv.uv_planar) {
             /* Program u plane address if necessary. */
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A50, source->yuv.uv_planar));
@@ -4146,11 +4135,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
     else
     {
-#if !gcFEATURE_VG_SPLIT_PATH
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-#else
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
-#endif
+
         if (source->yuv.uv_planar) {
             /* Program u plane address if necessary. */
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
