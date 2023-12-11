@@ -180,10 +180,15 @@ static vg_lite_error_t backup_power_context_buffer(uint32_t *command_buffer_klog
     for (index = 0; index < size; index++) {
         command = command_buffer_klogical[index];
 
-        if ((command & 0xFFFF0000) == 0x30010000) {
+        if (((command & 0xFFFF0000) == 0x30010000) && ((index % 2) == 0)) {
             data = command_buffer_klogical[index+1];
             address = command & 0x0000FFFF;
             context_index = state_map_table[address];
+            if((address < 0) || (address > 4095))
+            {
+                vg_lite_kernel_print("Index out of bounds, wrong address and data 0x%08X 0x%08X\n", command , data);
+                return VG_LITE_INVALID_ARGUMENT;
+            }
             if (-1 != context_index) {
                 power_context_klogical[context_index + 1] = data;
             } else {
