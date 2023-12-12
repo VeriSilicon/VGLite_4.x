@@ -2511,6 +2511,19 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
     if(width <= 0 || height <= 0)
         return VG_LITE_SUCCESS;
+
+    if (s_context.scissor_set) {
+        if((MAX(s_context.scissor[0], x)) >= (MIN(s_context.scissor[2], x + width)) ||
+            (MAX(s_context.scissor[1], y)) >= (MIN(s_context.scissor[3], y + height))){
+            return VG_LITE_SUCCESS;
+        }
+    }
+    else{
+        if((MAX(0, x)) >= (MIN(target->width, x + width)) ||
+           (MAX(0, y)) >= (MIN(target->height, y + height))){
+            return VG_LITE_SUCCESS;
+        }
+    }
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
@@ -3180,6 +3193,18 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
 
+    if (s_context.scissor_set) {
+        if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
+            (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
+            return VG_LITE_SUCCESS;
+        }
+    }
+    else{
+        if((MAX(0, point_min.x)) >= (MIN(target->width, point_max.x)) ||
+            (MAX(0, point_min.y)) >= (MIN(target->height, point_max.y))){
+            return VG_LITE_SUCCESS;
+        }
+    }
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
@@ -3960,6 +3985,18 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
 
+    if (s_context.scissor_set) {
+        if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
+            (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
+            return VG_LITE_SUCCESS;  
+        }
+    }
+    else{
+        if((MAX(0, point_min.x)) >= (MIN(target->width, point_max.x)) ||
+            (MAX(0, point_min.y)) >= (MIN(target->height, point_max.y))){
+            return VG_LITE_SUCCESS;
+        }
+    }
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
@@ -6405,6 +6442,18 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
         return VG_LITE_SUCCESS;
 
+    if (s_context.scissor_set) {
+        if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
+            (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
+            return VG_LITE_SUCCESS;
+        }
+    }
+    else{
+        if((MAX(0, point_min.x)) >= (MIN(target->width, point_max.x)) ||
+            (MAX(0, point_min.y)) >= (MIN(target->height, point_max.y))){
+            return VG_LITE_SUCCESS;
+        }
+    }
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
