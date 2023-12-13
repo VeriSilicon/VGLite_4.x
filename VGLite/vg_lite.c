@@ -2223,6 +2223,9 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     uint32_t rgb_alphadiv = 0;
     uint32_t read_dest = 0;
     uint32_t dst_format = 0;
+    uint32_t tile_flag = 0;
+    uint32_t tile_flag1 = 0;
+    uint32_t align, mul, div;
 
     if (target == NULL)
         return VG_LITE_INVALID_ARGUMENT;
@@ -2250,6 +2253,39 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 #endif
 
     tiled = (target->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
+    get_format_bytes(target->format, &mul, &div, &align);
+
+    if ((uint32_t)(target->address) % 64 != 0) {
+        printf("target address need to be aligned to 64.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    if (tiled != 0) {
+        tile_flag = 1;
+
+        if ((target->width % 4 != 0) || (target->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+
+#if gcFEATURE_VG_RECTANGLE_TILED_OUT
+        if (target->tiled == VG_LITE_TILED) {
+            tile_flag1 = 1;
+        }
+#endif
+
+    if (tile_flag1 & tile_flag) {
+        if (mul / div != 3) {
+            if (target->width % 64 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if (target->width % 16 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+    }
     
     if (((target->format >= VG_LITE_YUY2) &&
          (target->format <= VG_LITE_AYUY2)) ||
@@ -2553,6 +2589,19 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
          * So PE clear and push_rectangle() clear have the same clear result color.
          */
 #if gcFEATURE_VG_PE_CLEAR
+        uint32_t align, mul, div;
+        get_format_bytes(target->format, &mul, &div, &align);
+
+        if (mul / div != 3) {
+            if ((target->stride * (point_max.y - point_min.y)) % 64 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if ((target->stride * (point_max.y - point_min.y)) % 48 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
              !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
@@ -3083,6 +3132,22 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
+
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    if (source->tiled == 0) {
+        if (source->width % 16 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+    else {
+        if ((source->width % 4 != 0) || (source->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
 
     if (!matrix) {
         matrix = &identity_mtx;
@@ -3859,6 +3924,22 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
+
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    if (source->tiled == 0) {
+        if (source->width % 16 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+    else {
+        if ((source->width % 4 != 0) || (source->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
 
     if (!matrix) {
         matrix = &identity_mtx;

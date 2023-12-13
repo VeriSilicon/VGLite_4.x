@@ -3767,6 +3767,22 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    if (source->tiled == 0) {
+        if (source->width % 16 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+    else {
+        if ((source->width % 4 != 0) || (source->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
     }
