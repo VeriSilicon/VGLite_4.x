@@ -1160,7 +1160,7 @@ static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint
         case VG_LITE_YV12:
         case VG_LITE_YV24:
         case VG_LITE_YV16:
-        case VG_LITE_NV16
+        case VG_LITE_NV16:
         case VG_LITE_NV24:
         case VG_LITE_ABGR8565_PLANAR:
         case VG_LITE_BGRA5658_PLANAR:
