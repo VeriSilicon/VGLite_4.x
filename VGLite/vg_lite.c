@@ -323,6 +323,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_AYUV_INPUT,
         gcFEATURE_VG_16PIXELS_ALIGNED,
         gcFEATURE_VG_DEC_COMPRESS_2_0,
+        gcFEATURE_VG_NV24_INPUT,
     }
 };
 
@@ -1159,7 +1160,8 @@ static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint
         case VG_LITE_YV12:
         case VG_LITE_YV24:
         case VG_LITE_YV16:
-        case VG_LITE_NV16:
+        case VG_LITE_NV16
+        case VG_LITE_NV24:
         case VG_LITE_ABGR8565_PLANAR:
         case VG_LITE_BGRA5658_PLANAR:
         case VG_LITE_ARGB8565_PLANAR:
@@ -1286,6 +1288,10 @@ uint32_t convert_source_format(vg_lite_buffer_format_t format)
 
         case VG_LITE_NV16:
             return 0xA;
+
+        case VG_LITE_NV24:
+        case VG_LITE_NV24_TILED:
+            return 0xD | (1<<19);
 
         case VG_LITE_AYUY2:
         case VG_LITE_AYUY2_TILED:
@@ -2621,7 +2627,11 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_INPUT
-    if ((source0->format >= VG_LITE_NV12 && source0->format <= VG_LITE_NV16) || (source1->format >= VG_LITE_NV12 && source1->format <= VG_LITE_NV16)) {
+    if ((source0->format >= VG_LITE_NV12 && source0->format <= VG_LITE_NV16) || (source1->format >= VG_LITE_NV12 && source1->format <= VG_LITE_NV16) || source0->format == VG_LITE_NV24 || source1->format >= VG_LITE_NV24) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#elif !gcFEATURE_VG_NV24_INPUT
+    if (source0->format == VG_LITE_NV24 || source1->format >= VG_LITE_NV24) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -2631,8 +2641,9 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_TILED_INPUT
-    if ((source0->format >= VG_LITE_YUY2_TILED && source0->format <= VG_LITE_AYUY2_TILED) || (source1->format >= VG_LITE_YUY2_TILED && source1->format <= VG_LITE_AYUY2_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
+    if ((source0->format >= VG_LITE_YUY2_TILED && source0->format <= VG_LITE_AYUY2_TILED) || (source1->format >= VG_LITE_YUY2_TILED && source1->format <= VG_LITE_AYUY2_TILED) || 
+       (source0->format == VG_LITE_NV24_TILED) || (source1->format == VG_LITE_NV24_TILED)) {
+        return VG_LITE_NOT_SUPPORT; 
     }
 #endif
 #if !gcFEATURE_VG_NEW_BLEND_MODE
@@ -3015,7 +3026,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_INPUT
-    if (source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) {
+    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#elif !gcFEATURE_VG_NV24_INPUT
+    if (source->format == VG_LITE_NV24) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3025,7 +3040,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_TILED_INPUT
-    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) {
+    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED || (source->format == VG_LITE_NV24_TILED)) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3787,7 +3802,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_INPUT
-    if (source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) {
+    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#elif !gcFEATURE_VG_NV24_INPUT
+    if (source->format == VG_LITE_NV24) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3797,7 +3816,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_TILED_INPUT
-    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) {
+    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED || source->format == VG_LITE_NV24_TILED) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -4774,15 +4793,16 @@ vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
     return error;
 }
 
-/* Handle tiled & yuv allocation. Currently including NV12, ANV12, YV12, YV16, NV16, YV24. */
+/* Handle tiled & yuv allocation. Currently including NV12, ANV12, YV12, YV16, NV16, YV24, NV24. */
 static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t    yplane_size = 0;
     vg_lite_kernel_allocate_t allocate, uv_allocate, v_allocate;
     
-    if ((buffer->format < VG_LITE_NV12) || (buffer->format > VG_LITE_ANV12_TILED)
+    if (((buffer->format < VG_LITE_NV12) || (buffer->format > VG_LITE_ANV12_TILED)
         || (buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_YUY2_TILED))
+        && ((buffer->format != VG_LITE_NV24) && (buffer->format != VG_LITE_NV24_TILED)))
     {
         return error;
     }
@@ -4812,6 +4832,12 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
             
         case VG_LITE_NV16:
             buffer->yuv.uv_stride = buffer->stride;
+            buffer->yuv.uv_height = buffer->height;
+            break;
+
+        case VG_LITE_NV24:
+        case VG_LITE_NV24_TILED:
+            buffer->yuv.uv_stride = buffer->stride * 2;
             buffer->yuv.uv_height = buffer->height;
             break;
             
@@ -4853,8 +4879,8 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
     buffer->address = allocate.memory_gpu;
     
     if ((buffer->format == VG_LITE_NV12) || (buffer->format == VG_LITE_ANV12)
-        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV12_TILED)
-        || (buffer->format == VG_LITE_ANV12_TILED)) {
+        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24)
+        || (buffer->format == VG_LITE_NV12_TILED) || (buffer->format == VG_LITE_ANV12_TILED)) {
         /* Allocate buffer memory: UV. */
         uv_allocate.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &uv_allocate));
@@ -4934,19 +4960,20 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
     buffer->yuv.alpha_planar = 0;
 
     /* Align height in case format is tiled. */
-    if (buffer->format >= VG_LITE_YUY2 && buffer->format <= VG_LITE_NV16) {
+    if ((buffer->format >= VG_LITE_YUY2 && buffer->format <= VG_LITE_NV16) || buffer->format == VG_LITE_NV24) {
         buffer->height = VG_LITE_ALIGN(buffer->height, 4);
         buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
     }
 
-    if (buffer->format >= VG_LITE_YUY2_TILED && buffer->format <= VG_LITE_AYUY2_TILED) {
+    if ((buffer->format >= VG_LITE_YUY2_TILED && buffer->format <= VG_LITE_AYUY2_TILED) || buffer->format == VG_LITE_NV24_TILED) {
         buffer->height = VG_LITE_ALIGN(buffer->height, 4);
         buffer->tiled = VG_LITE_TILED;
         buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
     }
 
     if ((buffer->format >= VG_LITE_NV12 && buffer->format <= VG_LITE_ANV12_TILED
-         && buffer->format != VG_LITE_AYUY2 && buffer->format != VG_LITE_YUY2_TILED)) {
+         && buffer->format != VG_LITE_AYUY2 && buffer->format != VG_LITE_YUY2_TILED) 
+        || (buffer->format >= VG_LITE_NV24 && buffer->format <= VG_LITE_NV24_TILED)) {
         _allocate_tiled_yuv_planar(buffer);
     }
     else {
@@ -6280,7 +6307,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     }
 #endif
 #if !gcFEATURE_VG_YUV_INPUT
-    if (source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) {
+    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#elif !gcFEATURE_VG_NV24_INPUT
+    if (source->format == VG_LITE_NV24) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -6290,7 +6321,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     }
 #endif
 #if !gcFEATURE_VG_YUV_TILED_INPUT
-    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) {
+    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED || source->format == VG_LITE_NV24_TILED) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif

@@ -65,9 +65,11 @@ static uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = strides[2] = 0;
             break;
-            
+
         case VG_LITE_NV12:
         case VG_LITE_NV16:
+        case VG_LITE_NV24:
+        case VG_LITE_NV24_TILED:
             count = 2;
             memory[0] = (uint8_t *)buffer->memory;
             memory[1] = (uint8_t *)buffer->yuv.uv_memory;

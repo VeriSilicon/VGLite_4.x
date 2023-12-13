@@ -222,6 +222,7 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_AYUV_INPUT,
         gcFEATURE_BIT_VG_16PIXELS_ALIGN,
         gcFEATURE_BIT_VG_DEC_COMPRESS_2_0,
+        gcFEATURE_BIT_VG_NV24_INPUT,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 
@@ -374,6 +375,8 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_BGRA5658_PLANAR                 = 46 | (1 << 10),
         VG_LITE_ARGB8565_PLANAR                 = 47 | (1 << 10),
         VG_LITE_RGBA5658_PLANAR                 = 48 | (1 << 10),
+        VG_LITE_NV24                            = 49 | (1 << 10),
+        VG_LITE_NV24_TILED                      = 50 | (1 << 10),
 
         VG_LITE_INDEX_1 = 0 | (1 << 11),  /*! Indexed format. */
         VG_LITE_INDEX_2 = 1 | (1 << 11),

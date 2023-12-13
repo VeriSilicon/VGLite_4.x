@@ -3722,7 +3722,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_INPUT
-    if (source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) {
+    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#elif !gcFEATURE_VG_NV24_INPUT
+    if (source->format == VG_LITE_NV24) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3732,7 +3736,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 #if !gcFEATURE_VG_YUV_TILED_INPUT
-    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) {
+    if (source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED || source->format == VG_LITE_NV24_TILED) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
