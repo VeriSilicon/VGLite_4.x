@@ -2370,7 +2370,8 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
                               vg_lite_color_t color)
 {
     vg_lite_error_t error;
-    int32_t x, y, width, height;
+    vg_lite_point_t point_min, point_max;
+    int32_t  left, top, right, bottom;
     uint32_t color32;
     uint32_t tiled = 0;
     uint32_t stripe_mode = 0;
@@ -2425,6 +2426,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
     s_context.gamma_dirty = 1;
 #endif
+
     s_context.premultiply_dst = 0;
     s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
@@ -2464,66 +2466,58 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
 
     /* Get rectangle. */
-    x = (rect != NULL) ? rect->x : 0;
-    y = (rect != NULL) ? rect->y : 0;
-    width  = (rect != NULL) ? rect->width : s_context.rtbuffer->width;
-    height = (rect != NULL) ? rect->height : s_context.rtbuffer->height;
-    
-    /* Compute the valid rectangle. */
-    if (x < 0)
-    {
-        width += x;
-        x = 0;
+    if (rect) {
+        point_min.x = rect->x;
+        point_min.y = rect->y;
+        point_max.x = rect->x + rect->width;
+        point_max.y = rect->y + rect->height;
     }
-    if (y < 0)
-    {
-        height += y;
-        y = 0;
+    else {
+        point_min.x = 0;
+        point_min.y = 0;
+        point_max.x = s_context.rtbuffer->width;
+        point_max.y = s_context.rtbuffer->height;
     }
 
-    if (width <= 0 || height <= 0)
-    {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-
-    if (s_context.scissor_set && !target->scissor_layer)
-    {
-        int32_t right, bottom;
-        right = x + width;
-        bottom = y + height;
-
-        /* Bounds check. */
-        if ((s_context.scissor[0] >= x + width) ||
-            (s_context.scissor[2] <= x) ||
-            (s_context.scissor[1] >= y + height) ||
-            (s_context.scissor[3] <= y))
-        {
-            /* Do nothing. */
-            return VG_LITE_SUCCESS;
-        }
-        /* Intersects the scissor and the rectangle. */
-        x = (x > s_context.scissor[0] ? x : s_context.scissor[0]);
-        y = (y > s_context.scissor[1] ? y : s_context.scissor[1]);
-        right = (right < s_context.scissor[2]  ? right : s_context.scissor[2]);
-        bottom = (bottom < s_context.scissor[3] ? bottom : s_context.scissor[3]);
-        width = right - x;
-        height = bottom - y;
-    }
-    if(width <= 0 || height <= 0)
-        return VG_LITE_SUCCESS;
-
+    /* Clip to target. */
     if (s_context.scissor_set) {
-        if((MAX(s_context.scissor[0], x)) >= (MIN(s_context.scissor[2], x + width)) ||
-            (MAX(s_context.scissor[1], y)) >= (MIN(s_context.scissor[3], y + height))){
+        left   = s_context.scissor[0];
+        top    = s_context.scissor[1];
+        right  = s_context.scissor[2];
+        bottom = s_context.scissor[3];
+    }
+    else {
+        left   = 0;
+        top    = 0;
+        right  = target->width;
+        bottom = target->height;
+    }
+
+    point_min.x = MAX(point_min.x, left);
+    point_min.y = MAX(point_min.y, top);
+    point_max.x = MIN(point_max.x, right);
+    point_max.y = MIN(point_max.y, bottom);
+
+    /* No need to draw. */
+    if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
+        return VG_LITE_SUCCESS;
+    }
+
+#if 0  /* Duplicated ??? */
+    if (s_context.scissor_set) {
+        if ((MAX(s_context.scissor[0], x)) >= (MIN(s_context.scissor[2], x + width)) ||
+            (MAX(s_context.scissor[1], y)) >= (MIN(s_context.scissor[3], y + height))) {
             return VG_LITE_SUCCESS;
         }
     }
-    else{
-        if((MAX(0, x)) >= (MIN(target->width, x + width)) ||
-           (MAX(0, y)) >= (MIN(target->height, y + height))){
+    else {
+        if ((MAX(0, x)) >= (MIN(target->width, x + width)) ||
+            (MAX(0, y)) >= (MIN(target->height, y + height))) {
             return VG_LITE_SUCCESS;
         }
     }
+#endif
+
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
@@ -2562,7 +2556,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #endif
         {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tiled | s_context.scissor_enable | stripe_mode));
-            VG_LITE_RETURN_ERROR(push_rectangle(&s_context, x, y, width, height));
+            VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
         }
 
         /* flush VGPE after clear */
@@ -3172,15 +3166,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     /* Clip to target. */
     if (s_context.scissor_set) {
-        left = s_context.scissor[0];
-        top  = s_context.scissor[1];
-        right= s_context.scissor[2];
+        left   = s_context.scissor[0];
+        top    = s_context.scissor[1];
+        right  = s_context.scissor[2];
         bottom = s_context.scissor[3];
     }
-    else 
-    {
-        left = top = 0;
-        right = target->width;
+    else {
+        left   = 0;
+        top    = 0;
+        right  = target->width;
         bottom = target->height;
     }
 
@@ -3190,13 +3184,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     point_max.y = MIN(point_max.y, bottom);
 
     /* No need to draw. */
-    if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
+    if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
         return VG_LITE_SUCCESS;
+    }
 
+#if 0  /* Duplicated ??? */
     if (s_context.scissor_set) {
         if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
             (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
-            return VG_LITE_SUCCESS;
+            return VG_LITE_SUCCESS;  
         }
     }
     else{
@@ -3205,6 +3201,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             return VG_LITE_SUCCESS;
         }
     }
+#endif
+
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
@@ -3688,8 +3686,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if VG_SW_BLIT_PRECISION_OPT
     if (enableSwPreOpt) {
-        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x,
-            point_max.y - point_min.y));
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
     } else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
     {
@@ -3964,15 +3961,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     /* Clip to target. */
     if (s_context.scissor_set) {
-        left = s_context.scissor[0];
-        top  = s_context.scissor[1];
-        right= s_context.scissor[2];
+        left   = s_context.scissor[0];
+        top    = s_context.scissor[1];
+        right  = s_context.scissor[2];
         bottom = s_context.scissor[3];
     }
-    else 
-    {
-        left = top = 0;
-        right = target->width;
+    else {
+        left   = 0;
+        top    = 0;
+        right  = target->width;
         bottom = target->height;
     }
 
@@ -3982,9 +3979,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     point_max.y = MIN(point_max.y, bottom);
 
     /* No need to draw. */
-    if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
+    if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
         return VG_LITE_SUCCESS;
+    }
 
+#if 0  /* Duplicated ??? */
     if (s_context.scissor_set) {
         if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
             (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
@@ -3997,6 +3996,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             return VG_LITE_SUCCESS;
         }
     }
+#endif
+
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
@@ -6421,15 +6422,15 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
     /* Clip to target. */
     if (s_context.scissor_set) {
-        left = s_context.scissor[0];
-        top = s_context.scissor[1];
-        right = s_context.scissor[2];
+        left   = s_context.scissor[0];
+        top    = s_context.scissor[1];
+        right  = s_context.scissor[2];
         bottom = s_context.scissor[3];
     }
-    else
-    {
-        left = top = 0;
-        right = target->width;
+    else {
+        left   = 0;
+        top    = 0;
+        right  = target->width;
         bottom = target->height;
     }
 
@@ -6439,9 +6440,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     point_max.y = MIN(point_max.y, bottom);
 
     /* No need to draw. */
-    if ((point_max.x - point_min.x) <= 0 || (point_max.y - point_min.y) <= 0)
+    if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
         return VG_LITE_SUCCESS;
+    }
 
+#if 0  /* Duplicated ??? */
     if (s_context.scissor_set) {
         if((MAX(s_context.scissor[0], point_min.x)) >= (MIN(s_context.scissor[2], point_max.x)) ||
             (MAX(s_context.scissor[1], point_min.y)) >= (MIN(s_context.scissor[3], point_max.y))){
@@ -6454,6 +6457,8 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
             return VG_LITE_SUCCESS;
         }
     }
+#endif
+
 #if gcFEATURE_VG_GAMMA
     /* Set gamma configuration of source buffer */
     if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||

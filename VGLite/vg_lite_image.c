@@ -802,7 +802,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         }
 
         memset(s_context.scissor_layer, 0, sizeof(vg_lite_buffer_t));
-        s_context.scissor_layer->scissor_layer = 1;
+        s_context.scissor_layer->scissor_buffer = 1;
         s_context.scissor_layer->width = (target->width + 7) / 8;
         s_context.scissor_layer->height = target->height;
         s_context.scissor_layer->format = VG_LITE_A8;
@@ -815,7 +815,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
         vg_lite_finish();
     }
-    s_context.scissor_layer->scissor_layer = 1;
+    s_context.scissor_layer->scissor_buffer = 1;
 
     /* Clear scissor layer*/
     VG_LITE_RETURN_ERROR(vg_lite_clear(s_context.scissor_layer, NULL, 0x00000000));
