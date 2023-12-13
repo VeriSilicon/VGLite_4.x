@@ -67,7 +67,7 @@
 #define gcFEATURE_VG_PIXEL_MATRIX               0
 #define gcFEATURE_VG_NEW_IMAGE_INDEX            0
 #define gcFEATURE_VG_PARALLEL_PATHS             0
-#define gcFEATURE_VG_STRIPE_MODE                0
+#define gcFEATURE_VG_STRIPE_MODE                1
 #define gcFEATURE_VG_IM_DEC_INPUT               0
 #define gcFEATURE_VG_GAUSSIAN_BLUR              0
 #define gcFEATURE_VG_RECTANGLE_TILED_OUT        0

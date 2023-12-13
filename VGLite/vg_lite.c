@@ -3078,7 +3078,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         index_endian = 1 << 14;
     }
 #endif
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
@@ -3106,7 +3106,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #else
             blend = VG_LITE_BLEND_SRC_OVER;
 #endif
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
             stripe_mode = 1 << 29;
 #endif
     }
@@ -3694,7 +3694,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
     }
 
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif
@@ -3850,7 +3850,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         index_endian = 1 << 14;
     }
 #endif
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
@@ -3878,7 +3878,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #else
             blend = VG_LITE_BLEND_SRC_OVER;
 #endif
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
             stripe_mode = 1 << 29;
 #endif
     }
@@ -4393,7 +4393,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
     VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
 
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif
@@ -6336,7 +6336,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         index_endian = 1 << 14;
     }
 #endif
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
@@ -6709,7 +6709,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
     VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
 
-#if gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif

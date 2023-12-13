@@ -243,7 +243,7 @@ static void gpu(int enable)
         vg_lite_hal_poke(VG_LITE_POWER_CONTROL, data);
         vg_lite_hal_delay(1);
 
-#if gcFEATURE_VG_CLOCK_GATING
+#if !gcFEATURE_VG_CLOCK_GATING
         data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
         data |= 0x800;
         vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);

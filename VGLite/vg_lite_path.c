@@ -3214,7 +3214,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-#if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     int32_t y = 0;
     uint32_t par_height = 0;
     int32_t next_boundary = 0;
@@ -3489,7 +3489,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         width = target->width - point_min.x;
     }
 
-#if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
 #if !gcFEATURE_VG_PARALLEL_PATHS
@@ -3502,7 +3502,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             parallel_workpaths1 = parallel_workpaths2;
 #endif
         for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && !gcFEATURE_VG_SPLIT_PATH)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
             next_boundary = (y + 32) & 0xffffffe0;
 #else
             next_boundary = (y + 16) & 0xfffffff0;
@@ -3543,7 +3543,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             parallel_workpaths1 = parallel_workpaths2;
 #endif
         for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && !gcFEATURE_VG_SPLIT_PATH)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
             next_boundary = (y + 32) & 0xffffffe0;
 #else           
             next_boundary = (y + 16) & 0xfffffff0;
@@ -3680,7 +3680,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-#if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     int32_t y = 0;
     uint32_t par_height = 0;
     int32_t next_boundary = 0;
@@ -4285,7 +4285,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         width = target->width - point_min.x;
     }
 
-#if (gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
 
 #if !gcFEATURE_VG_PARALLEL_PATHS
@@ -4298,7 +4298,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         parallel_workpaths1 = parallel_workpaths2;
 #endif 
     for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && !gcFEATURE_VG_SPLIT_PATH)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
         next_boundary = (y + 32) & 0xffffffe0;
 #else   
         next_boundary = (y + 16) & 0xfffffff0;
