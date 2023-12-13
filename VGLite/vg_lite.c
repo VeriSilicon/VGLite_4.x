@@ -2486,7 +2486,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
 
     /* Clip to target. */
-    if (s_context.scissor_set) {
+    if (s_context.scissor_set && !target->scissor_buffer) {
         left   = s_context.scissor[0];
         top    = s_context.scissor[1];
         right  = s_context.scissor[2];
@@ -3181,7 +3181,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.y > point_max.y) point_max.y = temp.y;
 
     /* Clip to target. */
-    if (s_context.scissor_set) {
+    if (s_context.scissor_set && !target->scissor_buffer) {
         left   = s_context.scissor[0];
         top    = s_context.scissor[1];
         right  = s_context.scissor[2];
@@ -3980,7 +3980,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.y > point_max.y) point_max.y = temp.y;
 
     /* Clip to target. */
-    if (s_context.scissor_set) {
+    if (s_context.scissor_set && !target->scissor_buffer) {
         left   = s_context.scissor[0];
         top    = s_context.scissor[1];
         right  = s_context.scissor[2];
