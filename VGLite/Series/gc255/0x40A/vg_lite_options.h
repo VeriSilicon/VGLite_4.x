@@ -79,6 +79,7 @@
 #define gcFEATURE_VG_AYUV_INPUT    0
 #define gcFEATURE_VG_16PIXELS_ALIGNED    1
 #define gcFEATURE_VG_DEC_COMPRESS_2_0    0
+#define gcFEATURE_VG_NV24_INPUT    0
 
 /* SW Features */
 #define gcFEATURE_VG_STROKE_PATH    1
