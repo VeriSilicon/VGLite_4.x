@@ -109,6 +109,13 @@ extern "C" {
     #define gcdVG_ENABLE_AUTO_CLOCK_GATING               0
 #endif
 
+/*
+ * Set 1 to open dump debug register
+*/
+#ifndef gcdVG_DUMP_DEBUG_REGISTER
+    #define gcdVG_DUMP_DEBUG_REGISTER               0
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -762,6 +762,101 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
     vg_lite_error_t error = VG_LITE_SUCCESS;
 #endif
     /* Wait for interrupt. */
+#if gcdVG_DUMP_DEBUG_REGISTER
+    if (!vg_lite_hal_wait_interrupt(5000, data->event_mask, &data->event_got)) {
+         /* Timeout. */
+        unsigned int debug;
+        unsigned int iter;
+        debug = vg_lite_hal_peek(VG_LITE_HW_IDLE);
+        vg_lite_kernel_print("idle = 0x%x\n",debug);
+        for(iter =0; iter < 16 ; iter ++) 
+        {   
+             vg_lite_hal_poke(0x470, iter);
+             debug = vg_lite_hal_peek(0x448);
+             vg_lite_kernel_print("0x448[%d] = 0x%x\n", iter,debug);
+        }     
+        for(iter =0; iter < 16 ; iter ++) 
+        {   
+             vg_lite_hal_poke(0x470, iter<<8);
+             debug = vg_lite_hal_peek(0x44C);
+             vg_lite_kernel_print("0x44c[%d] = 0x%x\n", iter,debug);
+        }
+        for(iter =0; iter < 28 ; iter ++) 
+        {   
+             vg_lite_hal_poke(0x470, iter<<16);
+             debug = vg_lite_hal_peek(0x450);
+             vg_lite_kernel_print("0x450[%d] = 0x%x\n", iter,debug);
+        }   
+        for (iter = 0; iter < 31; iter++)
+        {
+            vg_lite_hal_poke(0x470, iter<<24);
+            debug = vg_lite_hal_peek(0x454);
+            vg_lite_kernel_print("0x454[%d] = 0x%x\n", iter, debug);
+        }
+        for (iter = 128; iter < 133; iter++)
+        {
+            vg_lite_hal_poke(0x470, iter<<24);
+            debug = vg_lite_hal_peek(0x454);
+            vg_lite_kernel_print("0x454[%d] = 0x%x\n", iter, debug);
+        }
+        for (iter = 0; iter < 21; iter++)
+        {
+            vg_lite_hal_poke(0x474, iter);
+            debug = vg_lite_hal_peek(0x458);
+            vg_lite_kernel_print("0x458[%d] = 0x%x\n", iter, debug);
+        }
+        for (iter = 0; iter < 62; iter++)
+        {
+            vg_lite_hal_poke(0x474, iter<<8);
+            debug = vg_lite_hal_peek(0x45C);
+            vg_lite_kernel_print("0x45C[%d] = 0x%x\n", iter, debug);
+        }
+        for (iter = 0; iter < 16; iter++)
+        {
+            vg_lite_hal_poke(0x474, iter<<16);
+            debug = vg_lite_hal_peek(0x460);
+            vg_lite_kernel_print("0x460[%d] = 0x%x\n", iter, debug);
+        }
+        for (iter = 0x40; iter <= 0x60; iter+=4)
+        {
+            debug = vg_lite_hal_peek(iter);
+            vg_lite_kernel_print("0x%x = 0x%x\n", iter, debug);
+        }
+
+        debug = vg_lite_hal_peek(0x438);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x438, debug);
+        debug = vg_lite_hal_peek(0x43C);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x43C, debug);
+        debug = vg_lite_hal_peek(0x440);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x440, debug);
+        debug = vg_lite_hal_peek(0x444);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x444, debug);
+        debug = vg_lite_hal_peek(0x500);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x500, debug);
+        debug = vg_lite_hal_peek(0x504);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x504, debug);
+        debug = vg_lite_hal_peek(0x508);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x508, debug);
+        debug = vg_lite_hal_peek(0x10);
+        vg_lite_kernel_print("0x%x = 0x%x\n", 0x10, debug);
+
+        for (iter = 0x14; iter <= 0x34; iter += 4)
+        {
+            debug = vg_lite_hal_peek(iter);
+            vg_lite_kernel_print("0x%x = 0x%08x\n", iter, debug);
+        }
+
+        debug = vg_lite_hal_peek(0x98);
+        vg_lite_kernel_print("0x%x = 0x%08x\n", 0x98, debug);
+        debug = vg_lite_hal_peek(0xA4);
+        vg_lite_kernel_print("0x%x = 0x%08x\n", 0xA4, debug);
+        debug = vg_lite_hal_peek(0xA8);
+        vg_lite_kernel_print("0x%x = 0x%08x\n", 0xA8, debug);
+        debug = vg_lite_hal_peek(0xE8);
+        vg_lite_kernel_print("0x%x = 0x%08x\n", 0xE8, debug); 
+
+    }
+#else
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {
         /* Timeout. */
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
@@ -793,6 +888,7 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 #endif
         return VG_LITE_TIMEOUT;
     }
+#endif
 
 #if gcFEATURE_VG_FLEXA
     if (data->event_got & FLEXA_TIMEOUT_STATE)
