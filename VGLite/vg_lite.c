@@ -2530,9 +2530,9 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 
 #if gcFEATURE_VG_IM_FASTCLEAR
     if ((rect == NULL) ||
-        ((x == 0) && (y == 0)  &&
-         (width == s_context.rtbuffer->width) &&
-         (height  == s_context.rtbuffer->height))) {
+        (point_min.x == 0 && point_min.y == 0 &&
+         ((point_max.x - point_min.x) == s_context.rtbuffer->width) &&
+         ((point_max.y - point_min.y) == s_context.rtbuffer->height))) {
             convert_color(s_context.rtbuffer->format, color32, &color32, NULL);
             clear_fc(&target->fc_buffer[0],(uint32_t)color32);
     }
@@ -2548,9 +2548,10 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
          */
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
-        if ((!rect && (x == 0 && y == 0 && width == target->width)) && !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
+        if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
+             !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | stripe_mode));
-            VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * height));
+            VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * (point_max.y - point_min.y)));
         }
         else
 #endif
