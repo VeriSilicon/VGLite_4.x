@@ -2574,22 +2574,23 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
          * So PE clear and push_rectangle() clear have the same clear result color.
          */
 #if gcFEATURE_VG_PE_CLEAR
-        uint32_t align, mul, div;
-        get_format_bytes(target->format, &mul, &div, &align);
 
-        if (mul / div != 3) {
-            if ((target->stride * (point_max.y - point_min.y)) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-        else {
-            if ((target->stride * (point_max.y - point_min.y)) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
              !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
+            uint32_t align, mul, div;
+            get_format_bytes(target->format, &mul, &div, &align);
+
+            if (mul / div != 3) {
+                if ((target->stride * (point_max.y - point_min.y)) % 64 != 0) {
+                    return VG_LITE_INVALID_ARGUMENT;
+                }
+            }
+            else {
+                if ((target->stride * (point_max.y - point_min.y)) % 48 != 0) {
+                    return VG_LITE_INVALID_ARGUMENT;
+                }
+            }
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * (point_max.y - point_min.y)));
         }
