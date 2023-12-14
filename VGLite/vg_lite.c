@@ -2214,7 +2214,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
-    int32_t tiled;
+    int32_t tile_setting;
     int32_t stride;
     uint8_t flexa_mode = 0;
     uint32_t compress_mode = 0;
@@ -2242,54 +2242,49 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
+#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
+    {
+        uint32_t tile_flag = 0;
+        uint32_t tile_flag1 = 0;
+        uint32_t align, mul, div;
+        get_format_bytes(target->format, &mul, &div, &align);
 
+        if ((uint32_t)(target->address) % 64 != 0) {
+            printf("target address need to be aligned to 64.");
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        if (target->tiled == VG_LITE_TILED) {
+            tile_flag = 1;
+
+            if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+#if gcFEATURE_VG_RECTANGLE_TILED_OUT
+        if (target->tiled == VG_LITE_TILED) {
+            tile_flag1 = 1;
+        }
+#endif
+        if (tile_flag1 & tile_flag) {
+            if (mul / div != 3) {
+                if (target->stride % 64 != 0) {
+                    return VG_LITE_INVALID_ARGUMENT;
+                }
+            }
+            else {
+                if (target->stride % 48 != 0) {
+                    return VG_LITE_INVALID_ARGUMENT;
+                }
+            }
+        }
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if gcFEATURE_VG_IM_FASTCLEAR
     update_fc_buffer(target);
 #endif
 
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
-
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    uint32_t tile_flag = 0;
-    uint32_t tile_flag1 = 0;
-    uint32_t align, mul, div;
-    get_format_bytes(target->format, &mul, &div, &align);
-
-    if ((uint32_t)(target->address) % 64 != 0) {
-        printf("target address need to be aligned to 64.");
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-
-    if (tiled != 0) {
-        tile_flag = 1;
-
-        if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-
-#if gcFEATURE_VG_RECTANGLE_TILED_OUT
-        if (target->tiled == VG_LITE_TILED) {
-            tile_flag1 = 1;
-        }
-#endif
-
-    if (tile_flag1 & tile_flag) {
-        if (mul / div != 3) {
-            if (target->stride % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-        else {
-            if (target->stride % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-    }
-#endif
-    
     if (((target->format >= VG_LITE_YUY2) &&
          (target->format <= VG_LITE_AYUY2)) ||
         ((target->format >= VG_LITE_YUY2_TILED) &&
@@ -2373,13 +2368,16 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5D, target->yuv.alpha_planar));
         }
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A11, target->address));
+
+        tile_setting = (target->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
+
         /* 24bit format stride configured to 4bpp. */
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
             stride = target->stride / 3 * 4;
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, stride | tiled));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, stride | tile_setting));
         }
         else {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, target->stride | tiled));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, target->stride | tile_setting));
         }
     }
 
@@ -2418,7 +2416,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     vg_lite_point_t point_min, point_max;
     int32_t  left, top, right, bottom;
     uint32_t color32;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
     uint32_t in_premult = 0;
 #if gcFEATURE_VG_TRACE_API
@@ -2551,9 +2549,8 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled == VG_LITE_TILED)
-    {
-        tiled = 0x40;
+    if (target->tiled == VG_LITE_TILED) {
+        tile_setting = 0x40;
         stripe_mode = 0x20000000;
     }
 #endif
@@ -2579,7 +2576,8 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
-             !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask) {
+             !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask)
+        {
 #if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
             uint32_t align, mul, div;
             get_format_bytes(target->format, &mul, &div, &align);
@@ -2595,13 +2593,13 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
                 }
             }
 #endif
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tiled | s_context.scissor_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tile_setting | s_context.scissor_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * (point_max.y - point_min.y)));
         }
         else
 #endif
         {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tiled | s_context.scissor_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tile_setting | s_context.scissor_enable | stripe_mode));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
         }
 
@@ -3008,7 +3006,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
@@ -3121,28 +3119,29 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#endif /* gcFEATURE_VG_ERROR_CHECK */
-
 #if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    uint32_t align, mult, divi;
-    get_format_bytes(source->format, &mult, &divi, &align);
+    {
+        uint32_t align, mult, divi;
+        get_format_bytes(source->format, &mult, &divi, &align);
 
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-
-    if (source->tiled == 0) {
-        if (source->stride % (16 * mult / divi) != 0) {
+        if ((uint32_t)(source->address) % 64 != 0) {
+            printf("buffer address need to be aglined to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
         }
-    }
-    else {
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
+
+        if (source->tiled == 0) {
+            if (source->stride % (16 * mult / divi) != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
         }
     }
 #endif
+#endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!matrix) {
         matrix = &identity_mtx;
@@ -3661,7 +3660,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
     if (target->tiled == VG_LITE_TILED) {
-        tiled = 0x40;
+        tile_setting = 0x40;
         stripe_mode = 0x20000000;
     }
 #endif
@@ -3680,7 +3679,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -3813,7 +3812,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
 
 #if gcFEATURE_VG_TRACE_API
@@ -3903,28 +3902,29 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#endif /* gcFEATURE_VG_ERROR_CHECK */
-
 #if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    uint32_t align, mult, divi;
-    get_format_bytes(source->format, &mult, &divi, &align);
+    {
+        uint32_t align, mult, divi;
+        get_format_bytes(source->format, &mult, &divi, &align);
 
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-
-    if (source->tiled == 0) {
-        if (source->stride % (16 * mult / divi) != 0) {
+        if ((uint32_t)(source->address) % 64 != 0) {
+            printf("buffer address need to be aglined to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
         }
-    }
-    else {
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
+
+        if (source->tiled == 0) {
+            if (source->stride % (16 * mult / divi) != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
         }
     }
 #endif
+#endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!matrix) {
         matrix = &identity_mtx;
@@ -4379,8 +4379,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (tiled == VG_LITE_TILED) {
-        tiled = 0x40;
+    if (target->tiled == VG_LITE_TILED) {
+        tile_setting = 0x40;
         stripe_mode = 0x20000000;
     }
 #endif
@@ -4399,7 +4399,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -6319,7 +6319,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
     vg_lite_color_t color = 0;
 
@@ -6709,8 +6709,8 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
 
-    if (tiled == VG_LITE_TILED) {
-        tiled = 0x40;
+    if (target->tiled == VG_LITE_TILED) {
+        tile_setting = 0x40;
         stripe_mode = 0x20000000;
     }
     compress_mode = (uint32_t)source->compress_mode << 25;
@@ -6719,7 +6719,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tiled | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tile_setting | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void*)&c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void*)&c_step[1]));

@@ -3208,7 +3208,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     vg_lite_kernel_allocate_t memory;
     float new_matrix[6];
     float scale, bias;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t in_premult = 0;
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
@@ -3425,12 +3425,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     fill = (fill_rule == VG_LITE_FILL_EVEN_ODD) ? 0x10 : 0;
     tessellation_size = s_context.tessbuf.tessbuf_size;
 #if gcFEATURE_VG_TESSELLATION_TILED_OUT
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+    tile_setting = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 #endif
 
     /* Setup the command buffer. */
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | blend_mode | tile_setting | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     /* Program tessellation control: for TS module. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
@@ -3653,7 +3653,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     vg_lite_matrix_t matrix;
     uint32_t pattern_tile = 0;
     uint32_t transparency_mode = 0;
-    uint32_t tiled = 0;
+    uint32_t tile_setting = 0;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
     /* The following code is from "draw path" */
@@ -3765,28 +3765,29 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
-#endif /* gcFEATURE_VG_ERROR_CHECK */
-
 #if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    uint32_t align, mult, divi;
-    get_format_bytes(source->format, &mult, &divi, &align);
+    {
+        uint32_t align, mult, divi;
+        get_format_bytes(source->format, &mult, &divi, &align);
 
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-
-    if (source->tiled == 0) {
-        if (source->stride % (16 * mult / divi) != 0) {
+        if ((uint32_t)(source->address) % 64 != 0) {
+            printf("buffer address need to be aglined to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
         }
-    }
-    else {
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
+
+        if (source->tiled == 0) {
+            if (source->stride % (16 * mult / divi) != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
         }
     }
 #endif
+#endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
@@ -4241,7 +4242,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     fill = (fill_rule == VG_LITE_FILL_EVEN_ODD) ? 0x10 : 0;
     tessellation_size = s_context.tessbuf.tessbuf_size;
 #if gcFEATURE_VG_TESSELLATION_TILED_OUT
-    tiled = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
+    tile_setting = (target->tiled != VG_LITE_LINEAR) ? 0x40 : 0;
 #endif
 
     if (source->paintType == VG_LITE_PAINT_PATTERN) {
@@ -4253,7 +4254,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
     /* Program color register. */
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | paintType |s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tiled | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | paintType |s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3B, 0x3F800000));      /* Path tessellation SCALE. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3C, 0x00000000));      /* Path tessellation BIAS.  */
