@@ -2265,7 +2265,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             tile_flag1 = 1;
         }
 #endif
-        if (tile_flag1 & tile_flag) {
+        if (tile_flag1 ^ tile_flag) {
             if (mul / div != 3) {
                 if (target->stride % 64 != 0) {
                     return VG_LITE_INVALID_ARGUMENT;
