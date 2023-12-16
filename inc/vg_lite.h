@@ -459,7 +459,7 @@ typedef unsigned int        vg_lite_color_t;
         OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*!  (SP*DP + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))               !*/
         OPENVG_BLEND_SCREEN                     = 0x2006,   /*!  (SP + DP - (SP*DP)) / (Sa + Da*(1 - Sa))                               !*/
         OPENVG_BLEND_DARKEN                     = 0x2007,   /*!  (min(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
-        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  (max(SP*Da, DP*Da) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
+        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  (max(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
         OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  (SP + DP) / (Sa + Da)                                                  !*/
 
     } vg_lite_blend_t;
