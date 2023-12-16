@@ -426,41 +426,41 @@ typedef unsigned int        vg_lite_color_t;
     } vg_lite_transparency_t;
 
     /* Blending modes. OPENVG_BLEND_* match OpenVG enum VGBlendMode.
-     * S and D represent source and destination non-premultiplied color channels.
-     * SP and DP represent source and destination alpha-premultiplied color channels.
+     * S and D represent source and destination non-premultiplied RGB color channels.
      * Sa and Da represent the source and destination alpha channels.
+     * SP and DP represent source and destination alpha-premultiplied RGB color channels (S*Sa, D*Da).
      */
     typedef enum vg_lite_blend
     {
         /* Non-premultiplied Blending modes !*/
-        VG_LITE_BLEND_NONE                      = 0,        /*!  S, No blend                                    !*/
-        VG_LITE_BLEND_SRC_OVER                  = 1,        /*!  S + D * (1 - Sa)                               !*/
-        VG_LITE_BLEND_DST_OVER                  = 2,        /*!  S * (1 - Da) + D                               !*/
-        VG_LITE_BLEND_SRC_IN                    = 3,        /*!  S * Da                                         !*/
-        VG_LITE_BLEND_DST_IN                    = 4,        /*!  D * Sa                                         !*/
-        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  S * (1 - Da) + D * (1 - Sa) + S * D            !*/
-        VG_LITE_BLEND_SCREEN                    = 6,        /*!  S + D - S * D                                  !*/
-        VG_LITE_BLEND_DARKEN                    = 7,        /*!  min(S, D) + S * (1 - Da) + D * (1 - Sa)        !*/
-        VG_LITE_BLEND_LIGHTEN                   = 8,        /*!  max(S, D) + S * (1 - Da) + D * (1 - Sa)        !*/
-        VG_LITE_BLEND_ADDITIVE                  = 9,        /*!  S + D                                          !*/
-        VG_LITE_BLEND_SUBTRACT                  = 10,       /*!  D * (1 - Sa)                                   !*/
-        VG_LITE_BLEND_NORMAL_LVGL               = 11,       /*!  S * Sa + D * (1 - Sa)                          !*/
-        VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  (S + D) * Sa + D * (1 - Sa)                    !*/
-        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  (S - D) * Sa + D * (1 - Sa)                    !*/
-        VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  (S * D) * Sa + D * (1 - Sa)                    !*/
-        VG_LITE_BLEND_PREMULTIPLY_SRC_OVER      = 15,       /*!  S * Sa + D * (1 - Sa)                          !*/
+        VG_LITE_BLEND_NONE                      = 0,        /*!  S, No blend                                !*/
+        VG_LITE_BLEND_SRC_OVER                  = 1,        /*!  S + D*(1 - Sa)                             !*/
+        VG_LITE_BLEND_DST_OVER                  = 2,        /*!  S*(1 - Da) + D                             !*/
+        VG_LITE_BLEND_SRC_IN                    = 3,        /*!  S*Da                                       !*/
+        VG_LITE_BLEND_DST_IN                    = 4,        /*!  D*Sa                                       !*/
+        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  S*(1 - Da) + D*(1 - Sa) + S*D              !*/
+        VG_LITE_BLEND_SCREEN                    = 6,        /*!  S + D - S*D                                !*/
+        VG_LITE_BLEND_DARKEN                    = 7,        /*!  min(S, D) + S*(1 - Da) + D*(1 - Sa)        !*/
+        VG_LITE_BLEND_LIGHTEN                   = 8,        /*!  max(S, D) + S*(1 - Da) + D*(1 - Sa)        !*/
+        VG_LITE_BLEND_ADDITIVE                  = 9,        /*!  S + D                                      !*/
+        VG_LITE_BLEND_SUBTRACT                  = 10,       /*!  D*(1 - Sa)                                 !*/
+        VG_LITE_BLEND_NORMAL_LVGL               = 11,       /*!  S*Sa + D*(1 - Sa)                          !*/
+        VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  (S + D)*Sa + D*(1 - Sa)                    !*/
+        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  (S - D)*Sa + D*(1 - Sa)                    !*/
+        VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  (S*D)*Sa + D*(1 - Sa)                      !*/
+        VG_LITE_BLEND_PREMULTIPLY_SRC_OVER      = 15,       /*!  S*Sa + D*(1 - Sa)                          !*/
 
         /* Porter Duff Premultiplied Blending modes !*/
-        OPENVG_BLEND_SRC                        = 0x2000,   /*!  SP, no blend                                   !*/
-        OPENVG_BLEND_SRC_OVER                   = 0x2001,   /*!  SP + DP * (1 - Sa)                             !*/
-        OPENVG_BLEND_DST_OVER                   = 0x2002,   /*!  SP * (1 - Da) + DP                             !*/
-        OPENVG_BLEND_SRC_IN                     = 0x2003,   /*!  SP * Da                                        !*/
-        OPENVG_BLEND_DST_IN                     = 0x2004,   /*!  DP * Sa                                        !*/
-        OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*!  SP * (1 - Da) + DP * (1 - Sa) + SP * DP        !*/
-        OPENVG_BLEND_SCREEN                     = 0x2006,   /*!  SP + DP - (SP * DP)                            !*/
-        OPENVG_BLEND_DARKEN                     = 0x2007,   /*!  min(SP, DP) + SP * (1 - Da) + DP * (1 - Sa)    !*/
-        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  max(SP, DP) + SP * (1 - Da) + DP * (1 - Sa)    !*/
-        OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  SP + DP                                        !*/
+        OPENVG_BLEND_SRC                        = 0x2000,   /*!  SP / Sa                                                                !*/
+        OPENVG_BLEND_SRC_OVER                   = 0x2001,   /*!  (SP + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))                                !*/
+        OPENVG_BLEND_DST_OVER                   = 0x2002,   /*!  (SP*(1 - Da) + DP) / (Sa*(1 - Da) + Da)                                !*/
+        OPENVG_BLEND_SRC_IN                     = 0x2003,   /*!  (SP*Da) / (Sa*Da)                                                      !*/
+        OPENVG_BLEND_DST_IN                     = 0x2004,   /*!  (DP*Sa) / (Sa*Da)                                                      !*/
+        OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*!  (SP*DP + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))               !*/
+        OPENVG_BLEND_SCREEN                     = 0x2006,   /*!  (SP + DP - (SP*DP)) / (Sa + Da*(1 - Sa))                               !*/
+        OPENVG_BLEND_DARKEN                     = 0x2007,   /*!  (min(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
+        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  (max(SP*Da, DP*Da) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
+        OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  (SP + DP) / (Sa + Da)                                                  !*/
 
     } vg_lite_blend_t;
 
