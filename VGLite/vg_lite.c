@@ -324,6 +324,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_16PIXELS_ALIGNED,
         gcFEATURE_VG_DEC_COMPRESS_2_0,
         gcFEATURE_VG_NV24_INPUT,
+        gcFEATURE_VG_TILED_LIMIT,
     }
 };
 
