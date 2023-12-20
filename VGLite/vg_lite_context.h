@@ -265,8 +265,8 @@ vg_lite_error_t vglitefDumpBuffer(char* Tag, size_t Physical, void* Logical, siz
 #define vglitemDUMP                             vglitefDump
 #define vglitemDUMP_BUFFER                      vglitefDumpBuffer
 #else
-inline static void __dummy_dump(char* Message, ...) {}
-inline static void __dummy_dump_buffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes) {}
+static inline void __dummy_dump(char* Message, ...) {}
+static inline void __dummy_dump_buffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes) {}
 #define vglitemDUMP                             __dummy_dump
 #define vglitemDUMP_BUFFER                      __dummy_dump_buffer
 #endif

@@ -524,7 +524,7 @@ static vg_lite_float_t _calc_decnano_compress_ratio(
     return ratio;
 }
 
-static int32_t has_valid_command_buffer(vg_lite_context_t *context)
+static inline int32_t has_valid_command_buffer(vg_lite_context_t *context)
 {
     if (context == NULL)
         return 0;
@@ -1123,7 +1123,7 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
     }
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
-/* determine source IM is aligned by specified bytes */
+/* Determine source IM is aligned by specified bytes */
 static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint32_t stride)
 {
     switch (format) {
@@ -1691,7 +1691,8 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
         return VG_LITE_NO_CONTEXT;
 
     /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) { */
+    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    {
         if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
             VG_LITE_RETURN_ERROR(submit(context));
             VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
@@ -1722,7 +1723,7 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
 #endif
 
         CMDBUF_OFFSET(*context) += 8;
-    /* } */
+    }
 
     return VG_LITE_SUCCESS;
 }
@@ -1736,7 +1737,8 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
         return VG_LITE_NO_CONTEXT;
 
     /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) { */
+    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    {
         if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
             VG_LITE_RETURN_ERROR(submit(context));
             VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
@@ -1766,7 +1768,8 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
 #endif
 
         CMDBUF_OFFSET(*context) += 8;
-    /* } */
+    }
+
     return VG_LITE_SUCCESS;
 }
 
@@ -2042,7 +2045,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("command", (size_t)CMDBUF_BUFFER(*context),
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
-#if !DUMP_COMMAND_CAPTURE    
+#if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[commit]");
 #endif
 #endif
@@ -2193,9 +2196,7 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
     return 1;
 }
 
-/*!
- Flush specific VG module.
- */
+/* Flush specific VG module. */
 static vg_lite_error_t flush_target()
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -3119,6 +3120,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         printf("Target format: 0x%x is not supported.\n", target->format);
         return VG_LITE_NOT_SUPPORT;
     }
+    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
+        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
+        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
+        printf("Source format: 0x%x is not supported.\n", source->format);
+        return VG_LITE_NOT_SUPPORT;
+    }
 #endif
 #if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
     {
@@ -3710,13 +3717,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
-#if (CHIPID == 0x355)
-    if (source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
-        return VG_LITE_NOT_SUPPORT;
-#endif
-
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
@@ -3900,6 +3900,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
         target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
         printf("Target format: 0x%x is not supported.\n", target->format);
+        return VG_LITE_NOT_SUPPORT;
+    }
+    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
+        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
+        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
+        printf("Source format: 0x%x is not supported.\n", source->format);
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -4428,13 +4434,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACF, source->fc_buffer[0].address));   /* FC buffer address. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD0, source->fc_buffer[0].color));     /* FC clear value. */
     }
-#endif
-
-#if (CHIPID == 0x355)
-    if (source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222)
-        return VG_LITE_NOT_SUPPORT;
 #endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
@@ -4976,7 +4975,7 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 #if (CHIPID == 0x555)
        (buffer->width % 16 || buffer->height % 4)
 #else
-        (buffer->width % 4 || buffer->height % 4)
+       (buffer->width % 4 || buffer->height % 4)
 #endif
         )
     {
@@ -5071,7 +5070,6 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
             buffer->yuv.alpha_planar = allocate.memory_gpu;
         }
-
     }
 
 #if gcFEATURE_VG_TRACE_API
