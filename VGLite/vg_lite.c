@@ -3012,6 +3012,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t stripe_mode = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+    uint32_t temp_u32_matrix_value = 0;
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* bufferPointer;
     uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
@@ -3329,6 +3330,40 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     s_context.gamma_dirty = 1;
 #endif
 
+#if VG_BLIT_WORKAROUND
+{
+    int flag = 0;
+    float new_scalex, new_scaley;
+    float width_scale = s_context.scaleX * source->width;
+    float height_scale = s_context.scaleY * source->height;
+        
+    if (width_scale - (int)width_scale) {
+    new_scalex = (int)(width_scale + 0.5) / (float)source->width;
+    flag = 1;         
+    }
+    else {
+        new_scalex = s_context.scaleX;
+    }
+        
+    if (height_scale - (int)height_scale) {
+    new_scaley = (int)(height_scale + 0.5) / (float)source->height;
+    flag = 1;        
+    }
+    else {
+    new_scaley = s_context.scaleY;    
+    }
+        
+    if (flag) {
+    vg_lite_matrix_t new_s = { { {new_scalex, 0.0f, 0.0f},
+                                {0.0f, new_scaley, 0.0f},
+                                {0.0f, 0.0f, 1.0f}} };
+            
+    multiply(&s_context.matrix_for_blit, &new_s);
+    matrix = &s_context.matrix_for_blit;
+    }
+}
+#endif
+
     /*blend input into context*/
     s_context.blend_mode = blend;
     s_context.premultiply_dst = 0;
@@ -3589,6 +3624,61 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
+     temp_u32_matrix_value = *(uint32_t*)&x_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000080;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&x_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&x_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[2] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000080;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[2] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[2] = *(float*)&temp_u32_matrix_value;
+    }
+
 #if VG_SW_BLIT_PRECISION_OPT
     /* Update C offset */
     if (enableSwPreOpt) {
@@ -3818,6 +3908,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t eco_fifo = 0;
     uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
+    uint32_t temp_u32_matrix_value = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit_rect %p %p %p %p %d 0x%08X %d\n", target, source, rect, matrix, blend, color, filter);
@@ -4016,6 +4107,40 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         rect_w = source->width;
         rect_h = source->height;
     }
+
+#if VG_BLIT_WORKAROUND
+{
+    int flag = 0;
+    float new_scalex, new_scaley;
+    float width_scale = s_context.scaleX * source->width;
+    float height_scale = s_context.scaleY * source->height;
+        
+    if (width_scale - (int)width_scale) {
+        new_scalex = (int)(width_scale + 0.5) / (float)source->width;
+        flag = 1;
+    }
+        else {
+        new_scalex = s_context.scaleX;
+    }
+        
+    if (height_scale - (int)height_scale) {
+        new_scaley = (int)(height_scale + 0.5) / (float)source->height;
+        flag = 1;
+    }
+        else {
+        new_scaley = s_context.scaleY;
+    }
+        
+    if (flag) {
+        vg_lite_matrix_t new_s = { { {new_scalex, 0.0f, 0.0f},
+                                    {0.0f, new_scaley, 0.0f},
+                                    {0.0f, 0.0f, 1.0f} } };
+            
+        multiply(&s_context.matrix_for_blit, &new_s);
+        matrix = &s_context.matrix_for_blit;
+    }
+}
+#endif
 
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
@@ -4328,6 +4453,61 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
 #endif
+
+     temp_u32_matrix_value = *(uint32_t*)&x_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000080;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&x_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&x_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        x_step[2] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000080;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&y_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        y_step[2] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[0];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[0] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[1];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[1] = *(float*)&temp_u32_matrix_value;
+    }
+     temp_u32_matrix_value = *(uint32_t*)&c_step[2];
+    if ((temp_u32_matrix_value & 0x0000003f) != 0) {
+        temp_u32_matrix_value = temp_u32_matrix_value + 0x00000040;
+        temp_u32_matrix_value = temp_u32_matrix_value & 0xffffffc0;
+        c_step[2] = *(float*)&temp_u32_matrix_value;
+    }
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {

@@ -112,6 +112,8 @@
 #define VG_SW_BLIT_PRECISION_OPT 0
 #endif
 
+#define VG_BLIT_WORKAROUND      1
+
 
 /* Driver implementation internal structures.
 */
@@ -206,6 +208,9 @@ typedef struct vg_lite_context {
     vg_lite_filter_t            filter;
     uint8_t                     pre_div;
     uint8_t                     pre_mul;
+    vg_lite_float_t             scaleX;
+    vg_lite_float_t             scaleY;
+    vg_lite_matrix_t            matrix_for_blit;
 
 } vg_lite_context_t;
 
@@ -223,6 +228,7 @@ extern vg_lite_error_t push_call(vg_lite_context_t* context, uint32_t address, u
 extern vg_lite_error_t push_data(vg_lite_context_t* context, uint32_t size, void* data);
 extern vg_lite_error_t push_clut(vg_lite_context_t* context, uint32_t address, uint32_t count, uint32_t* data);
 extern vg_lite_error_t push_stall(vg_lite_context_t* context, uint32_t module);
+extern void multiply(vg_lite_matrix_t* matrix, vg_lite_matrix_t* mult);
 
 extern void* vg_lite_os_malloc(size_t size);
 extern void  vg_lite_os_free(void* memory);
