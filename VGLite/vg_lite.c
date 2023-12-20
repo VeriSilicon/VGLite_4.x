@@ -3421,6 +3421,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if (CHIPID==0x255)
         src_premultiply_enable = 0x00000000;
 #endif
+#if gcFEATURE_VG_SRC_PREMULTIPLIED
+        src_premultiply_enable = src_premultiply_enable & ~(1 << 8);
+#endif
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
