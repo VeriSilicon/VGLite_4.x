@@ -1265,7 +1265,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
 
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     uint8_t* path_re;
     path_re = (uint8_t*)vg_lite_os_malloc(path->path_length);
     memset(path_re, 0, path->path_length);

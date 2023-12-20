@@ -3682,7 +3682,7 @@ vg_lite_error_t _convert_hline(
     linePath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (linePath == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     memset(linePath, 0, *offset + bufferSize + last_size);
 #endif
     memcpy(linePath, (char*)*path_data, *offset);
@@ -3761,7 +3761,7 @@ vg_lite_error_t _convert_vline(
     linePath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (linePath == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     memset(linePath, 0, *offset + bufferSize + last_size);
 #endif
     memcpy(linePath, (char*)*path_data, *offset);
@@ -3847,7 +3847,7 @@ vg_lite_error_t _convert_scubic(
     cubicPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (cubicPath == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     memset(cubicPath, 0, *offset + bufferSize + last_size);
 #endif
     memcpy(cubicPath, (char*)*path_data, *offset);
@@ -3940,7 +3940,7 @@ vg_lite_error_t _convert_squad(
     quadPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
     if (quadPath == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     memset(quadPath, 0, *offset + bufferSize + last_size);
 #endif
     memcpy(quadPath, (char*)*path_data, *offset);
@@ -4155,7 +4155,7 @@ vg_lite_error_t _convert_arc(
         arcPath = (char*)vg_lite_os_malloc(*offset + bufferSize + last_size);
         if (arcPath == NULL)
             return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
         memset(arcPath, 0, *offset + bufferSize + last_size);
 #endif
         memcpy(arcPath, (char*)*path_data, *offset);
@@ -4417,7 +4417,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path_data_fp32 = vg_lite_os_malloc(bytes);
         if (path_data_fp32 == NULL)
             return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
         memset(path_data_fp32, 0, bytes);
 #endif
         memcpy(path_data_fp32, path_data, bytes);
@@ -4457,7 +4457,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     pathdata = (char*)vg_lite_os_malloc(path_length);
     if (pathdata == NULL)
         return VG_LITE_OUT_OF_RESOURCES;
-#if(CHIPID == 0X355)
+#if(CHIPID == 0x355)
     memset(pathdata, 0, path_length);
 #endif
     pfloat = (vg_lite_float_t*)path_data_fp32;
