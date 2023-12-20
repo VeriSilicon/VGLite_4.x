@@ -47,20 +47,6 @@ vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
     matrix->m[2][1] = 0.0f;
     matrix->m[2][2] = 1.0f;
 
-#if VG_BLIT_WORKAROUND
-    s_context.scaleX = 1;
-    s_context.scaleY = 1;
-    s_context.matrix_for_blit.m[0][0] = 1.0f;
-    s_context.matrix_for_blit.m[0][1] = 0.0f;
-    s_context.matrix_for_blit.m[0][2] = 0.0f;
-    s_context.matrix_for_blit.m[1][0] = 0.0f;
-    s_context.matrix_for_blit.m[1][1] = 1.0f;
-    s_context.matrix_for_blit.m[1][2] = 0.0f;
-    s_context.matrix_for_blit.m[2][0] = 0.0f;
-    s_context.matrix_for_blit.m[2][1] = 0.0f;
-    s_context.matrix_for_blit.m[2][2] = 1.0f;
-#endif
-
 #if VG_SW_BLIT_PRECISION_OPT
     matrix->scaleX = 1.0f;
     matrix->scaleY = 1.0f;
@@ -70,7 +56,7 @@ vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
     return VG_LITE_SUCCESS;
 }
 
-void multiply(vg_lite_matrix_t* matrix, vg_lite_matrix_t* mult)
+static void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
 {
     vg_lite_matrix_t temp;
     int row, column;
@@ -100,20 +86,6 @@ vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_
     VGLITE_LOG("vg_lite_translate %f %f %p\n", x, y, matrix);
 #endif
 
-#if VG_BLIT_WORKAROUND
-    vg_lite_float_t x1 = (float)((int)(x + 0.5));
-    vg_lite_float_t y1 = (float)((int)(y + 0.5));
-    
-    /* Set translation matrix. */
-    vg_lite_matrix_t t = { { {1.0f, 0.0f, x1},
-    {0.0f, 1.0f, y1},
-    {0.0f, 0.0f, 1.0f}
-        } };
-    
-    /* Multiply with current matrix. */
-    multiply(matrix, &t);
-    multiply(&s_context.matrix_for_blit, &t);
-#else
     /* Set translation matrix. */
     vg_lite_matrix_t t = {
         {
@@ -125,7 +97,6 @@ vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_
 
     /* Multiply with current matrix. */
     multiply(matrix, &t);
-#endif
 
     return VG_LITE_SUCCESS;
 }
@@ -134,11 +105,6 @@ vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, 
 {
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_scale %f %f %p\n", scale_x, scale_y, matrix);
-#endif
-
-#if VG_BLIT_WORKAROUND
-    s_context.scaleX = s_context.scaleX * scale_x;
-    s_context.scaleY = s_context.scaleY * scale_y;
 #endif
 
     /* Set scale matrix. */
@@ -185,10 +151,6 @@ vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matri
 
     /* Multiply with current matrix. */
     multiply(matrix, &r);
-
-#if VG_BLIT_WORKAROUND
-    multiply(&s_context.matrix_for_blit, &r);
-#endif
 
 #if VG_SW_BLIT_PRECISION_OPT
     matrix->angle = matrix->angle + degrees;
