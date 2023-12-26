@@ -1548,11 +1548,13 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
                 }
             }
         }
+#if (CHIPID == 0x355)
         if (path_re)
         {
             vg_lite_os_free(path_re);
             path_re = NULL;
         }
+#endif
     }
     /* Setup tessellation loop. */
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
