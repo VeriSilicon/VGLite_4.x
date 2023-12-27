@@ -204,7 +204,7 @@ struct client_data {
 };
 
 /* Data and objects declarations. */
-static vg_lite_int32_t heap_size = 8 << 20;     /* Default heap size is 16MB. */
+static vg_lite_int32_t heap_size = 64 << 20;     /* Default heap size is 16MB. */
 module_param(heap_size, int, S_IRUGO);
 
 static vg_lite_int32_t verbose = 0;
@@ -2032,9 +2032,18 @@ static void vg_lite_exit(void)
         }
 
 #ifndef USE_RESERVE_MEMORY
-        if (device->pages != NULL) {
-            /* Free the contiguous memory. */
-            __free_pages(device->pages, device->order);
+        if (device->virtual[0] != NULL)
+        {
+            struct device* dev = (struct device*)&device->pdev->dev;
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64
+            dma_free_coherent(dev, device->size[0], device->virtual[0], device->physical[0]);
+#else
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+            dma_free_wc(dev, device->size[0], device->virtual[0], device->physical[0]);
+#else
+            dma_free_writecombine(dev, device->size[0], device->virtual[0], device->physical[0]);
+#endif
+#endif
         }
 #endif
         if (device->irq_enabled) {
@@ -2107,6 +2116,10 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     struct heap_node *node;
     vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_uint32_t gfp = GFP_KERNEL | __GFP_NOWARN;
+    dma_addr_t dma_addr = 0;
+    vg_lite_pointer _klogical = NULL;
+    struct device* dev = (struct device*)&device->pdev->dev;
 
     device->pdev = pdev;
 
@@ -2125,24 +2138,26 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     /* Allocate the contiguous memory. */
 #ifndef USE_RESERVE_MEMORY
     /* Allocate the contiguous memory. */
-    for (device->order = get_order(heap_size); device->order > 0; device->order--) {
-        /* Allocate with the current amount. */
-        device->pages = alloc_pages(GFP_KERNEL, device->order);
-        if (device->pages != NULL)
-            break;
-    }
-
+#if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !gcdVG_ENABLE_WRITEBUFFER
+    _klogical = dma_alloc_coherent(dev, heap_size, &dma_addr, gfp);
+    printk("alloc id:1");
+#else
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+    _klogical = dma_alloc_wc(dev, heap_size, &dma_addr, gfp);
+# else
+    _klogical = dma_alloc_writecombine(dev, heap_size, &dma_addr, gfp);
+# endif
+#endif
     /* Check if we allocated any contiguous memory or not. */
-    if (device->pages == NULL) {
-        vg_lite_exit();
-        vg_lite_kernel_error("alloc_pages failed, ");
-        ONERROR(VG_LITE_OUT_OF_RESOURCES);
-    }
-
+    if (!dma_addr) {
+       vg_lite_exit();
+       vg_lite_kernel_error("dma_alloc_coherent failed, ");
+       ONERROR(VG_LITE_OUT_OF_RESOURCES);
+   }
     /* Save contiguous memory. */
-    device->virtual[0] = page_address(device->pages);
-    device->physical[0] = virt_to_phys(device->virtual[0]);
-    device->size[0] = ((1 << (device->order + PAGE_SHIFT)) > MAX_CONTIGUOUS_SIZE) ? MAX_CONTIGUOUS_SIZE : (1 << (device->order + PAGE_SHIFT));
+    device->virtual[0] = _klogical;
+    device->physical[0] = dma_addr;
+    device->size[0] = heap_size;
 #else
 
     device->physical[0] = device->contiguous_bases[0];
