@@ -2140,7 +2140,6 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     /* Allocate the contiguous memory. */
 #if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !gcdVG_ENABLE_WRITEBUFFER
     _klogical = dma_alloc_coherent(dev, heap_size, &dma_addr, gfp);
-    printk("alloc id:1");
 #else
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
     _klogical = dma_alloc_wc(dev, heap_size, &dma_addr, gfp);
