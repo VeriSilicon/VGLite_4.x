@@ -2116,11 +2116,12 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     struct heap_node *node;
     vg_lite_uint32_t i;
     vg_lite_error_t error = VG_LITE_SUCCESS;
+#ifndef USE_RESERVE_MEMORY
     vg_lite_uint32_t gfp = GFP_KERNEL | __GFP_NOWARN;
     dma_addr_t dma_addr = 0;
     vg_lite_pointer _klogical = NULL;
     struct device* dev = (struct device*)&device->pdev->dev;
-
+#endif
     device->pdev = pdev;
 
     /* Map the GPU registers. */
