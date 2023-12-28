@@ -3847,23 +3847,23 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    {
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (source->tiled == 1) {
         uint32_t align, mult, divi;
         get_format_bytes(source->format, &mult, &divi, &align);
-
-        if ((uint32_t)(source->address) % 64 != 0) {
-            printf("buffer address need to be aglined to 64 byte.");
+        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
         }
-
+    }
+#if gcFEATURE_VG_16PIXELS_ALIGNED
+    {
         if (source->tiled == 0) {
+            uint32_t align, mult, divi;
+            get_format_bytes(source->format, &mult, &divi, &align);
             if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-        else {
-            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }

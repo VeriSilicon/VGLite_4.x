@@ -2244,7 +2244,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
+#if gcFEATURE_VG_16PIXELS_ALIGNED
     {
         uint32_t tile_flag = 0;
         uint32_t tile_flag1 = 0;
@@ -2252,7 +2252,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         get_format_bytes(target->format, &mul, &div, &align);
 
         if ((uint32_t)(target->address) % 64 != 0) {
-            printf("target address need to be aligned to 64.");
+            printf("target address need to be aligned to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
         }
         if (target->tiled == VG_LITE_TILED) {
@@ -2267,6 +2267,8 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             tile_flag1 = 1;
         }
 #endif
+
+#if gcFEATURE_VG_TILED_LIMIT
         if (tile_flag1 ^ tile_flag) {
             if (mul / div != 3) {
                 if (target->stride % 64 != 0) {
@@ -2279,7 +2281,41 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
                 }
             }
         }
+#else
+        if (tile_flag1 ^ tile_flag) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+#endif
     }
+#else
+#if gcFEATURE_VG_TILED_LIMIT
+    uint32_t align, mul, div;
+    get_format_bytes(target->format, &mul, &div, &align);
+    if (target->tiled == VG_LITE_TILED) {
+#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0)
+        if ((mul / div == 3) && ((uint32_t)(target->address) % 64 != 0))
+        {
+            printf("target address need to be aligned to 64 byte.");
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+
+#endif
+        if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#if gcFEATURE_VG_24BIT_PLANAR
+    if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
+        if ((uint32_t)(target->address) % 32 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        if ((uint32_t)(target->yuv.alpha_planar) % 16 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#endif
+
+#endif
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
@@ -2580,7 +2616,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
              !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask)
         {
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
+#if gcFEATURE_VG_16PIXELS_ALIGNED
             uint32_t align, mul, div;
             get_format_bytes(target->format, &mul, &div, &align);
 
@@ -3127,23 +3163,23 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    {
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (source->tiled == 1) {
         uint32_t align, mult, divi;
         get_format_bytes(source->format, &mult, &divi, &align);
-
-        if ((uint32_t)(source->address) % 64 != 0) {
-            printf("buffer address need to be aglined to 64 byte.");
+        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
         }
-
+    }
+#if gcFEATURE_VG_16PIXELS_ALIGNED
+    {
         if (source->tiled == 0) {
+            uint32_t align, mult, divi;
+            get_format_bytes(source->format, &mult, &divi, &align);
             if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-        else {
-            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
@@ -3912,23 +3948,23 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if (gcFEATURE_VG_TILED_LIMIT && gcFEATURE_VG_16PIXELS_ALIGNED)
-    {
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (source->tiled == 1) {
         uint32_t align, mult, divi;
         get_format_bytes(source->format, &mult, &divi, &align);
-
-        if ((uint32_t)(source->address) % 64 != 0) {
-            printf("buffer address need to be aglined to 64 byte.");
+        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
         }
-
+    }
+#if gcFEATURE_VG_16PIXELS_ALIGNED
+    {
         if (source->tiled == 0) {
+            uint32_t align, mult, divi;
+            get_format_bytes(source->format, &mult, &divi, &align);
             if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-        else {
-            if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
