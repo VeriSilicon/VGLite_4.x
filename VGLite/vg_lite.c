@@ -2293,7 +2293,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     get_format_bytes(target->format, &mul, &div, &align);
     if (target->tiled == VG_LITE_TILED) {
 #if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0)
-        if ((mul / div == 3) && ((uint32_t)(target->address) % 64 != 0))
+        if ((target->compress_mode != VG_LITE_DEC_DISABLE) && (mul / div == 3) && ((uint32_t)(target->address) % 64 != 0))
         {
             printf("target address need to be aligned to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
