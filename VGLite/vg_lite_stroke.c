@@ -4296,7 +4296,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     if (path == NULL || path_data == NULL)
         return VG_LITE_INVALID_ARGUMENT;
 
-    /* replace close to end for path_data */
+    /* Path data cannot end with a CLOSE op. Replace CLOSE with END for path_data */
     data_size = get_data_size(data_format);
     num = path_length / data_size;
 
