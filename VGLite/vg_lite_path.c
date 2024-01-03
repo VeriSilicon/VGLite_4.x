@@ -1247,8 +1247,8 @@ static vg_lite_error_t set_interpolation_steps_draw_paint(vg_lite_buffer_t* targ
 
 /* GC355/GC255 vg_lite_draw API implementation
  */
-vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
-                             vg_lite_path_t * path,
+vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
+                             vg_lite_path_t *path,
                              vg_lite_fill_t fill_rule,
                              vg_lite_matrix_t * matrix,
                              vg_lite_blend_t blend,
@@ -1264,12 +1264,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     int x, y, width, height;
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
-
 #if(CHIPID == 0x355)
-    uint8_t* path_re;
-    path_re = (uint8_t*)vg_lite_os_malloc(path->path_length);
-    memset(path_re, 0, path->path_length);
+    uint8_t *path_re = NULL;
+    uint32_t index = 0;
 #endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw %p %p %d %p %d 0x%08X\n", target, path, fill_rule, matrix, blend, color);
     VGLITE_LOG("    path_type %d, path_length %d, stroke_size %d\n", path->path_type, path->path_length, path->stroke_size);
@@ -1461,62 +1460,75 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix->m[1][2]));
 
     /* Setup tessellation loop. */
-    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
-#if (CHIPID == 0x355) /* Refine GC355 path data. */
-        if ((path->format == VG_LITE_S16) || (path->format == VG_LITE_S32) || (path->format == VG_LITE_FP32))
+    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
+    {
+#if (CHIPID == 0x355) /* Need to patch path data for GC355. */
+        if (path->format == VG_LITE_S16 || path->format == VG_LITE_S32 || path->format == VG_LITE_FP32)
         {
-            uint32_t opcode_count = 0;
-            uint32_t index = 0;
-            uint32_t data_size, dataCount;
+            uint32_t data_size, dataCount, i;
             uint8_t* path_data = (uint8_t*)path->path;
             uint32_t offset = 0;
             uint8_t* pathc;
-            uint8_t flag = 0;
-            if (!path_re)
-            {
+
+            path_re = (uint8_t*)vg_lite_os_malloc(path->path_length);
+            memset(path_re, 0, path->path_length);
+            if (!path_re) {
                 return VG_LITE_OUT_OF_RESOURCES;
             }
             pathc = path_re;
+
             data_size = get_data_size(path->format);
-            while (offset < path->path_length)
+            switch (data_size)
             {
-                if (path->format == VG_LITE_S16)
+            case 2:
+                while (offset < path->path_length)
                 {
-                    flag = ((offset - data_size >= 0) && ((*(uint16_t*)(&(path_data[offset - data_size]))) == VLC_OP_CLOSE)
-                        && (((*(uint16_t*)(&(path_data[offset]))) == VLC_OP_MOVE) || ((*(uint16_t*)(&(path_data[offset]))) == VLC_OP_MOVE_REL)));
-                }
-                else
-                {
-                    flag = ((offset - data_size >= 0) && ((*(uint32_t*)(&(path_data[offset - data_size]))) == VLC_OP_CLOSE)
-                        && (((*(uint32_t*)(&(path_data[offset]))) == VLC_OP_MOVE) || ((*(uint32_t*)(&(path_data[offset]))) == VLC_OP_MOVE_REL)));
-                }
-                if (flag)
-                {
-                    if (((*(uint32_t*)(&(path_data[offset]))) == VLC_OP_MOVE))
+                    if ((offset - 2 >= 0) && ((*(uint16_t*)&path_data[offset - 2]) == VLC_OP_CLOSE) &&
+                        (((*(uint16_t*)&path_data[offset]) == VLC_OP_MOVE) || ((*(uint16_t*)&path_data[offset]) == VLC_OP_MOVE_REL)))
                     {
-                        *(pathc + index - data_size + 1) = VLC_OP_MOVE;
+                        *(pathc + index - 1) = (uint8_t)(*(uint16_t*)&path_data[offset]);
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 2;
                     }
                     else
                     {
-                        *(pathc + index - data_size + 1) = VLC_OP_MOVE_REL;
+                        *(uint16_t*)(pathc + index) = *(uint16_t*)&path_data[offset];
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 2;
+                        index += 2;
                     }
-                    dataCount = get_data_count(path_data[offset]);
+                    for (i = 0; i < dataCount; i++) {
+                        *(uint16_t*)(pathc + index) = *(uint16_t*)&path_data[offset];
+                        offset += 2;
+                        index += 2;
+                    }
                 }
-                else
+                break;
+
+            case 4:
+                while (offset < path->path_length)
                 {
-                    *(pathc + index) = path_data[offset];
-                    dataCount = get_data_count(path_data[offset]);
-                    index++;
+                    if ((offset - 4 >= 0) && ((*(uint32_t*)&path_data[offset - 4]) == VLC_OP_CLOSE) &&
+                        (((*(uint32_t*)&path_data[offset]) == VLC_OP_MOVE) || ((*(uint32_t*)&path_data[offset]) == VLC_OP_MOVE_REL)))
+                    {
+                        *(pathc + index - 3) = (uint8_t)(*(uint32_t*)&path_data[offset]);
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 4;
+                    }
+                    else
+                    {
+                        *(uint32_t*)(pathc + index) = *(uint32_t*)&path_data[offset];
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 4;
+                        index += 4;
+                    }
+                    for (i = 0; i < dataCount; i++) {
+                        *(uint32_t*)(pathc + index) = *(uint32_t*)&path_data[offset];
+                        offset += 4;
+                        index += 4;
+                    }
                 }
-                offset++;
-                offset = CDALIGN(offset, data_size);
-                index = CDALIGN(index, data_size);
-                for (int i = 0; i < dataCount; i++)
-                {
-                    memcpy(pathc + index, (uint8_t*)path->path + offset, data_size);
-                    offset += data_size;
-                    index += data_size;
-                }
+                break;
             }
         }
 #endif
@@ -1534,13 +1546,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
                 } 
                 else {
 #if (CHIPID == 0x355)
-                    if (path->format == VG_LITE_S8)
-                    {
+                    if (path->format == VG_LITE_S8) {
                         VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                     }
-                    else
-                    {
-                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path_re));
+                    else {
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, index, path_re));
                     }
 #else
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
@@ -1549,8 +1559,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t * target,
             }
         }
 #if (CHIPID == 0x355)
-        if (path_re)
-        {
+        if (path_re) {
             vg_lite_os_free(path_re);
             path_re = NULL;
         }
