@@ -2216,18 +2216,28 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
-    int32_t tile_setting;
-    int32_t stride;
-    uint8_t flexa_mode = 0;
+    uint32_t tile_setting;
+    uint32_t flexa_mode = 0;
     uint32_t compress_mode = 0;
     uint32_t mirror_mode = 0;
     uint32_t premultiply_dst = 0;
     uint32_t rgb_alphadiv = 0;
     uint32_t read_dest = 0;
     uint32_t dst_format = 0;
+    uint32_t rt_changed = 0;
 
-    if (target == NULL)
+    if (target == NULL) {
         return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    /* Check if render target parameters are really changed. */
+    if (memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) {
+        rt_changed = 1;
+    }
+    /* Simply return if render target, scissor, mirror, gamma, flexa states are not changed. */
+    if (!rt_changed && !s_context.scissor_dirty && !s_context.mirror_dirty && !s_context.gamma_dirty && !s_context.flexa_dirty) {
+        return VG_LITE_SUCCESS;
+    }
 
 #if gcFEATURE_VG_ERROR_CHECK
 #if !gcFEATURE_VG_YUV_OUTPUT
@@ -2323,19 +2333,18 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     update_fc_buffer(target);
 #endif
 
-    if (((target->format >= VG_LITE_YUY2) &&
-         (target->format <= VG_LITE_AYUY2)) ||
-        ((target->format >= VG_LITE_YUY2_TILED) &&
-         (target->format <= VG_LITE_AYUY2_TILED)))
-    {
-        yuv2rgb = convert_yuv2rgb(target->yuv.yuv2rgb);
-        uv_swiz = convert_uv_swizzle(target->yuv.swizzle);
-    }
+    /* Flush previous render target before setting the new render target. */
+    vg_lite_finish();
 
-    /* Program render target. */
-    if (s_context.rtbuffer != target || memcmp(s_context.rtbuffer,target,sizeof(vg_lite_buffer_t)) || (s_context.flexa_dirty != 0) ||
-       (s_context.mirror_dirty != 0) || (s_context.gamma_dirty != 0))
+    /* Program render target states */
     {
+        if (((target->format >= VG_LITE_YUY2) && (target->format <= VG_LITE_AYUY2)) ||
+            ((target->format >= VG_LITE_YUY2_TILED) && (target->format <= VG_LITE_AYUY2_TILED)))
+        {
+            yuv2rgb = convert_yuv2rgb(target->yuv.yuv2rgb);
+            uv_swiz = convert_uv_swizzle(target->yuv.swizzle);
+        }
+
         VG_LITE_RETURN_ERROR(check_compress(target->format, target->compress_mode, target->tiled, target->width, target->height));
         if (target->tiled == VG_LITE_TILED) {
             if ((target->stride % DEST_ALIGNMENT_LIMITATION) != 0)
@@ -2352,7 +2361,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 #endif
             mirror_mode = 1 << 16;
         }
-        compress_mode = (uint32_t)target->compress_mode << 25;
+        compress_mode = ((uint32_t)target->compress_mode) << 25;
 
         if (s_context.premultiply_dst == s_context.premultiply_src && s_context.pre_mul == 0) {
             premultiply_dst = 0x00000100;
@@ -2363,11 +2372,9 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 #if gcFEATURE_VG_HW_PREMULTIPLY
         rgb_alphadiv = 0x00000200;
 #endif
-
 #if gcFEATURE_VG_USE_DST
         read_dest = 0x00100000;
 #endif
-
         dst_format = convert_target_format(target->format, s_context.capabilities);
         if (dst_format == 0xFF) {
             printf("Target format: 0x%x is not supported.\n", target->format);
@@ -2377,22 +2384,10 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
             dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
 
-        /* Skip if render target and scissor are not changed. */
-        if ((s_context.rtbuffer != NULL) &&
-            !(memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) &&
-            (s_context.scissor_dirty == 0) && (s_context.mirror_dirty == 0) &&
-            (s_context.gamma_dirty == 0))
-        {
-            return VG_LITE_SUCCESS;
-        }
-        /* Flush target if necessary when switching. */
-        if (s_context.rtbuffer && s_context.rtbuffer->memory) {
-            vg_lite_finish();
-        }
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
 
-        if (s_context.flexa_dirty  && !s_context.flexa_mode && s_context.tessbuf.tessbuf_size) {
+        if (s_context.flexa_dirty && !s_context.flexa_mode && s_context.tessbuf.tessbuf_size) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AC8, s_context.tessbuf.tessbuf_size -64));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AC8, s_context.tessbuf.tessbuf_size));
             s_context.flexa_dirty = 0;
@@ -2411,15 +2406,14 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
         /* 24bit format stride configured to 4bpp. */
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
-            stride = target->stride / 3 * 4;
+            uint32_t stride = target->stride / 3 * 4;
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, stride | tile_setting));
         }
         else {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, target->stride | tile_setting));
         }
-    }
 
-    if (s_context.scissor_dirty != 0) {
+        /* Set scissor rectangle on the render target */
         if (s_context.scissor_set) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A13, s_context.scissor[2] | (s_context.scissor[3] << 16)));
         }
@@ -2428,16 +2422,13 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
         s_context.scissor_dirty = 0;
     }
-    else {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A13, target->width | (target->height << 16)));
-    }
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("    set_render_target %p (%d, %d)\n", target, target->width, target->height);
 #endif
 
-    if (s_context.rtbuffer)
-    {
+    /* Copy the current render target parameters into s_context.rtbuffer */
+    if (rt_changed) {
         memcpy(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t));
     }
 
@@ -5427,9 +5418,7 @@ vg_lite_error_t vg_lite_finish()
 
 #if gcFEATURE_VG_IM_FASTCLEAR
 #if VG_TARGET_FC_DUMP
-    if (s_context.rtbuffer != NULL) {
-        fc_buf_dump(s_context.rtbuffer, &s_context.fcBuffer);
-    }
+    fc_buf_dump(s_context.rtbuffer, &s_context.fcBuffer);
 #endif
 #endif
 
