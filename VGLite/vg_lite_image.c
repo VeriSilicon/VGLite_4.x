@@ -949,6 +949,180 @@ vg_lite_error_t vg_lite_set_gamma(vg_lite_gamma_conversion_t gamma_value)
 #endif
 }
 
+/* Set s_context.gamma_value base on target buffer */
+vg_lite_void set_gamma_dest_only(vg_lite_buffer_t *target, vg_lite_int32_t stencil)
+{
+    uint32_t gamma_value = 0;
+
+    /* Set gamma configuration of source buffer */
+    /* Openvg paintcolor defaults to SRGB */
+    s_context.gamma_src = 1;
+
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
+    {
+        s_context.gamma_dst = 0;
+    } 
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+
+    if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+    {
+        gamma_value = 0x00002000;
+    }
+    else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+    {
+        gamma_value = 0x00001000;
+    }
+    else
+    {
+        gamma_value = 0x00000000;
+    }
+
+    if (stencil && target->image_mode == VG_LITE_STENCIL_MODE)
+    {
+        s_context.gamma_stencil = gamma_value;
+        gamma_value = 0x00000000;
+    }
+
+    if (gamma_value != s_context.gamma_value)
+    {
+        s_context.gamma_value = gamma_value;
+        s_context.gamma_dirty = 1;
+    }
+}
+
+/* Set s_context.gamma_value base on source and target buffers */
+vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t *source, vg_lite_buffer_t *target)
+{
+    uint32_t gamma_value = 0;
+
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
+        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
+        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
+        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
+        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
+    {
+        s_context.gamma_src = 0;
+    }
+    else
+    {
+        s_context.gamma_src = 1;
+    }
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
+    {
+        s_context.gamma_dst = 0;
+    }
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+
+    if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+    {
+        gamma_value = 0x00002000;
+    }
+    else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+    {
+        gamma_value = 0x00001000;
+    }
+    else
+    {
+        gamma_value = 0x00000000;
+    }
+
+    if (source->image_mode == VG_LITE_STENCIL_MODE)
+    {
+        if (source->paintType == VG_LITE_PAINT_PATTERN
+            || source->paintType == VG_LITE_PAINT_RADIAL_GRADIENT
+            || source->paintType == VG_LITE_PAINT_LINEAR_GRADIENT) {
+            gamma_value = s_context.gamma_stencil;
+        }
+        else if (source->paintType == VG_LITE_PAINT_COLOR && s_context.gamma_dst == 0) {
+            gamma_value = 0x00001000;
+        }
+        else {
+            gamma_value = 0x00000000;
+        }
+    }
+
+    if (gamma_value != s_context.gamma_value)
+    {
+        s_context.gamma_value = gamma_value;
+        s_context.gamma_dirty = 1;
+    }
+}
+
+/* Set s_context.gamma_value base on source and target buffers */
+vg_lite_void save_st_gamma_src_dest(vg_lite_buffer_t *source, vg_lite_buffer_t *target)
+{
+    uint32_t gamma_value = 0;
+
+    /* Set gamma configuration of source buffer */
+    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
+        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
+        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
+        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
+        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
+    {
+        s_context.gamma_src = 0;
+    }
+    else
+    {
+        s_context.gamma_src = 1;
+    }
+    /* Set gamma configuration of dst buffer */
+    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
+        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
+        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
+        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
+        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
+    {
+        s_context.gamma_dst = 0;
+    }
+    else
+    {
+        s_context.gamma_dst = 1;
+    }
+
+    if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
+    {
+        gamma_value = 0x00002000;
+    }
+    else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
+    {
+        gamma_value = 0x00001000;
+    }
+    else
+    {
+        gamma_value = 0x00000000;
+    }
+
+    if (target->image_mode == VG_LITE_STENCIL_MODE)
+    {
+        s_context.gamma_stencil = gamma_value;
+        gamma_value = 0x00000000;
+    }
+
+    if (gamma_value != s_context.gamma_value)
+    {
+        s_context.gamma_value = gamma_value;
+        s_context.gamma_dirty = 1;
+    }
+}
+
 vg_lite_error_t vg_lite_enable_color_transform()
 {
 #if gcFEATURE_VG_COLOR_TRANSFORMATION

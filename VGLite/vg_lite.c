@@ -2463,38 +2463,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
 #endif
 
 #if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    /* Openvg paintcolor defaults to SRGB */
-    s_context.gamma_src = 1;
-
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
-        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
-        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
-        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-    s_context.gamma_dirty = 1;
+    set_gamma_dest_only(target, VGL_FALSE);
 #endif
 
     if (target->premultiplied) {
@@ -3267,61 +3236,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 
 #if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
-        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
-        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
-        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
-        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_src = 0;
-    }
-    else
-    {
-        s_context.gamma_src = 1;
-    }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
-        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
-        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
-        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        if (source->paintType == VG_LITE_PAINT_PATTERN 
-            || source->paintType == VG_LITE_PAINT_RADIAL_GRADIENT
-            || source->paintType == VG_LITE_PAINT_LINEAR_GRADIENT) {
-            s_context.gamma_value = s_context.gamma_stencil;
-        }
-        else if (source->paintType == VG_LITE_PAINT_COLOR && s_context.gamma_dst == 0) {
-            s_context.gamma_value = 0x00001000;
-        }
-        else {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-    s_context.gamma_dirty = 1;
+    get_st_gamma_src_dest(source, target);
 #endif
 
     /*blend input into context*/
@@ -4033,61 +3948,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 
 #if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
-        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
-        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
-        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
-        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_src = 0;
-    }
-    else
-    {
-        s_context.gamma_src = 1;
-    }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
-        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
-        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
-        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        if (source->paintType == VG_LITE_PAINT_PATTERN
-            || source->paintType == VG_LITE_PAINT_RADIAL_GRADIENT
-            || source->paintType == VG_LITE_PAINT_LINEAR_GRADIENT) {
-            s_context.gamma_value = s_context.gamma_stencil;
-        }
-        else if (source->paintType == VG_LITE_PAINT_COLOR && s_context.gamma_dst == 0) {
-            s_context.gamma_value = 0x00001000;
-        }
-        else {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-    s_context.gamma_dirty = 1;
+    get_st_gamma_src_dest(source, target);
 #endif
 
     /*blend input into context*/
@@ -6454,61 +6315,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     }
 
 #if gcFEATURE_VG_GAMMA
-    /* Set gamma configuration of source buffer */
-    if ((source->format >= OPENVG_lRGBX_8888 && source->format <= OPENVG_A_4) ||
-        (source->format >= OPENVG_lXRGB_8888 && source->format <= OPENVG_lARGB_8888_PRE) ||
-        (source->format >= OPENVG_lBGRX_8888 && source->format <= OPENVG_lBGRA_8888_PRE) ||
-        (source->format >= OPENVG_lXBGR_8888 && source->format <= OPENVG_lABGR_8888_PRE) ||
-        (source->format >= OPENVG_lRGBX_8888_PRE && source->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_src = 0;
-    }
-    else
-    {
-        s_context.gamma_src = 1;
-    }
-    /* Set gamma configuration of dst buffer */
-    if ((target->format >= OPENVG_lRGBX_8888 && target->format <= OPENVG_A_4) ||
-        (target->format >= OPENVG_lXRGB_8888 && target->format <= OPENVG_lARGB_8888_PRE) ||
-        (target->format >= OPENVG_lBGRX_8888 && target->format <= OPENVG_lBGRA_8888_PRE) ||
-        (target->format >= OPENVG_lXBGR_8888 && target->format <= OPENVG_lABGR_8888_PRE) ||
-        (target->format >= OPENVG_lRGBX_8888_PRE && target->format <= OPENVG_lRGBA_4444_PRE))
-    {
-        s_context.gamma_dst = 0;
-    }
-    else
-    {
-        s_context.gamma_dst = 1;
-    }
-    if (s_context.gamma_dirty == 0) {
-        if (s_context.gamma_src == 0 && s_context.gamma_dst == 1)
-        {
-            s_context.gamma_value = 0x00002000;
-        }
-        else if (s_context.gamma_src == 1 && s_context.gamma_dst == 0)
-        {
-            s_context.gamma_value = 0x00001000;
-        }
-        else
-        {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        if (source->paintType == VG_LITE_PAINT_PATTERN
-            || source->paintType == VG_LITE_PAINT_RADIAL_GRADIENT
-            || source->paintType == VG_LITE_PAINT_LINEAR_GRADIENT) {
-            s_context.gamma_value = s_context.gamma_stencil;
-        }
-        else if (source->paintType == VG_LITE_PAINT_COLOR && s_context.gamma_dst == 0) {
-            s_context.gamma_value = 0x00001000;
-        }
-        else {
-            s_context.gamma_value = 0x00000000;
-        }
-    }
-    s_context.gamma_dirty = 1;
+    get_st_gamma_src_dest(source, target);
 #endif
 
     /*blend input into context*/

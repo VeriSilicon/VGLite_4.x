@@ -225,6 +225,9 @@ extern vg_lite_error_t push_stall(vg_lite_context_t* context, uint32_t module);
 extern void* vg_lite_os_malloc(size_t size);
 extern void  vg_lite_os_free(void* memory);
 
+extern vg_lite_void set_gamma_dest_only(vg_lite_buffer_t *target, vg_lite_int32_t stencil);
+extern vg_lite_void save_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
+extern vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
 
 /**************************** Dump command, image ********************************************/
 
