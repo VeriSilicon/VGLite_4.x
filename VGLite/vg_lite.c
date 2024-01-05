@@ -2363,12 +2363,10 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         }
         compress_mode = ((uint32_t)target->compress_mode) << 25;
 
-        if (s_context.premultiply_dst == s_context.premultiply_src && s_context.pre_mul == 0) {
+        if (target->premultiplied || target->apply_premult) {
             premultiply_dst = 0x00000100;
         }
-        else if (s_context.premultiply_dst) {
-            premultiply_dst = 0x00000100;
-        }
+
 #if gcFEATURE_VG_HW_PREMULTIPLY
         rgb_alphadiv = 0x00000200;
 #endif
@@ -2499,38 +2497,13 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     s_context.gamma_dirty = 1;
 #endif
 
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-    switch (target->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_dst = 1;
-        break;
-    default:
-        break;
-    };
-    if (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) {
-        in_premult = 0x10000000;
-    }
-    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
-        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+    if (target->premultiplied) {
         in_premult = 0x00000000;
+        target->apply_premult = 0;
+    }
+    else {
+        in_premult = 0x10000000;
+        target->apply_premult = 1;
     }
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
@@ -2635,11 +2608,6 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         /* flush VGPE after clear */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
     }
-
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     /* Success. */
     return VG_LITE_SUCCESS;
@@ -3358,56 +3326,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
     in_premult = 0x00000000;
 
-    switch (source->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_src = 1;
-        break;
-    default:
-        break;
-    };
-    switch (target->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_dst = 1;
-        break;
-    default:
-        break;
-    };
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
@@ -3424,27 +3346,27 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         s_context.pre_mul = 0;
     }
 
-    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
-        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
-              (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+    else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
+              (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
-             (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
+             (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT){
+    if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
 #if (CHIPID==0x255)
         src_premultiply_enable = 0x00000000;
 #endif
@@ -3455,6 +3377,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
+    }
+    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+        target->apply_premult = 1;
+    }
+    else {
+        target->apply_premult = 0;
+    }
+
+    error = set_render_target(target);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
     }
 
 #if VG_SW_BLIT_PRECISION_OPT
@@ -3494,11 +3427,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         point_min.y = 0;
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
-
-    error = set_render_target(target);
-    if (error != VG_LITE_SUCCESS) {
-        return error;
-    }
 
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
@@ -3793,8 +3721,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         error = flush_target();
     }
 
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
 
@@ -4166,56 +4092,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
     in_premult = 0x00000000;
 
-    switch (source->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_src = 1;
-        break;
-    default:
-        break;
-    };
-    switch (target->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_dst = 1;
-        break;
-    default:
-        break;
-    };
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
@@ -4232,23 +4112,23 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         s_context.pre_mul = 0;
     }
 
-    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
-        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if(s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0){
+    else if(source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0){
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
-              (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+    else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
+              (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
-             (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
+             (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -4263,6 +4143,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
+    }
+    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+        target->apply_premult = 1;
+    }
+    else {
+        target->apply_premult = 0;
     }
 
     error = set_render_target(target);
@@ -4505,8 +4391,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         error = flush_target();
     }
 
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
 
@@ -4671,8 +4555,6 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     s_context.path_counter = 0;
 
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
-    s_context.premultiply_src = 0;
-    s_context.premultiply_dst = 0;
 
 #if DUMP_CAPTURE
     _SetDumpFileInfo();
@@ -5019,15 +4901,29 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
     if (buffer->format < VG_LITE_RGBA8888)
     {   /* For all OpenVG VG_* formats */
 #if gcFEATURE_VG_HW_PREMULTIPLY
-        if (buffer->format == OPENVG_sRGBA_8888_PRE || buffer->format == OPENVG_lRGBA_8888_PRE ||
-            buffer->format == OPENVG_sARGB_8888_PRE || buffer->format == OPENVG_lARGB_8888_PRE ||
-            buffer->format == OPENVG_sBGRA_8888_PRE || buffer->format == OPENVG_lBGRA_8888_PRE ||
-            buffer->format == OPENVG_sABGR_8888_PRE || buffer->format == OPENVG_lABGR_8888_PRE) {
-            buffer->premultiplied = 1;
-        }
-        else {
-            buffer->premultiplied = 0;
-        }
+        switch (buffer->format) {
+            case OPENVG_sRGBA_8888_PRE:
+            case OPENVG_lRGBA_8888_PRE:
+            case OPENVG_sARGB_8888_PRE:
+            case OPENVG_lARGB_8888_PRE:
+            case OPENVG_sBGRA_8888_PRE:
+            case OPENVG_lBGRA_8888_PRE:
+            case OPENVG_sABGR_8888_PRE:
+            case OPENVG_lABGR_8888_PRE:
+            case OPENVG_sRGBX_8888_PRE:
+            case OPENVG_lRGBX_8888_PRE:
+            case OPENVG_sRGB_565_PRE:
+            case OPENVG_lRGB_565_PRE:
+            case OPENVG_sRGBA_5551_PRE:
+            case OPENVG_lRGBA_5551_PRE:
+            case OPENVG_sRGBA_4444_PRE:
+            case OPENVG_lRGBA_4444_PRE:
+                buffer->premultiplied = 1;
+                break;
+            default:
+                buffer->premultiplied = 0;
+                break;
+        };
 #else
         /* Cannot support OpenVG VG_* format if HW does not support premultiply */
         return VG_LITE_INVALID_ARGUMENT;
@@ -6616,56 +6512,10 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #endif
 
     /*blend input into context*/
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
     in_premult = 0x00000000;
 
-    switch (source->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_src = 1;
-        break;
-    default:
-        break;
-    };
-    switch (target->format) {
-    case OPENVG_sRGBA_8888_PRE:
-    case OPENVG_lRGBA_8888_PRE:
-    case OPENVG_sARGB_8888_PRE:
-    case OPENVG_lARGB_8888_PRE:
-    case OPENVG_sBGRA_8888_PRE:
-    case OPENVG_lBGRA_8888_PRE:
-    case OPENVG_sABGR_8888_PRE:
-    case OPENVG_lABGR_8888_PRE:
-    case OPENVG_sRGBX_8888_PRE:
-    case OPENVG_lRGBX_8888_PRE:
-    case OPENVG_sRGB_565_PRE:
-    case OPENVG_lRGB_565_PRE:
-    case OPENVG_sRGBA_5551_PRE:
-    case OPENVG_lRGBA_5551_PRE:
-    case OPENVG_sRGBA_4444_PRE:
-    case OPENVG_lRGBA_4444_PRE:
-        s_context.premultiply_dst = 1;
-        break;
-    default:
-        break;
-    };
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
@@ -6676,25 +6526,31 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         s_context.pre_div = 1;
     }
 
-    if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 0) ||
-        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
-    else if ((s_context.premultiply_src == 0 && s_context.premultiply_dst == 1) ||
-        (s_context.premultiply_src == 0 && s_context.premultiply_dst == 0 && s_context.pre_mul == 1)) {
+    else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
+        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((s_context.premultiply_src == 1 && s_context.premultiply_dst == 1 && s_context.pre_div == 1) ||
-        (s_context.premultiply_src == 1 && s_context.premultiply_dst == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
+    }
+    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+        target->apply_premult = 1;
+    }
+    else {
+        target->apply_premult = 0;
     }
 
     error = set_render_target(target);
@@ -6815,8 +6671,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         error = flush_target();
     }
 
-    s_context.premultiply_dst = 0;
-    s_context.premultiply_src = 0;
     s_context.pre_mul = 0;
     s_context.pre_div = 0;
 
