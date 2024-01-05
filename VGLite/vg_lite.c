@@ -2974,6 +2974,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t eco_fifo = 0;
     uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
 #if VG_SW_BLIT_PRECISION_OPT
@@ -3241,43 +3243,41 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-              (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+              (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-             (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+             (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -3293,7 +3293,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -3636,9 +3636,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         error = flush_target();
     }
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #endif
@@ -3686,6 +3683,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t eco_fifo = 0;
     uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit_rect %p %p %p %p %d 0x%08X %d\n", target, source, rect, matrix, blend, color, filter);
@@ -3953,43 +3952,41 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if(source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0){
+    else if(source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0){
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-              (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+              (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-             (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+             (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -4005,7 +4002,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -4251,9 +4248,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (!s_context.flexa_mode) {
         error = flush_target();
     }
-
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
@@ -6108,6 +6102,8 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     uint32_t eco_fifo = 0;
     uint32_t tile_setting = 0;
     uint32_t stripe_mode = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
     vg_lite_color_t color = 0;
 
 #if gcFEATURE_VG_TRACE_API
@@ -6319,41 +6315,39 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #endif
 
     /*blend input into context*/
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -6477,9 +6471,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     if (!s_context.flexa_mode) {
         error = flush_target();
     }
-
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride) * (source->height));

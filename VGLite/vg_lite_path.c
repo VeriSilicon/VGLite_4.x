@@ -1264,6 +1264,8 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     int x, y, width, height;
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 #if(CHIPID == 0x355)
     uint8_t *path_re = NULL;
     uint32_t index = 0;
@@ -1307,31 +1309,20 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     /* Adjust premultiply setting according to openvg condition */
-    if (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) {
-        s_context.pre_mul = 1;
-    }
-    else {
-        s_context.pre_mul = 0;
-    }
-    if (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) {
+    target->apply_premult = 0;
+    premul_flag = (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE);
+    if (target->premultiplied == 0 && premul_flag == 0) {
         in_premult = 0x10000000;
+        target->apply_premult = 1;
     }
-    else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-             (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+    else if ((target->premultiplied == 1) ||
+             (target->premultiplied == 0 && premul_flag == 1)) {
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
-    }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
-        target->apply_premult = 1;
-    }
-    else {
-        target->apply_premult = 0;
     }
 
     error = set_render_target(target);
@@ -1549,9 +1540,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 }
 
@@ -1591,6 +1579,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t in_premult = 0;
     uint32_t src_premultiply_enable = 0;
     uint32_t paintType = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
@@ -1646,43 +1636,41 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -1692,7 +1680,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -1920,9 +1908,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)* (source->height));
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 }
 
@@ -1952,6 +1937,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     uint32_t transparency_mode = 0;
     uint32_t in_premult = 0;
     uint32_t src_premultiply_enable = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
     void *data;
 
     /* The following code is from "draw path" */
@@ -2006,41 +1993,39 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -2053,7 +2038,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -2360,9 +2345,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 }
 
@@ -2392,6 +2374,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     uint32_t transparency_mode = 0;
     uint32_t in_premult = 0;
     uint32_t src_premultiply_enable = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
     void *data;
 
     /* The following code is from "draw path" */
@@ -2471,41 +2455,39 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -2518,7 +2500,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -3046,9 +3028,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 }
 
@@ -3077,6 +3056,8 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     float scale, bias;
     uint32_t tile_setting = 0;
     uint32_t in_premult = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -3132,31 +3113,21 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     /* Adjust premultiply setting according to openvg condition */
-    if (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) {
-        s_context.pre_mul = 1;
-    }
-    else {
-        s_context.pre_mul = 0;
-    }
-    if (target->premultiplied == 0 && s_context.pre_mul == 0) {
+    target->apply_premult = 0;
+    premul_flag = (s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE);
+
+    if (target->premultiplied == 0 && premul_flag == 0) {
         in_premult = 0x10000000;
+        target->apply_premult = 1;
     }
     else if ((target->premultiplied == 1) ||
-             (target->premultiplied == 0 && s_context.pre_mul == 1)) {
+             (target->premultiplied == 0 && premul_flag == 1)) {
         in_premult = 0x00000000;
     }
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
-    }
-    if (target->premultiplied == 0 && s_context.pre_mul == 0) {
-        target->apply_premult = 1;
-    }
-    else {
-        target->apply_premult = 0;
     }
 
     error = set_render_target(target);
@@ -3434,9 +3405,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     }
 #endif
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 }
 
@@ -3492,6 +3460,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t index_endian = 0;
     uint32_t in_premult = 0;
     uint32_t paintType = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -3640,43 +3610,41 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-              (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+              (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-             (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+             (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -3686,7 +3654,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -4114,9 +4082,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -4157,6 +4122,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     uint32_t uv_swiz = 0;
     uint32_t in_premult = 0;
     uint32_t src_premultiply_enable = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
     void* data;
 
     /* The following code is from "draw path" */
@@ -4242,41 +4209,39 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -4289,7 +4254,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -4747,9 +4712,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
 
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
-
     return error;
 #else
     return VG_LITE_NOT_SUPPORT;
@@ -4788,6 +4750,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     uint32_t compress_mode;
     uint32_t in_premult = 0;
     uint32_t src_premultiply_enable = 0;
+    uint32_t premul_flag = 0;
+    uint32_t prediv_flag = 0;
 
     /* The following code is from "draw path" */
     uint32_t format, quality, tiling, fill;
@@ -4892,41 +4856,39 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     /*blend input into context*/
     s_context.blend_mode = blend;
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     src_premultiply_enable = 0x01000100;
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
-        s_context.pre_div = 0;
+        prediv_flag = 0;
     }
     else {
-        s_context.pre_div = 1;
+        prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC_OVER && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE) {
-        s_context.pre_mul = 1;
+        premul_flag = 1;
     }
     else {
-        s_context.pre_mul = 0;
+        premul_flag = 0;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if (source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 0) {
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
     else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && s_context.pre_mul == 1)) {
+        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
-    else if ((source->premultiplied == 1 && target->premultiplied == 1 && s_context.pre_div == 1) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && s_context.pre_div == 1)) {
+    else if ((source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 1) ||
+        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 1)) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -4939,7 +4901,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && s_context.pre_mul == 0) {
+    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
         target->apply_premult = 1;
     }
     else {
@@ -5631,9 +5593,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
-
-    s_context.pre_mul = 0;
-    s_context.pre_div = 0;
 
     return error;
 #else
