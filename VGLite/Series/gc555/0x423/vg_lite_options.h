@@ -91,5 +91,6 @@
 #define gcFEATURE_VG_ERROR_CHECK    1
 #define gcFEATURE_VG_TRACE_API    0
 #define gcFEATURE_VG_POWER_MANAGEMENT           1
+#define gcFEATURE_VG_TILED_MODE    1
 
 #endif
