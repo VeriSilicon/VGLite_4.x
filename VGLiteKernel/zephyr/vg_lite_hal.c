@@ -223,7 +223,7 @@ vg_lite_error_t vg_lite_hal_free(void *memory)
     return error;
 }
 
-vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, void ** logical, void ** klogical, uint32_t * physical, void ** node)
+vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidmem_pool_t pool, void ** logical, void ** klogical, uint32_t * physical, void ** node)
 {
     struct vg_lite_dev_data *data = gp_dev_data;
     unsigned long aligned_size;
