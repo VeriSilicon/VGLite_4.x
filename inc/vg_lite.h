@@ -224,6 +224,7 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_DEC_COMPRESS_2_0,
         gcFEATURE_BIT_VG_NV24_INPUT,
         gcFEATURE_BIT_VG_TILED_LIMIT,
+        gcFEATURE_BIT_TILED_MODE,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 
