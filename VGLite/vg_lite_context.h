@@ -42,11 +42,11 @@
 /*** Global Context Access ***/
 #define GET_CONTEXT()               &s_context
 
-/*** Default command buffer size is 128KB. Double command buffer is used.
+/*** Default command buffer size is 32KB. Double command buffer is used.
      App can call vg_lite_set_command_buffer_size(size) before vg_lite_init()
      to overwrite the default command buffer size.
 ***/
-#define VG_LITE_COMMAND_BUFFER_SIZE (128 << 10)
+#define VG_LITE_COMMAND_BUFFER_SIZE (32 << 10)
 
 #define CMDBUF_BUFFER(context)      (context).command_buffer[(context).command_buffer_current]
 #define CMDBUF_INDEX(context)       (context).command_buffer_current
