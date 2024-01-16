@@ -93,7 +93,10 @@ vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_
             { 0.0f, 1.0f, y },
             { 0.0f, 0.0f, 1.0f }
         },
-        0.0f, 0.0f, 0.0f };
+#if VG_SW_BLIT_PRECISION_OPT
+        0.0f, 0.0f, 0.0f 
+#endif
+    };
 
     /* Multiply with current matrix. */
     multiply(matrix, &t);
@@ -114,7 +117,10 @@ vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, 
             { 0.0f, scale_y, 0.0f },
             { 0.0f, 0.0f, 1.0f }
         },
-        0.0f, 0.0f, 0.0f };
+#if VG_SW_BLIT_PRECISION_OPT
+        0.0f, 0.0f, 0.0f 
+#endif
+    };
 
     /* Multiply with current matrix. */
     multiply(matrix, &s);
@@ -147,7 +153,10 @@ vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matri
             { sin_angle, cos_angle, 0.0f },
             { 0.0f, 0.0f, 1.0f }
         },
-        0.0f, 0.0f, 0.0f };
+#if VG_SW_BLIT_PRECISION_OPT
+        0.0f, 0.0f, 0.0f 
+#endif
+    };
 
     /* Multiply with current matrix. */
     multiply(matrix, &r);

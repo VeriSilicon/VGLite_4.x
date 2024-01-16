@@ -272,7 +272,10 @@ vg_lite_matrix_t    identity_mtx = {
             { 0.0f, 1.0f, 0.0f },
             { 0.0f, 0.0f, 1.0f }
         },
-        0.0f, 0.0f, 0.0f };
+#if VG_SW_BLIT_PRECISION_OPT
+        0.0f, 0.0f, 0.0f 
+#endif
+    };
 
 /* Initialize the feature table of a chip. */
 vg_lite_ftable_t    s_ftable = {
