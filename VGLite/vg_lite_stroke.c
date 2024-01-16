@@ -101,14 +101,6 @@ typedef struct vg_lite_control_coord
     ((1+CoordinateCount) * SIZEOF(CoordinateType))
 
 extern int32_t get_data_size(vg_lite_format_t format);
-#if gcFEATURE_VG_SIMPLYFIED_BEZIER
-extern void quad_bezier(float* x, float* y, const float curve[6], float t);
-extern void cubic_bezier(float* x, float* y, const float curve[8], float t);
-extern void get_aligned_quad(float out[6], float curve[6]);
-extern void get_aligned_cubic(float out[8], float curve[8]);
-extern void split_quad(float out1[6], float out2[6], float curve[6], float split);
-extern void split_cubic(float out1[8], float out2[8], float curve[8], float split);
-#endif
 
 static uint32_t _commandSize_float[] =
 {
@@ -476,7 +468,241 @@ ErrorHandler:
     return status;
 }
 
+#define gcFEATURE_VG_SIMPLYFIED_BEZIER  1
+
 #if gcFEATURE_VG_SIMPLYFIED_BEZIER
+void quad_bezier(float* x, float* y, const float curve[6], float t) {
+    const float* v0, * v1, * v2;
+    float mt, t2, mt2, res[2];
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+
+    mt = 1 - t;
+    t2 = t * t;
+    mt2 = mt * mt;
+
+    for (uint8_t i = 0; i < 2; ++i) {
+        res[i] = v0[i] * mt2 + 2 * v1[i] * mt * t + v2[i] * t2;
+    }
+
+    *x = res[0];
+    *y = res[1];
+}
+
+void cubic_bezier(float* x, float* y, const float curve[8], float t) {
+    const float* v0, * v1, * v2, * v3;
+    float mt, t2, mt2, t3, mt3, res[2];
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+    v3 = &curve[6];
+
+    mt = 1 - t;
+    t2 = t * t;
+    t3 = t2 * t;
+    mt2 = mt * mt;
+    mt3 = mt2 * mt;
+
+    for (uint8_t i = 0; i < 2; ++i) {
+        res[i] = v0[i] * mt3 + 3 * v1[i] * mt2 * t + 3 * v2[i] * mt * t2 + v3[i] * t3;
+    }
+
+    *x = res[0];
+    *y = res[1];
+}
+
+void pointer_warp_affine(float out[2], float pt[2], vg_lite_matrix_t* matrix) {
+    float x, y;
+
+    x = pt[0];
+    y = pt[1];
+
+    out[0] = matrix->m[0][0] * x + matrix->m[1][0] * y + matrix->m[2][0];
+    out[1] = matrix->m[0][1] * x + matrix->m[1][1] * y + matrix->m[2][1];
+}
+
+void get_aligned_quad(float out[6], float curve[6]) {
+    float* v0, * v1, * v2;
+    float angle, dx, dy;
+    vg_lite_matrix_t matrix;
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+
+    dx = v2[0] - v0[0];
+    dy = v2[1] - v0[1];
+    angle = (dy >= 0) ? acosf(dx / sqrtf(dx * dx + dy * dy)) : (2 * 3.1415926535f - acosf(dx / sqrtf(dx * dx + dy * dy)));
+
+    vg_lite_identity(&matrix);
+    vg_lite_translate(-v0[0], -v0[1], &matrix);
+    vg_lite_rotate(-angle, &matrix);
+
+    pointer_warp_affine(&out[0], v0, &matrix);
+    pointer_warp_affine(&out[2], v1, &matrix);
+    pointer_warp_affine(&out[4], v2, &matrix);
+}
+
+void get_aligned_cubic(float out[8], float curve[8]) {
+    float* v0, * v1, * v2, * v3;
+    float angle, dx, dy;
+    vg_lite_matrix_t matrix;
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+    v3 = &curve[6];
+
+    dx = v3[0] - v0[0];
+    dy = v3[1] - v0[1];
+    angle = (dy >= 0) ? acosf(dx / sqrtf(dx * dx + dy * dy)) : (2 * 3.1415926535f - acosf(dx / sqrtf(dx * dx + dy * dy)));
+
+    vg_lite_identity(&matrix);
+    vg_lite_translate(-v0[0], -v0[1], &matrix);
+    vg_lite_rotate(-angle, &matrix);
+
+    pointer_warp_affine(&out[0], v0, &matrix);
+    pointer_warp_affine(&out[2], v1, &matrix);
+    pointer_warp_affine(&out[4], v2, &matrix);
+    pointer_warp_affine(&out[6], v3, &matrix);
+}
+
+void split_quad(float out1[6], float out2[6], float curve[6], float split) {
+    float* v0, * v1, * v2;
+    float s, s2, ms, ms2;
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+
+    s = split;
+    ms = 1 - split;
+    s2 = s * s;
+    ms2 = ms * ms;
+
+    float B[2][3] = {
+        {v0[0], v1[0], v2[0]},
+        {v0[1], v1[1], v2[1]}
+    };
+
+    /* First curve */
+    {
+        float C[2][3] = { {0} };
+        float A[9] = {
+            1, 0, 0,
+            ms, s, 0,
+            ms2, 2 * ms * s, s2
+        };
+        /* C = A ¡Á B */
+        for (uint8_t i = 0; i < 2; ++i) {
+            for (size_t y = 0; y < 3; ++y)
+                for (size_t x = 0; x < 1; ++x)
+                    for (size_t z = 0; z < 3; ++z) {
+                        C[i][x + y * 1] += A[z + y * 3] * B[i][x + z * 1];
+                    }
+        }
+
+        out1[0] = C[0][0]; out1[1] = C[1][0];
+        out1[2] = C[0][1]; out1[3] = C[1][1];
+        out1[4] = C[0][2]; out1[5] = C[1][2];
+    }
+
+    /* Second curve */
+    {
+        float C[2][3] = { {0} };
+        float A[9] = {
+            ms2, 2 * s * ms, s2,
+            0, ms, s,
+            0, 0, 1
+        };
+        /* C = A ¡Á B */
+        for (uint8_t i = 0; i < 2; ++i) {
+            for (size_t y = 0; y < 3; ++y)
+                for (size_t x = 0; x < 1; ++x)
+                    for (size_t z = 0; z < 3; ++z) {
+                        C[i][x + y * 1] += A[z + y * 3] * B[i][x + z * 1];
+                    }
+        }
+
+        out2[0] = C[0][0]; out2[1] = C[1][0];
+        out2[2] = C[0][1]; out2[3] = C[1][1];
+        out2[4] = C[0][2]; out2[5] = C[1][2];
+    }
+}
+
+void split_cubic(float out1[8], float out2[8], float curve[8], float split) {
+    float* v0, * v1, * v2, * v3;
+    float s, s2, s3, ms, ms2, ms3;
+
+    v0 = &curve[0];
+    v1 = &curve[2];
+    v2 = &curve[4];
+    v3 = &curve[6];
+
+    s = split;
+    ms = 1 - split;
+    s2 = s * s;
+    ms2 = ms * ms;
+    s3 = s2 * s;
+    ms3 = ms2 * ms;
+
+    float B[2][4] = {
+        {v0[0], v1[0], v2[0], v3[0]},
+        {v0[1], v1[1], v2[1], v3[1]}
+    };
+
+    /* First curve */
+    {
+        float C[2][4] = { {0} };
+        float A[16] = {
+            1, 0, 0, 0,
+            ms, s, 0, 0,
+            ms2, 2 * ms * s, s2, 0,
+            ms3, 3 * s * ms2, 3 * s2 * ms, s3
+        };
+        /* C = A ¡Á B */
+        for (uint8_t i = 0; i < 2; ++i) {
+            for (size_t y = 0; y < 4; ++y)
+                for (size_t x = 0; x < 1; ++x)
+                    for (size_t z = 0; z < 4; ++z) {
+                        C[i][x + y * 1] += A[z + y * 4] * B[i][x + z * 1];
+                    }
+        }
+
+        out1[0] = C[0][0]; out1[1] = C[1][0];
+        out1[2] = C[0][1]; out1[3] = C[1][1];
+        out1[4] = C[0][2]; out1[5] = C[1][2];
+        out1[6] = C[0][3]; out1[7] = C[1][3];
+    }
+
+    /* Second curve */
+    {
+        float C[2][4] = { {0} };
+        float A[16] = {
+            ms3, 3 * s * ms2, 3 * s2 * ms, s3,
+            0, ms2, 2 * ms * s, s2,
+            0, 0, ms, s,
+            0, 0, 0, 1
+        };
+        /* C = A ¡Á B */
+        for (uint8_t i = 0; i < 2; ++i) {
+            for (size_t y = 0; y < 4; ++y)
+                for (size_t x = 0; x < 1; ++x)
+                    for (size_t z = 0; z < 4; ++z) {
+                        C[i][x + y * 1] += A[z + y * 4] * B[i][x + z * 1];
+                    }
+        }
+
+        out2[0] = C[0][0]; out2[1] = C[1][0];
+        out2[2] = C[0][1]; out2[3] = C[1][1];
+        out2[4] = C[0][2]; out2[5] = C[1][2];
+        out2[6] = C[0][3]; out2[7] = C[1][3];
+    }
+}
+
 static vg_lite_error_t _flatten_quad_bezier(
     vg_lite_stroke_t* stroke_conversion,
     vg_lite_float_t curve[6],
