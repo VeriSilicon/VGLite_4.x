@@ -3636,24 +3636,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) && CHIPID != 0X255) || (source->image_mode == VG_LITE_RECOLOR_MODE)) {      
-    {
-        return VG_LITE_NOT_SUPPORT;
-    }
-    else {
-        if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
-            vg_lite_buffer_t temp;
-            memcpy(&temp, source, sizeof(vg_lite_buffer_t));
-            vg_lite_allocate(&temp);
-
-            imgSetPixel(source, NULL, &temp, VG_LITE_PIXEL_PREMULTY);
-            source->memory = temp.memory;
-            source->address = temp.address;
-            blend = VG_LITE_BLEND_SRC_OVER;
-        }
-    }
-#endif
 #if !gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         return VG_LITE_NOT_SUPPORT;
@@ -3760,6 +3742,27 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
+#if (CHIPID==0x255)
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
+        vg_lite_buffer_t temp;
+        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
+        vg_lite_allocate(&temp);
+
+        imgSetPixel(source, NULL, &temp, VG_LITE_PIXEL_PREMULTY);
+        source->memory = temp.memory;
+        source->address = temp.address;
+        blend = VG_LITE_BLEND_SRC_OVER;
+    }
+#endif
+#if (CHIPID==0x265)
+    // TODO
+#endif
+#if (CHIPID==0x355)
+    // TODO
+#endif
+#endif
 
     if (!matrix) {
         matrix = &identity_mtx;
