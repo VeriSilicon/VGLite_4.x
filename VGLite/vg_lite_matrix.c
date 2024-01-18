@@ -47,11 +47,9 @@ vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
     matrix->m[2][1] = 0.0f;
     matrix->m[2][2] = 1.0f;
 
-#if VG_SW_BLIT_PRECISION_OPT
-    matrix->scaleX = 1.0f;
-    matrix->scaleY = 1.0f;
+    matrix->scaleX  = 1.0f;
+    matrix->scaleY  = 1.0f;
     matrix->angle   = 0.0f;
-#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     return VG_LITE_SUCCESS;
 }
@@ -71,13 +69,9 @@ static void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
             + (matrix->m[row][2] * mult->m[2][column]);
         }
     }
-    
+
     /* Copy temporary matrix into result. */
-#if VG_SW_BLIT_PRECISION_OPT
     memcpy(matrix, &temp, sizeof(vg_lite_float_t) * 9);
-#else
-    memcpy(matrix, &temp, sizeof(temp));
-#endif /* VG_SW_BLIT_PRECISION_OPT */
 }
 
 vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t * matrix)
@@ -93,9 +87,7 @@ vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_
             { 0.0f, 1.0f, y },
             { 0.0f, 0.0f, 1.0f }
         },
-#if VG_SW_BLIT_PRECISION_OPT
-        0.0f, 0.0f, 0.0f 
-#endif
+        1.0f, 1.0f, 0.0f
     };
 
     /* Multiply with current matrix. */
@@ -117,9 +109,7 @@ vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, 
             { 0.0f, scale_y, 0.0f },
             { 0.0f, 0.0f, 1.0f }
         },
-#if VG_SW_BLIT_PRECISION_OPT
-        0.0f, 0.0f, 0.0f 
-#endif
+        1.0f, 1.0f, 0.0f
     };
 
     /* Multiply with current matrix. */
@@ -153,9 +143,7 @@ vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matri
             { sin_angle, cos_angle, 0.0f },
             { 0.0f, 0.0f, 1.0f }
         },
-#if VG_SW_BLIT_PRECISION_OPT
-        0.0f, 0.0f, 0.0f 
-#endif
+        1.0f, 1.0f, 0.0f
     };
 
     /* Multiply with current matrix. */

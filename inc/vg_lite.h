@@ -652,11 +652,9 @@ typedef unsigned int        vg_lite_color_t;
 
     typedef struct vg_lite_matrix {
         vg_lite_float_t m[3][3];                /*! The 3x3 matrix is in [row][column] order. */
-#if VG_SW_BLIT_PRECISION_OPT
         vg_lite_float_t scaleX;
         vg_lite_float_t scaleY;
         vg_lite_float_t angle;
-#endif
     } vg_lite_matrix_t;
 
     typedef struct vg_lite_yuvinfo
