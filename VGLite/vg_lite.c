@@ -2171,7 +2171,6 @@ uint32_t convert_blend(vg_lite_blend_t blend)
     switch (blend) {
         case VG_LITE_BLEND_SRC_OVER:
         case VG_LITE_BLEND_NORMAL_LVGL:
-        case VG_LITE_BLEND_PREMULTIPLY_SRC_OVER:
         case OPENVG_BLEND_SRC_OVER:
             return 0x00000100;
 
@@ -3998,7 +3997,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -4713,7 +4712,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {

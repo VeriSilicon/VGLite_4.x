@@ -130,6 +130,8 @@ extern "C" {
 #define vg_lite_linear_gradient_ext_t           vg_lite_ext_linear_gradient_t
 #define vg_lite_buffer_transparency_mode_t      vg_lite_transparency_t
 
+/* VG_LITE_BLEND_PREMULTIPLY_SRC_OVER is the same as VG_LITE_BLEND_NORMAL_LVGL */
+#define VG_LITE_BLEND_PREMULTIPLY_SRC_OVER      VG_LITE_BLEND_NORMAL_LVGL
 
 /* VGLite API Types ***********************************************************************************************************************/
 
@@ -449,7 +451,6 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  (S + D)*Sa + D*(1 - Sa)                    !*/
         VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  (S - D)*Sa + D*(1 - Sa)                    !*/
         VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  (S*D)*Sa + D*(1 - Sa)                      !*/
-        VG_LITE_BLEND_PREMULTIPLY_SRC_OVER      = 15,       /*!  S*Sa + D*(1 - Sa)                          !*/
 
         /* Porter Duff Premultiplied Blending modes !*/
         OPENVG_BLEND_SRC                        = 0x2000,   /*!  SP / Sa                                                                !*/

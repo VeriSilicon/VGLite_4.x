@@ -1087,7 +1087,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
              (target->premultiplied == 0 && premul_flag == 1)) {
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
 
@@ -1443,7 +1443,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -1801,7 +1801,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -2263,7 +2263,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -2891,7 +2891,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
              (target->premultiplied == 0 && premul_flag == 1)) {
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
 
@@ -3416,7 +3416,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -4016,7 +4016,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
@@ -4663,7 +4663,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #endif
         in_premult = 0x00000000;
     }
-    if (blend == VG_LITE_BLEND_PREMULTIPLY_SRC_OVER || blend == VG_LITE_BLEND_NORMAL_LVGL) {
+    if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         in_premult = 0x00000000;
     }
     if (source->premultiplied == target->premultiplied && premul_flag == 0) {
