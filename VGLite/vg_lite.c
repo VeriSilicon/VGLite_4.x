@@ -331,6 +331,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_TILED_MODE,
     }
 };
+
 #if (CHIPID == 0x255)
 typedef struct {
     float                 r;
@@ -3746,43 +3747,75 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if !gcFEATURE_VG_LVGL_SUPPORT
 #if (CHIPID==0x255)
     if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
-        vg_lite_buffer_t temp;
-        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
-        vg_lite_allocate(&temp);
-
-        imgSetPixel(source, NULL, &temp, VG_LITE_PIXEL_PREMULTY);
-        source->memory = temp.memory;
-        source->address = temp.address;
+        vg_lite_buffer_t temp_buffer;
+        memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
+        if (!source->temp_address) {
+            vg_lite_allocate(&temp_buffer);
+            source->temp_address = temp_buffer.address;
+            source->temp_memory = temp_buffer.memory;
+            source->temp_handle = temp_buffer.handle;
+        }
+        else {
+            temp_buffer.address = source->temp_address;
+            temp_buffer.memory = source->temp_memory;
+            temp_buffer.handle = source->temp_handle;
+        }
+        
+        imgSetPixel(source, NULL, &temp_buffer, VG_LITE_PIXEL_PREMULTY);
         blend = VG_LITE_BLEND_SRC_OVER;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
-        vg_lite_buffer_t temp;
-        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
-        vg_lite_allocate(&temp);
+        vg_lite_buffer_t temp_buffer;
+        memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
+        if (!source->temp_address) {
+            vg_lite_allocate(&temp_buffer);
+            source->temp_address = temp_buffer.address;
+            source->temp_memory = temp_buffer.memory;
+            source->temp_handle = temp_buffer.handle;
+        }
+        else {
+            temp_buffer.address = source->temp_address;
+            temp_buffer.memory = source->temp_memory;
+            temp_buffer.handle = source->temp_handle;
+        }
 
-        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_ADD);
-        source->memory = temp.memory;
-        source->address = temp.address;
+        imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_ADD);
         blend = VG_LITE_BLEND_SRC_OVER;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
-        vg_lite_buffer_t temp;
-        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
-        vg_lite_allocate(&temp);
+        vg_lite_buffer_t temp_buffer;
+        memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
+        if (!source->temp_address) {
+            vg_lite_allocate(&temp_buffer);
+            source->temp_address = temp_buffer.address;
+            source->temp_memory = temp_buffer.memory;
+            source->temp_handle = temp_buffer.handle;
+        }
+        else {
+            temp_buffer.address = source->temp_address;
+            temp_buffer.memory = source->temp_memory;
+            temp_buffer.handle = source->temp_handle;
+        }
 
-        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_SUBTRACT);
-        source->memory = temp.memory;
-        source->address = temp.address;
+        imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_SUBTRACT);
         blend = VG_LITE_BLEND_SRC_OVER;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
-        vg_lite_buffer_t temp;
-        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
-        vg_lite_allocate(&temp);
+        vg_lite_buffer_t temp_buffer;
+        memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
+        if (!source->temp_address) {
+            vg_lite_allocate(&temp_buffer);
+            source->temp_address = temp_buffer.address;
+            source->temp_memory = temp_buffer.memory;
+            source->temp_handle = temp_buffer.handle;
+        }
+        else {
+            temp_buffer.address = source->temp_address;
+            temp_buffer.memory = source->temp_memory;
+            temp_buffer.handle = source->temp_handle;
+        }
 
-        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_MULTIPLY);
-        source->memory = temp.memory;
-        source->address = temp.address;
+        imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_MULTIPLY);
         blend = VG_LITE_BLEND_SRC_OVER;
     }
 #endif
@@ -4280,7 +4313,13 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A53, source->yuv.alpha_planar));
     }
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, 0));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
+    if (gcFEATURE_VG_LVGL_SUPPORT || (blend <= VG_LITE_BLEND_NORMAL_LVGL && blend >= VG_LITE_BLEND_MULTIPLY_LVGL))
+    {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
+    }
+    else {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
+    }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
     /* 24bit format stride configured to 4bpp. */
@@ -5631,6 +5670,13 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     /* Mark the buffer as freed. */
     buffer->handle = NULL;
     buffer->memory = NULL;
+    if (buffer->temp_handle != NULL) {
+        free.memory_handle = buffer->temp_handle;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
+        buffer->temp_address = 0;
+        buffer->temp_memory = NULL;
+        buffer->temp_handle = NULL;
+    }
 
     return VG_LITE_SUCCESS;
 }
