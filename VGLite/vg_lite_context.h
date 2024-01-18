@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <math.h>
-#include "vg_lite_options.h"
 #include "vg_lite.h"
 #include "vg_lite_kernel.h"
 

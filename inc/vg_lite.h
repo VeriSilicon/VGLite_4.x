@@ -38,6 +38,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include "../VGLite/vg_lite_options.h"
 
 #if !gcFEATURE_VG_MATH_PRECISION_FIX && (CHIPID == 0x555)
 #define VG_SW_BLIT_PRECISION_OPT 1
