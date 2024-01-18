@@ -380,10 +380,10 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 8;
         break;
     case VG_LITE_ABGR4444:
-        rs = 0;
-        gs = 4;
-        bs = 8;
-        as = 12;
+        rs = 12;
+        gs = 8;
+        bs = 4;
+        as = 0;
         rb = 4;
         gb = 4;
         bb = 4;
@@ -391,10 +391,10 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 16;
         break;
     case VG_LITE_ARGB4444:
-        bs = 0;
-        gs = 4;
-        rs = 8;
-        as = 12;
+        bs = 12;
+        gs = 8;
+        rs = 4;
+        as = 0;
         rb = 4;
         gb = 4;
         bb = 4;
@@ -402,10 +402,10 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 16;
         break;
     case VG_LITE_RGBA4444:
-        as = 0;
-        bs = 4;
-        gs = 8;
-        rs = 12;
+        as = 12;
+        bs = 8;
+        gs = 4;
+        rs = 0;
         rb = 4;
         gb = 4;
         bb = 4;
@@ -413,10 +413,10 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 16;
         break;
     case VG_LITE_BGRA4444:
-        as = 0;
-        rs = 4;
-        gs = 8;
-        bs = 12;
+        as = 12;
+        rs = 8;
+        gs = 4;
+        bs = 0;
         rb = 4;
         gb = 4;
         bb = 4;
@@ -424,17 +424,6 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 16;
         break;
     case VG_LITE_RGB565:
-        rs = 11;
-        gs = 5;
-        bs = 0;
-        as = 0;
-        rb = 5;
-        gb = 6;
-        bb = 5;
-        ab = 0;
-        bitsPerPixel = 16;
-        break;
-    case VG_LITE_BGR565:
         rs = 0;
         gs = 5;
         bs = 11;
@@ -445,32 +434,19 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 0;
         bitsPerPixel = 16;
         break;
+    case VG_LITE_BGR565:
+        rs = 11;
+        gs = 5;
+        bs = 0;
+        as = 0;
+        rb = 5;
+        gb = 6;
+        bb = 5;
+        ab = 0;
+        bitsPerPixel = 16;
+        break;
     case VG_LITE_ABGR8888:
     case VG_LITE_XBGR8888:
-        rs = 0;
-        gs = 8;
-        bs = 16;
-        as = 24;
-        rb = 8;
-        gb = 8;
-        bb = 8;
-        ab = 8;
-        bitsPerPixel = 32;
-        break;
-    case VG_LITE_ARGB8888:
-    case VG_LITE_XRGB8888:
-        rs = 16;
-        gs = 8;
-        bs = 0;
-        as = 24;
-        rb = 8;
-        gb = 8;
-        bb = 8;
-        ab = 8;
-        bitsPerPixel = 32;
-        break;
-    case VG_LITE_RGBA8888:
-    case VG_LITE_RGBX8888:
         rs = 24;
         gs = 16;
         bs = 8;
@@ -481,8 +457,8 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 8;
         bitsPerPixel = 32;
         break;
-    case VG_LITE_BGRA8888:
-    case VG_LITE_BGRX8888:
+    case VG_LITE_ARGB8888:
+    case VG_LITE_XRGB8888:
         rs = 8;
         gs = 16;
         bs = 24;
@@ -493,18 +469,31 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 8;
         bitsPerPixel = 32;
         break;
-    case VG_LITE_ABGR1555:
+    case VG_LITE_RGBA8888:
+    case VG_LITE_RGBX8888:
         rs = 0;
-        gs = 5;
-        bs = 10;
-        as = 15;
-        rb = 5;
-        gb = 5;
-        bb = 5;
-        ab = 1;
-        bitsPerPixel = 16;
+        gs = 8;
+        bs = 16;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
         break;
-    case VG_LITE_RGBA5551:
+    case VG_LITE_BGRA8888:
+    case VG_LITE_BGRX8888:
+        rs = 16;
+        gs = 8;
+        bs = 0;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_ABGR1555:
         rs = 11;
         gs = 6;
         bs = 1;
@@ -515,10 +504,10 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 1;
         bitsPerPixel = 16;
         break;
-    case VG_LITE_ARGB1555:
-        rs = 10;
+    case VG_LITE_RGBA5551:
+        rs = 0;
         gs = 5;
-        bs = 0;
+        bs = 10;
         as = 15;
         rb = 5;
         gb = 5;
@@ -526,7 +515,7 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 1;
         bitsPerPixel = 16;
         break;
-    case VG_LITE_BGRA5551:
+    case VG_LITE_ARGB1555:
         rs = 1;
         gs = 6;
         bs = 11;
@@ -537,11 +526,22 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 1;
         bitsPerPixel = 16;
         break;
+    case VG_LITE_BGRA5551:
+        rs = 10;
+        gs = 5;
+        bs = 0;
+        as = 15;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
     case VG_LITE_BGRA2222:
-        rs = 2;
-        gs = 4;
-        bs = 6;
-        as = 0;
+        rs = 4;
+        gs = 2;
+        bs = 0;
+        as = 6;
         rb = 2;
         gb = 2;
         bb = 2;
@@ -549,6 +549,17 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         bitsPerPixel = 8;
         break;
     case VG_LITE_RGBA2222:
+        rs = 0;
+        gs = 2;
+        bs = 4;
+        as = 6;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ABGR2222:
         rs = 6;
         gs = 4;
         bs = 2;
@@ -559,22 +570,11 @@ Color readPixel(vg_lite_buffer_t* src, int x, int y)
         ab = 2;
         bitsPerPixel = 8;
         break;
-    case VG_LITE_ABGR2222:
-        rs = 0;
-        gs = 2;
-        bs = 6;
-        as = 8;
-        rb = 2;
-        gb = 2;
-        bb = 2;
-        ab = 2;
-        bitsPerPixel = 8;
-        break;
     case VG_LITE_ARGB2222:
-        rs = 4;
-        gs = 2;
-        bs = 0;
-        as = 6;
+        rs = 2;
+        gs = 4;
+        bs = 6;
+        as = 0;
         rb = 2;
         gb = 2;
         bb = 2;
@@ -926,22 +926,22 @@ void imgSetPixel(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t*
             switch (operation)
             {
             case VG_LITE_PIXEL_ADD:
-                c_temp.a = c_src.a + c_dst.a;
-                c_temp.r = c_src.r + c_dst.r;
-                c_temp.g = c_src.g + c_dst.g;
-                c_temp.b = c_src.b + c_dst.b;
+                c_temp.a = c_src.a;
+                c_temp.r = (c_src.r + c_dst.r) * c_src.a;
+                c_temp.g = (c_src.g + c_dst.g) * c_src.a;
+                c_temp.b = (c_src.b + c_dst.b) * c_src.a;
                 break;
             case VG_LITE_PIXEL_SUBTRACT:
-                c_temp.a = c_src.a - c_dst.a;
-                c_temp.r = c_src.r - c_dst.r;
-                c_temp.g = c_src.g - c_dst.g;
-                c_temp.b = c_src.b - c_dst.b;
+                c_temp.a = c_src.a;
+                c_temp.r = c_src.r < c_dst.r ? (c_dst.r - c_src.r) * c_src.a : 0;
+                c_temp.g = c_src.g < c_dst.g ? (c_dst.g - c_src.g) * c_src.a : 0;
+                c_temp.b = c_src.b < c_dst.b ? (c_dst.b - c_src.b) * c_src.a : 0;
                 break;
             case VG_LITE_PIXEL_MULTIPLY:
                 c_temp.a = c_src.a;
-                c_temp.r = c_src.r * c_src.r;
-                c_temp.g = c_src.g * c_src.g;
-                c_temp.b = c_src.b * c_dst.b;
+                c_temp.r = c_src.r * c_dst.r * c_src.a;
+                c_temp.g = c_src.g * c_dst.g * c_src.a;
+                c_temp.b = c_src.b * c_dst.b * c_src.a;
                 break;
             case VG_LITE_PIXEL_PREMULTY:
                 c_temp.a = c_dst.a;
@@ -3751,6 +3751,36 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         vg_lite_allocate(&temp);
 
         imgSetPixel(source, NULL, &temp, VG_LITE_PIXEL_PREMULTY);
+        source->memory = temp.memory;
+        source->address = temp.address;
+        blend = VG_LITE_BLEND_SRC_OVER;
+    }
+    else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
+        vg_lite_buffer_t temp;
+        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
+        vg_lite_allocate(&temp);
+
+        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_ADD);
+        source->memory = temp.memory;
+        source->address = temp.address;
+        blend = VG_LITE_BLEND_SRC_OVER;
+    }
+    else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
+        vg_lite_buffer_t temp;
+        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
+        vg_lite_allocate(&temp);
+
+        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_SUBTRACT);
+        source->memory = temp.memory;
+        source->address = temp.address;
+        blend = VG_LITE_BLEND_SRC_OVER;
+    }
+    else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
+        vg_lite_buffer_t temp;
+        memcpy(&temp, source, sizeof(vg_lite_buffer_t));
+        vg_lite_allocate(&temp);
+
+        imgSetPixel(target, source, &temp, VG_LITE_PIXEL_MULTIPLY);
         source->memory = temp.memory;
         source->address = temp.address;
         blend = VG_LITE_BLEND_SRC_OVER;
