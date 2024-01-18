@@ -33,7 +33,7 @@
 #include <math.h>
 #include "vg_lite.h"
 #include "vg_lite_kernel.h"
-
+#include "vg_lite_options.h"
 #if gcFEATURE_VG_TRACE_API
 #define VGLITE_LOG    printf
 #endif
@@ -104,6 +104,12 @@
 #define GET_MATRIX_VALUES(Pointer)  ((float *) (Pointer))
 #define MAT(Matrix, Row, Column)    (GET_MATRIX_VALUES(Matrix)[Row * MATRIX_ROWS + Column])
 #define PI                          3.141592653589793238462643383279502f
+
+#if !gcFEATURE_VG_MATH_PRECISION_FIX && (CHIPID == 0x555)
+#define VG_SW_BLIT_PRECISION_OPT 1
+#else 
+#define VG_SW_BLIT_PRECISION_OPT 0
+#endif
 
 /* Driver implementation internal structures.
 */
