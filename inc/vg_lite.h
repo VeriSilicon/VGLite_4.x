@@ -39,6 +39,11 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
+#if !gcFEATURE_VG_MATH_PRECISION_FIX && (CHIPID == 0x555)
+#define VG_SW_BLIT_PRECISION_OPT 1
+#else 
+#define VG_SW_BLIT_PRECISION_OPT 0
+#endif
 
 /*  VGLite API Constants *******************************************************************************************************************/
 
