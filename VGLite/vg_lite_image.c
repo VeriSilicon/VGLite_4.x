@@ -991,7 +991,7 @@ vg_lite_void set_gamma_dest_only(vg_lite_buffer_t *target, vg_lite_int32_t stenc
         gamma_value = 0x00000000;
     }
 
-    if (gamma_value != s_context.gamma_value)
+    if (s_context.gamma_dirty == 0 && gamma_value != s_context.gamma_value)
     {
         s_context.gamma_value = gamma_value;
         s_context.gamma_dirty = 1;
@@ -1058,7 +1058,7 @@ vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t *source, vg_lite_buffer_t *t
         }
     }
 
-    if (gamma_value != s_context.gamma_value)
+    if (s_context.gamma_dirty == 0 && gamma_value != s_context.gamma_value)
     {
         s_context.gamma_value = gamma_value;
         s_context.gamma_dirty = 1;
@@ -1116,7 +1116,7 @@ vg_lite_void save_st_gamma_src_dest(vg_lite_buffer_t *source, vg_lite_buffer_t *
         gamma_value = 0x00000000;
     }
 
-    if (gamma_value != s_context.gamma_value)
+    if (s_context.gamma_dirty == 0 && gamma_value != s_context.gamma_value)
     {
         s_context.gamma_value = gamma_value;
         s_context.gamma_dirty = 1;
