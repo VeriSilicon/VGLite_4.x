@@ -5667,6 +5667,8 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     /* Mark the buffer as freed. */
     buffer->handle = NULL;
     buffer->memory = NULL;
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
     if (buffer->temp_handle != NULL) {
         free.memory_handle = buffer->temp_handle;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
@@ -5674,6 +5676,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
         buffer->temp_memory = NULL;
         buffer->temp_handle = NULL;
     }
+#endif
 
     return VG_LITE_SUCCESS;
 }
