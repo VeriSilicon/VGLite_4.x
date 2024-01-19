@@ -2996,6 +2996,15 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             premultiply_dst = 0x00000100;
         }
 
+        if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
+            if (target->premultiplied) {
+                premultiply_dst = 0x00000100;
+            }
+            else {
+                premultiply_dst = 0x00000000;
+            }
+        }
+
 #if gcFEATURE_VG_HW_PREMULTIPLY
         rgb_alphadiv = 0x00000200;
 #endif
