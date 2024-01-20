@@ -4256,10 +4256,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
         stripe_mode = 0x20000000;
-    }
 #endif
 
 #if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
@@ -4884,10 +4882,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
         stripe_mode = 0x20000000;
-    }
 #endif
 
 #if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
