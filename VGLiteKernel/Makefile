@@ -2,9 +2,9 @@
 OBJS = linux/vg_lite_hal.o vg_lite_kernel.o linux/platform/$(PLATFORM).o
 
 ifeq ($(DEBUG), 1)
-ccflags-y += -g -O1 -DDEBUG -D_DEBUG -Werror
+ccflags-y += -g -O0 -DDEBUG -D_DEBUG
 else
-ccflags-y += -O2 -g0 -Werror
+ccflags-y += -O2 -Werror
 endif
 
 ifeq ($(ENABLE_PCIE), 1)
