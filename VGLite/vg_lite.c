@@ -5707,18 +5707,11 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
     }
 
     /* Compute the stride. Align if necessary. */
-    uint32_t mul, div, align;
-    get_format_bytes(buffer->format, &mul, &div, &align);
-    buffer->stride = buffer->width * mul / div;
-#if gcFEATURE_VG_16PIXELS_ALIGNED
-    int tmp_align = 16 * mul / div;
-    if ((mul / div) % 2 != 0) {
-        if (buffer->stride % tmp_align != 0)
-            buffer->stride = (buffer->stride + tmp_align) / tmp_align * tmp_align;
+    if (buffer->stride == 0){
+        uint32_t mul, div, align;
+        get_format_bytes(buffer->format, &mul, &div, &align);
+        buffer->stride = buffer->width * mul / div;
     }
-    else
-        buffer->stride = VG_LITE_ALIGN(buffer->stride, tmp_align);
-#endif
 
     /* Map the buffer. */
     map.bytes = buffer->stride * buffer->height;
