@@ -4307,7 +4307,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, 0));
 
-#if gcFEATURE_VG_LVGL_SUPPORT
+#if !gcFEATURE_VG_LVGL_SUPPORT
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
 #else
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
