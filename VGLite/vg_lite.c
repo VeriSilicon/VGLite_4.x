@@ -3605,6 +3605,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+    uint8_t  lvgl_sw_blend = 0;
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* bufferPointer;
     uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
@@ -3758,6 +3759,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         
         imgSetPixel(source, NULL, &temp_buffer, VG_LITE_PIXEL_PREMULTY);
         blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
         vg_lite_buffer_t temp_buffer;
@@ -3776,6 +3778,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
         imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_ADD);
         blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
         vg_lite_buffer_t temp_buffer;
@@ -3794,6 +3797,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
         imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_SUBTRACT);
         blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
     }
     else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
         vg_lite_buffer_t temp_buffer;
@@ -3812,6 +3816,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
         imgSetPixel(target, source, &temp_buffer, VG_LITE_PIXEL_MULTIPLY);
         blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
     }
 #endif
 #if (CHIPID==0x265)
@@ -4308,10 +4313,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, 0));
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
-#else
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
+    if (lvgl_sw_blend) {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
+    }
+    else
 #endif
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
     /* 24bit format stride configured to 4bpp. */
