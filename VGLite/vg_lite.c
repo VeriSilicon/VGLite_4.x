@@ -4005,15 +4005,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         target->apply_premult = 0;
     }
 
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
-    }
-
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -4724,15 +4715,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
     else {
         target->apply_premult = 0;
-    }
-
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
     }
 
     error = set_render_target(target);

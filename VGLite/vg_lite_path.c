@@ -2895,15 +2895,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
     }
 
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
-    }
-
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -3433,15 +3424,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
     else {
         target->apply_premult = 0;
-    }
-
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
     }
 
     error = set_render_target(target);
@@ -4042,15 +4024,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
     else {
         target->apply_premult = 0;
-    }
-
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
     }
 
     error = set_render_target(target);
@@ -4698,15 +4671,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
     else {
         target->apply_premult = 0;
-    }
-
-    if (s_context.dst_alpha_mode && (s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE)) {
-        if (target->premultiplied) {
-            target->apply_premult = 1;
-        }
-        else {
-            target->apply_premult = 0;
-        }
     }
 
     error = set_render_target(target);
