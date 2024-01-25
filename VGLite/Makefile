@@ -9,7 +9,7 @@ CFLAGS += -I../inc -I../VGLiteKernel -I. -I./linux
 
 LDFLAGS += -fPIC -shared -Wl,-z,defs
 LDFLAGS += -Wl,--version-script=vglite.map
-LDFLAGS += -lpthread -lm
+LDFLAGS += -lpthread -lpng -lm
 
 all : $(OUT)/$(NAME)
 

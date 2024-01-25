@@ -1404,6 +1404,9 @@ typedef unsigned int        vg_lite_color_t;
     /* Dump command buffer */
     vg_lite_error_t vg_lite_dump_command_buffer();
 
+    /* Dump vg_lite_buffer_t image to a png file. Support on Linux for now. */
+    vg_lite_error_t vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer);
+
     /* Return VGLite parameters in params[] array */
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                     vg_lite_int32_t count,
