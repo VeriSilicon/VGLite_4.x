@@ -788,11 +788,11 @@ vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, si
 
 vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
 {
+    vg_lite_error_t status = VG_LITE_SUCCESS;
 #ifdef __linux__
     uint8_t *memory, *p, *q;
     int x, y;
     png_image image;
-    int status;
     uint16_t color;
 
     if (buffer->format == VG_LITE_L8) {
