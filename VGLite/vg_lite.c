@@ -5451,7 +5451,7 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
     vg_lite_kernel_allocate_t allocate;
 
 #if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_allocate %p\n", buffer);
+    VGLITE_LOG("vg_lite_allocate %p  (w: %d, h: %d, fmt: %d)\n", buffer, buffer->width, buffer->height, buffer->format);
 #endif
 
     if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC &&
@@ -5755,6 +5755,10 @@ vg_lite_error_t vg_lite_flush_mapped_buffer(vg_lite_buffer_t * buffer)
 {
     vg_lite_error_t error;
     vg_lite_kernel_cache_t cache;
+
+#if gcFEATURE_VG_TRACE_API
+    VGLITE_LOG("vg_lite_flush_mapped_buffer %p\n", buffer);
+#endif
 
     /* Make sure we have a valid memory handle. */
     if (buffer->handle == NULL) {

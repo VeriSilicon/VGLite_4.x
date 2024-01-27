@@ -789,7 +789,7 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
 
     /* Free the old scissor layer if its size is too small for target */
     if (s_context.scissor_layer &&
-       (s_context.scissor_layer->width < target->width || s_context.scissor_layer->height < target->height))
+       (s_context.scissor_layer->width < ((target->width + 7) / 8) || s_context.scissor_layer->height < target->height))
     {
         vg_lite_free(s_context.scissor_layer);
         vg_lite_os_free(s_context.scissor_layer);
