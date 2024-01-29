@@ -92,5 +92,6 @@
 #define gcFEATURE_VG_TRACE_API    0
 #define gcFEATURE_VG_POWER_MANAGEMENT           1
 #define gcFEATURE_VG_TILED_MODE    1
+#define gcFEATURE_VG_SINGLE_COMMAND_BUFFER   0
 
 #endif
