@@ -56,7 +56,6 @@
 #include "vg_lite_kernel.h"
 #include "vg_lite_hal.h"
 #include "vg_lite_hw.h"
-#include "../VGLite/vg_lite_options.h"
 #if defined(__linux__) && !defined(EMULATOR)
 #include <linux/sched.h>
 /*#include <asm/uaccess.h>*/
@@ -362,7 +361,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 
     /* Allocate the command buffer. */
     if (data->command_buffer_size) {
-        for (i = 0; i < 2; i ++)
+        for (i = 0; i < CMDBUF_COUNT; i ++)
         {
             /* Allocate the memory. */
             error = vg_lite_kernel_vidmem_allocate(&data->command_buffer_size,
@@ -591,11 +590,13 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
         context->command_buffer[0] = NULL;
     }
 
+#if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     if (context->command_buffer[1]) {
         /* Free the command buffer. */
         vg_lite_kernel_vidmem_free(context->command_buffer[1]);
         context->command_buffer[1] = NULL;
     }
+#endif
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
     if (global_power_context.power_context) {

@@ -263,7 +263,11 @@ uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
 /* Global context variables and feature table.
 */
 vg_lite_context_t   s_context = { 0 };
+#if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
+uint32_t            command_buffer_size = VG_LITE_SINGLE_COMMAND_BUFFER_SIZE;
+#else
 uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE;
+#endif
 uint32_t            submit_flag = 0;
 
 vg_lite_matrix_t    identity_mtx = {
@@ -5911,9 +5915,13 @@ vg_lite_error_t vg_lite_finish()
 #endif
 #endif
 
+#if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
+    CMDBUF_OFFSET(s_context) = 0;
+#else
     CMDBUF_SWAP(s_context);
     /* Reset command buffer. */
     CMDBUF_OFFSET(s_context) = 0;
+#endif
 
     return VG_LITE_SUCCESS;
 }
@@ -5943,7 +5951,10 @@ vg_lite_error_t vg_lite_flush(void)
 #if gcFEATURE_VG_POWER_MANAGEMENT
     s_context.context.end_of_frame = 1;
 #endif
+
+#if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     CMDBUF_SWAP(s_context);
+#endif
     /* Reset command buffer. */
     CMDBUF_OFFSET(s_context) = 0;
 

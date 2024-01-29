@@ -46,6 +46,7 @@
      to overwrite the default command buffer size.
 ***/
 #define VG_LITE_COMMAND_BUFFER_SIZE (32 << 10)
+#define VG_LITE_SINGLE_COMMAND_BUFFER_SIZE (64 << 10) /* For only using one command buffer. */
 
 #define CMDBUF_BUFFER(context)      (context).command_buffer[(context).command_buffer_current]
 #define CMDBUF_INDEX(context)       (context).command_buffer_current

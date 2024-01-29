@@ -55,6 +55,7 @@
 #ifndef _vg_lite_kernel_h_
 #define _vg_lite_kernel_h_
 
+#include "../VGLite/vg_lite_options.h"
 /* Interrupt IDs from GPU. */
 #define EVENT_UNEXPECTED_MESH  0x80000000
 #define EVENT_CMD_BAD_WRITE    0x40000000
@@ -66,7 +67,12 @@
 #define MAX_CONTIGUOUS_SIZE 0x04000000
 
 #define VG_LITE_INFINITE    0xFFFFFFFF
+
+#if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
+#define CMDBUF_COUNT        1
+#else
 #define CMDBUF_COUNT        2
+#endif
 
 #define VG_LITE_ALIGN(number, alignment)    \
         (((number) + ((alignment) - 1)) & ~((alignment) - 1))
