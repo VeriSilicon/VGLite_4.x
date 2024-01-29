@@ -334,7 +334,7 @@ vg_lite_ftable_t    s_ftable = {
     }
 };
 
-#if (CHIPID == 0x255)
+#if !gcFEATURE_VG_LVGL_SUPPORT
 typedef struct {
     float                 r;
     float                 g;
@@ -3745,7 +3745,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
-#if (CHIPID==0x255)
     if (blend == VG_LITE_BLEND_NORMAL_LVGL) {
         vg_lite_buffer_t temp_buffer;
         memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
@@ -3765,7 +3764,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
     }
-    else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
+    else if (blend == VG_LITE_BLEND_ADDITIVE_LVGL) {
         vg_lite_buffer_t temp_buffer;
         memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
         if (!source->temp_address) {
@@ -3803,7 +3802,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
     }
-    else if (blend == VG_LITE_BLEND_SUBTRACT_LVGL) {
+    else if (blend == VG_LITE_BLEND_MULTIPLY_LVGL) {
         vg_lite_buffer_t temp_buffer;
         memcpy(&temp_buffer, source, sizeof(vg_lite_buffer_t));
         if (!source->temp_address) {
@@ -3822,13 +3821,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
     }
-#endif
-#if (CHIPID==0x265)
-    // TODO
-#endif
-#if (CHIPID==0x355)
-    // TODO
-#endif
 #endif
 
     if (!matrix) {

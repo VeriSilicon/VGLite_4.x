@@ -34,9 +34,9 @@
 #include "vg_lite.h"
 #include "vg_lite_kernel.h"
 #include "vg_lite_options.h"
-#if gcFEATURE_VG_TRACE_API
+
+
 #define VGLITE_LOG    printf
-#endif
 
 /*** Global Context Access ***/
 #define GET_CONTEXT()               &s_context
