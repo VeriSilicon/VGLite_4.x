@@ -5374,6 +5374,7 @@ vg_lite_error_t vg_lite_finish()
 
 vg_lite_error_t vg_lite_flush(void)
 {
+#if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     vg_lite_error_t error;
 
 #if gcFEATURE_VG_TRACE_API
@@ -5398,13 +5399,18 @@ vg_lite_error_t vg_lite_flush(void)
     s_context.context.end_of_frame = 1;
 #endif
 
-#if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     CMDBUF_SWAP(s_context);
-#endif
+
     /* Reset command buffer. */
     CMDBUF_OFFSET(s_context) = 0;
 
     return VG_LITE_SUCCESS;
+
+#else
+    printf("vg_lite_flush is not support when enable single command buffer!\n");
+    return VG_LITE_NOT_SUPPORT;
+#endif
+
 }
 
 vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
