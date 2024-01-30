@@ -3124,6 +3124,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             temp_buffer.memory = source->temp_memory;
             temp_buffer.handle = source->temp_handle;
         }
+        /* Make sure render target is up to date before reading RT. */
+        vg_lite_finish();
         setup_lvgl_image(target, source, &temp_buffer, blend);
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
@@ -3858,6 +3860,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             temp_buffer.memory = source->temp_memory;
             temp_buffer.handle = source->temp_handle;
         }
+        /* Make sure render target is up to date before reading RT. */
+        vg_lite_finish();
         setup_lvgl_image(target, source, &temp_buffer, blend);
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
