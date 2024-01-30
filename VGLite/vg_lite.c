@@ -2524,8 +2524,10 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     /* Get converted color when target is in L8 format. */
     color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
+    if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
         stripe_mode = 0x20000000;
+    }
 #endif
 
 #if gcFEATURE_VG_IM_FASTCLEAR
@@ -3559,8 +3561,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
+    if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
         stripe_mode = 0x20000000;
+    }
 #endif
 
 #if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
@@ -4323,8 +4327,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
+    if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
         stripe_mode = 0x20000000;
+    }
 #endif
 
 #if (gcFEATURE_VG_DEC_COMPRESS | gcFEATURE_VG_DEC_COMPRESS_2_0)
@@ -6602,8 +6608,10 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
 
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
-    tile_setting = 0x40;
-    stripe_mode = 0x20000000;
+    if (target->tiled == VG_LITE_TILED) {
+        tile_setting = 0x40;
+        stripe_mode = 0x20000000;
+    }
 #endif
     compress_mode = (uint32_t)source->compress_mode << 25;
 
