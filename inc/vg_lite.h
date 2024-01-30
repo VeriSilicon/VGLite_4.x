@@ -845,9 +845,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint8_t scissor_buffer;         /*! The buffer is scissor mask buffer. */
         vg_lite_uint8_t premultiplied;          /*! The RGB pixel values are alpha-premultipled */
         vg_lite_uint8_t apply_premult;          /*! Need to apply alpha-premultiply */
-        vg_lite_uint32_t temp_address;          /*! Have a temporary buffer that supports sw lvgl mode */
-        vg_lite_pointer temp_memory;
-        vg_lite_pointer temp_handle;
+        struct vg_lite_buffer *lvgl_buffer;     /*! Buffer for SW LVGL blending support */
     } vg_lite_buffer_t;
 
     /* Memory allocation info by kernel. */

@@ -1547,7 +1547,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
         VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(target, source->width, source->height, &matrix));
-        /* enable pre-multiplied in imager unit */
+        /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion | src_premultiply_enable));
 
@@ -1561,7 +1561,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     else
     {
         VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, &matrix));
-        /* enable pre-multiplied in imager unit */
+        /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion));
 
@@ -1977,7 +1977,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 
     VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
 
-    /* enable pre-multiplied in imager unit */
+    /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
                                                             filter_mode | linear_tile | conversion));
 
@@ -2665,7 +2665,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0B,*(uint32_t*) data));
     VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
 
-    /* enable pre-multiplied in imager unit */
+    /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
                                                             filter_mode | rad_tile | conversion));
 

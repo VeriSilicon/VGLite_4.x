@@ -1762,7 +1762,7 @@ void writePixel(vg_lite_buffer_t* temp, int x, int y, Color* c)
     }
 }
 
-vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* temp, vg_lite_blend_t operation)
+vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* lvgl_buf, vg_lite_blend_t operation)
 {
     Color c_src, c_dst, c_temp;
     /* copy source region to tmp dst */
@@ -1802,8 +1802,8 @@ vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_l
             default:
                 break;
             }
-            if (temp) {
-                writePixel(temp, i, j, &c_temp);
+            if (lvgl_buf) {
+                writePixel(lvgl_buf, i, j, &c_temp);
             }
 #if !gcFEATURE_VG_GLOBAL_ALPHA
             c_dst.a = 1.0;

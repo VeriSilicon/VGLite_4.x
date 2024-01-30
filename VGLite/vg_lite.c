@@ -3114,21 +3114,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_buffer_t temp_buffer = *source;
-        if (!source->temp_address) {
-            vg_lite_allocate(&temp_buffer);
-            source->temp_address = temp_buffer.address;
-            source->temp_memory = temp_buffer.memory;
-            source->temp_handle = temp_buffer.handle;
-        }
-        else {
-            temp_buffer.address = source->temp_address;
-            temp_buffer.memory = source->temp_memory;
-            temp_buffer.handle = source->temp_handle;
+        if (!source->lvgl_buffer) {
+            source->lvgl_buffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
+            *source->lvgl_buffer = *source;
+            source->lvgl_buffer->lvgl_buffer = NULL;
+            vg_lite_allocate(source->lvgl_buffer);
         }
         /* Make sure render target is up to date before reading RT. */
         vg_lite_finish();
-        setup_lvgl_image(target, source, &temp_buffer, blend);
+        setup_lvgl_image(target, source, source->lvgl_buffer, blend);
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
     }
@@ -3627,7 +3621,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
     if (lvgl_sw_blend) {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->lvgl_buffer->address));
     }
     else
 #endif
@@ -3854,21 +3848,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        vg_lite_buffer_t temp_buffer = *source;
-        if (!source->temp_address) {
-            vg_lite_allocate(&temp_buffer);
-            source->temp_address = temp_buffer.address;
-            source->temp_memory = temp_buffer.memory;
-            source->temp_handle = temp_buffer.handle;
-        }
-        else {
-            temp_buffer.address = source->temp_address;
-            temp_buffer.memory = source->temp_memory;
-            temp_buffer.handle = source->temp_handle;
+        if (!source->lvgl_buffer) {
+            source->lvgl_buffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
+            *source->lvgl_buffer = *source;
+            source->lvgl_buffer->lvgl_buffer = NULL;
+            vg_lite_allocate(source->lvgl_buffer);
         }
         /* Make sure render target is up to date before reading RT. */
         vg_lite_finish();
-        setup_lvgl_image(target, source, &temp_buffer, blend);
+        setup_lvgl_image(target, source, source->lvgl_buffer, blend);
         blend = VG_LITE_BLEND_SRC_OVER;
         lvgl_sw_blend = 1;
     }
@@ -4393,7 +4381,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
     if (lvgl_sw_blend) {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->temp_address));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->lvgl_buffer->address));
     }
     else
 #endif
@@ -5141,12 +5129,11 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     buffer->memory = NULL;
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if (buffer->temp_handle != NULL) {
-        free.memory_handle = buffer->temp_handle;
+    if (buffer->lvgl_buffer != NULL) {
+        free.memory_handle = buffer->lvgl_buffer->handle;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
-        buffer->temp_address = 0;
-        buffer->temp_memory = NULL;
-        buffer->temp_handle = NULL;
+        vg_lite_os_free(buffer->lvgl_buffer);
+        buffer->lvgl_buffer = NULL;
     }
 #endif
 
@@ -6322,11 +6309,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
 #if !gcFEATURE_VG_INDEX_ENDIAN
     if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
         return VG_LITE_NOT_SUPPORT;
