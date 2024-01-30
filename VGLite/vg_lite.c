@@ -3688,20 +3688,18 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    uint32_t paintType = 0;
     uint32_t imageMode = 0;
+    uint32_t paintType = 0;
     uint32_t in_premult = 0;
-    int32_t stride;
-    uint32_t transparency_mode = 0;
     uint32_t blend_mode;
     uint32_t filter_mode = 0;
+    uint32_t transparency_mode = 0;
     uint32_t conversion = 0;
-    uint32_t tiled_source;
-    int32_t left, top, right, bottom;
     uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
+    uint32_t tiled_source;
     uint32_t yuv2rgb = 0;
     uint32_t uv_swiz = 0;
-    uint32_t compress_mode;
+    uint32_t compress_mode = 0;
     uint32_t src_premultiply_enable = 0;
     uint32_t index_endian = 0;
     uint32_t eco_fifo = 0;
@@ -3709,7 +3707,30 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t stripe_mode = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+    int32_t  left, top, right, bottom;
+    int32_t  stride;
     uint8_t  lvgl_sw_blend = 0;
+#if VG_SW_BLIT_PRECISION_OPT
+    uint8_t* bufferPointer;
+    uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
+    vg_lite_buffer_t new_target;
+    vg_lite_point_t point0_0_afterTransform = { 0 };
+    uint8_t enableSwPreOpt = 0;
+    int32_t matrixOffsetX = 0;
+
+    /* Only accept interger move */
+    if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
+        matrix->m[0][2] = (vg_lite_float_t)(matrix->m[0][2] >= 0 ? (int32_t)(matrix->m[0][2] + 0.5) : (int32_t)(matrix->m[0][2] - 0.5));
+        matrix->m[1][2] = (vg_lite_float_t)(matrix->m[1][2] >= 0 ? (int32_t)(matrix->m[1][2] + 0.5) : (int32_t)(matrix->m[1][2] - 0.5));
+        /* Only nonperspective transform with scale or rotation could enable optimization */
+        if ((matrix->m[2][0] == 0.0f && matrix->m[2][1] == 0.0f && matrix->m[2][2] == 1.0f) &&
+            (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
+            if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
+                enableSwPreOpt = 1;
+            }
+        }
+    }
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_blit_rect %p %p %p %p %d 0x%08X %d\n", target, source, rect, matrix, blend, color, filter);
@@ -3927,11 +3948,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
-
+    
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-    
+#if VG_SW_BLIT_PRECISION_OPT
+    point0_0_afterTransform = temp;
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+
     /* Transform image (0,height) to screen. */
     if (!transform(&temp, 0.0f, (vg_lite_float_t)rect_h, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -3990,13 +4014,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     get_st_gamma_src_dest(source, target);
 #endif
 
-    /*blend input into context*/
-    s_context.blend_mode = blend;
-    in_premult = 0x00000000;
-
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
+
+    /*blend input into context*/
+    s_context.blend_mode = blend;
+    in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
@@ -4021,7 +4045,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         in_premult = 0x10000000;
     }
     /* when src and dst all pre format, im pre_out set to 0 to perform data truncation to prevent data overflow */
-    else if(source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0){
+    else if (source->premultiplied == 1 && target->premultiplied == 1 && prediv_flag == 0) {
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
@@ -4035,7 +4059,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if ((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+    if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
 #if (CHIPID==0x255)
         src_premultiply_enable = 0x00000000;
 #endif
@@ -4055,6 +4079,44 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (error != VG_LITE_SUCCESS) {
         return error;
     }
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt) {
+        get_format_bytes(target->format, &mul, &div, &required_align);
+        //update target memory address
+        bufferAddress = target->address;
+        bufferAddress = bufferAddress + point_min.y * target->stride + point_min.x * (mul / div);
+        //base address need align
+        bufferAlignAddress = bufferAddress & ~(required_align - 1);
+
+        //update buffer pointer address
+        bufferPointer = (uint8_t*)target->memory;
+        bufferPointer = bufferPointer + (bufferAlignAddress - target->address);
+
+        //update offset
+        addressOffset = bufferAddress - bufferAlignAddress;
+        //we need give some offset to match actual translate
+        matrixOffsetX = addressOffset * div / mul;
+
+        //update new_target and set  it as target
+        memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
+        new_target.address = bufferAddress;
+        new_target.memory = bufferPointer;
+        new_target.width = point_max.x - point_min.x + matrixOffsetX;
+        new_target.height = point_max.y - point_min.y;
+        target = &new_target;
+
+        //update matrix
+        matrix->m[0][2] = (vg_lite_float_t)(point0_0_afterTransform.x - point_min.x + matrixOffsetX);
+        matrix->m[1][2] = (vg_lite_float_t)(point0_0_afterTransform.y - point_min.y);
+
+        //modify point_min and point_max to let them start from (0, 0)
+        point_max.x = point_max.x - point_min.x;
+        point_max.y = point_max.y - point_min.y;
+        point_min.x = 0;
+        point_min.y = 0;
+    }
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
@@ -4099,6 +4161,36 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]);
         c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]);
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+
+        // For FL32 rounding trick
+        uint32_t datax[2], datay[2], datac[2];
+        for (int idx = 0; idx < 2; idx++)
+        {
+            datax[idx] = *(uint32_t*)((void*)&x_step[idx]);
+            datay[idx] = *(uint32_t*)((void*)&y_step[idx]);
+            datac[idx] = *(uint32_t*)((void*)&c_step[idx]);
+        }
+        for (int i = 0; i < 2; i++)
+        {
+            int aSign = (datax[i] & 0x80000000) >> 31;
+            int bSign = (datay[i] & 0x80000000) >> 31;
+            int cSign = (datac[i] & 0x80000000) >> 31;
+            int aIn = (datax[i] & 0x20) >> 5;
+            int bIn = (datay[i] & 0x20) >> 5;
+            if ((aSign ==0 ) && (bSign == 0) && (aIn == bIn))
+            {
+                int cIn = (aSign ^ cSign) ^ ((~aIn) & 0x1);
+                if (cIn == 0)
+                {
+                    datac[i] &= 0xFFFFFFDF;
+                }
+                else
+                {
+                    datac[i] |= 0x00000020;
+                }
+                c_step[i] = *(vg_lite_float_t*)((void*)&datac[i]);
+            }
+        }
     }
 #else
     if (filter == VG_LITE_FILTER_LINEAR)
@@ -4141,6 +4233,24 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
     }
 #endif
+
+#if VG_SW_BLIT_PRECISION_OPT
+    /* Update C offset */
+    if (enableSwPreOpt) {
+        uint8_t indexC0 = 0;
+        uint8_t indexC1 = 0;
+        uint32_t temp0 = (uint32_t)(matrix->angle / 45);
+        uint32_t temp1 = (uint32_t)(matrix->scaleX * 100);
+        uint32_t temp2 = (uint32_t)(matrix->scaleY * 100);
+        indexC0 = GetIndex(temp0, temp1);
+        indexC1 = GetIndex(temp0, temp2);
+        c_step[0] = c_step[0] + offsetTable[indexC0];
+        c_step[1] = c_step[1] + offsetTable[indexC1];
+    }
+#else
+        c_step[0] = c_step[0] + offsetTable[0];
+        c_step[1] = c_step[1] + offsetTable[0];
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -4223,7 +4333,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GLOBAL_ALPHA
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
 #endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | s_context.color_transform | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
@@ -4235,7 +4345,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *) &y_step[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *) &y_step[1]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *) &y_step[2]));
-    
+
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
         ((source->format >= VG_LITE_YUY2_TILED) &&
@@ -4262,7 +4372,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         /* Program v plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A53, source->yuv.v_planar));
     }
-
+    if (source->yuv.alpha_planar != 0) {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A53, source->yuv.alpha_planar));
+    }
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, 0));
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
@@ -4283,9 +4395,17 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
     }
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
-    VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
+    
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt) {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
+    } else
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+    {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
+    }
 
 #if !gcFEATURE_VG_STRIPE_MODE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
