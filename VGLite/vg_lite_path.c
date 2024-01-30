@@ -1043,6 +1043,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -1354,6 +1359,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -1728,6 +1738,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -2179,6 +2194,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -2845,7 +2865,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3254,7 +3274,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (source->image_mode == VG_LITE_RECOLOR_MODE)) {
+    if ((blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (source->image_mode == VG_LITE_RECOLOR_MODE)) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3938,7 +3958,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
+    if ((blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -4584,7 +4604,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     }
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_SUBTRACT_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
+    if ((blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif

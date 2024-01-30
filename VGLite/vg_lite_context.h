@@ -226,6 +226,8 @@ extern vg_lite_void set_gamma_dest_only(vg_lite_buffer_t *target, vg_lite_int32_
 extern vg_lite_void save_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
 extern vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
 
+extern vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* temp, vg_lite_blend_t operation);
+
 /**************************** Dump command, image ********************************************/
 
 #define DUMP_COMMAND                            0

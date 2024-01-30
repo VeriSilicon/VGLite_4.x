@@ -1192,6 +1192,629 @@ vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t* values)
 #endif
 }
 
+#if !gcFEATURE_VG_LVGL_SUPPORT
+
+typedef struct {
+    float                 r;
+    float                 g;
+    float                 b;
+    float                 a;
+} Color;
+
+int colorToInt(float c, int maxc)
+{
+    return MIN(MAX((int)floor(c * (float)maxc + 0.5f), 0), maxc);
+}
+
+float intToColor(unsigned int i, unsigned int maxi)
+{
+    return (float)(i & maxi) / (float)maxi;
+}
+
+Color readPixel(vg_lite_buffer_t* src, int x, int y)
+{
+    unsigned int p = 0;
+    Color c;
+    uint8_t* scanline = (uint8_t*)src->memory + y * src->stride;
+
+    uint8_t bitsPerPixel = 0;
+    int rb = 0;
+    int gb = 0;
+    int bb = 0;
+    int ab = 0;
+    int rs = 0;
+    int gs = 0;
+    int bs = 0;
+    int as = 0;
+    switch (src->format) {
+    case VG_LITE_A8:
+    case VG_LITE_L8:
+        ab = 8;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ABGR4444:
+        rs = 12;
+        gs = 8;
+        bs = 4;
+        as = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ARGB4444:
+        bs = 12;
+        gs = 8;
+        rs = 4;
+        as = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGBA4444:
+        as = 12;
+        bs = 8;
+        gs = 4;
+        rs = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA4444:
+        as = 12;
+        rs = 8;
+        gs = 4;
+        bs = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGB565:
+        rs = 0;
+        gs = 5;
+        bs = 11;
+        as = 0;
+        rb = 5;
+        gb = 6;
+        bb = 5;
+        ab = 0;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGR565:
+        rs = 11;
+        gs = 5;
+        bs = 0;
+        as = 0;
+        rb = 5;
+        gb = 6;
+        bb = 5;
+        ab = 0;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ABGR8888:
+    case VG_LITE_XBGR8888:
+        rs = 24;
+        gs = 16;
+        bs = 8;
+        as = 0;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_ARGB8888:
+    case VG_LITE_XRGB8888:
+        rs = 8;
+        gs = 16;
+        bs = 24;
+        as = 0;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_RGBA8888:
+    case VG_LITE_RGBX8888:
+        rs = 0;
+        gs = 8;
+        bs = 16;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_BGRA8888:
+    case VG_LITE_BGRX8888:
+        rs = 16;
+        gs = 8;
+        bs = 0;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_ABGR1555:
+        rs = 11;
+        gs = 6;
+        bs = 1;
+        as = 0;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGBA5551:
+        rs = 0;
+        gs = 5;
+        bs = 10;
+        as = 15;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ARGB1555:
+        rs = 1;
+        gs = 6;
+        bs = 11;
+        as = 0;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA5551:
+        rs = 10;
+        gs = 5;
+        bs = 0;
+        as = 15;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA2222:
+        rs = 4;
+        gs = 2;
+        bs = 0;
+        as = 6;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_RGBA2222:
+        rs = 0;
+        gs = 2;
+        bs = 4;
+        as = 6;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ABGR2222:
+        rs = 6;
+        gs = 4;
+        bs = 2;
+        as = 0;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ARGB2222:
+        rs = 2;
+        gs = 4;
+        bs = 6;
+        as = 0;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    default:
+        break;
+    }
+
+    switch (bitsPerPixel)
+    {
+    case 32:
+    {
+        uint32_t* s = (((uint32_t*)scanline) + x);
+        p = (unsigned int)*s;
+        break;
+    }
+
+    case 16:
+    {
+        uint16_t* s = ((uint16_t*)scanline) + x;
+        p = (unsigned int)*s;
+        break;
+    }
+
+    case 8:
+    {
+        uint8_t* s = ((uint8_t*)scanline) + x;
+        p = (unsigned int)*s;
+        break;
+    }
+    case 4:
+    {
+        uint8_t* s = ((uint8_t*)scanline) + (x >> 1);
+        p = (unsigned int)(*s >> ((x & 1) << 2)) & 0xf;
+        break;
+    }
+    case 2:
+    {
+        uint8_t* s = ((uint8_t*)scanline) + (x >> 2);
+        p = (unsigned int)(*s >> ((x & 3) << 1)) & 0x3;
+        break;
+    }
+    default:
+    {
+        uint8_t* s = ((uint8_t*)scanline) + (x >> 3);
+        p = (unsigned int)(*s >> (x & 7)) & 0x1;
+        break;
+    }
+    }
+
+    //rgba
+    c.r = rb ? intToColor(p >> rs, (1 << rb) - 1) : (float)1.0f;
+    c.g = gb ? intToColor(p >> gs, (1 << gb) - 1) : (float)1.0f;
+    c.b = bb ? intToColor(p >> bs, (1 << bb) - 1) : (float)1.0f;
+    c.a = ab ? intToColor(p >> as, (1 << ab) - 1) : (float)1.0f;
+
+    return c;
+}
+
+void writePixel(vg_lite_buffer_t* temp, int x, int y, Color* c)
+{
+    uint8_t bitsPerPixel = 0;
+    int rb = 0;
+    int gb = 0;
+    int bb = 0;
+    int ab = 0;
+    int rs = 0;
+    int gs = 0;
+    int bs = 0;
+    int as = 0;
+    switch (temp->format) {
+    case VG_LITE_A8:
+    case VG_LITE_L8:
+        ab = 8;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ABGR4444:
+        rs = 12;
+        gs = 8;
+        bs = 4;
+        as = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ARGB4444:
+        bs = 12;
+        gs = 8;
+        rs = 4;
+        as = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGBA4444:
+        as = 12;
+        bs = 8;
+        gs = 4;
+        rs = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA4444:
+        as = 12;
+        rs = 8;
+        gs = 4;
+        bs = 0;
+        rb = 4;
+        gb = 4;
+        bb = 4;
+        ab = 4;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGB565:
+        rs = 0;
+        gs = 5;
+        bs = 11;
+        as = 0;
+        rb = 5;
+        gb = 6;
+        bb = 5;
+        ab = 0;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGR565:
+        rs = 11;
+        gs = 5;
+        bs = 0;
+        as = 0;
+        rb = 5;
+        gb = 6;
+        bb = 5;
+        ab = 0;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ABGR8888:
+    case VG_LITE_XBGR8888:
+        rs = 24;
+        gs = 16;
+        bs = 8;
+        as = 0;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_ARGB8888:
+    case VG_LITE_XRGB8888:
+        rs = 8;
+        gs = 16;
+        bs = 24;
+        as = 0;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_RGBA8888:
+    case VG_LITE_RGBX8888:
+        rs = 0;
+        gs = 8;
+        bs = 16;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_BGRA8888:
+    case VG_LITE_BGRX8888:
+        rs = 16;
+        gs = 8;
+        bs = 0;
+        as = 24;
+        rb = 8;
+        gb = 8;
+        bb = 8;
+        ab = 8;
+        bitsPerPixel = 32;
+        break;
+    case VG_LITE_ABGR1555:
+        rs = 11;
+        gs = 6;
+        bs = 1;
+        as = 0;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_RGBA5551:
+        rs = 0;
+        gs = 5;
+        bs = 10;
+        as = 15;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_ARGB1555:
+        rs = 1;
+        gs = 6;
+        bs = 11;
+        as = 0;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA5551:
+        rs = 10;
+        gs = 5;
+        bs = 0;
+        as = 15;
+        rb = 5;
+        gb = 5;
+        bb = 5;
+        ab = 1;
+        bitsPerPixel = 16;
+        break;
+    case VG_LITE_BGRA2222:
+        rs = 4;
+        gs = 2;
+        bs = 0;
+        as = 6;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_RGBA2222:
+        rs = 0;
+        gs = 2;
+        bs = 4;
+        as = 6;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ABGR2222:
+        rs = 6;
+        gs = 4;
+        bs = 2;
+        as = 0;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    case VG_LITE_ARGB2222:
+        rs = 2;
+        gs = 4;
+        bs = 6;
+        as = 0;
+        rb = 2;
+        gb = 2;
+        bb = 2;
+        ab = 2;
+        bitsPerPixel = 8;
+        break;
+    default:
+        break;
+    }
+
+    unsigned int cr = rb ? colorToInt(c->r, (1 << rb) - 1) : 0;
+    unsigned int cg = gb ? colorToInt(c->g, (1 << gb) - 1) : 0;
+    unsigned int cb = bb ? colorToInt(c->b, (1 << bb) - 1) : 0;
+    unsigned int ca = ab ? colorToInt(c->a, (1 << ab) - 1) : 0;
+
+    unsigned int p = (cr << rs) | (cg << gs) | (cb << bs) | (ca << as);
+    char* scanline = (char*)temp->memory + y * temp->stride;
+    switch (bitsPerPixel)
+    {
+    case 32:
+    {
+        uint32_t* s = ((uint32_t*)scanline) + x;
+        *s = (uint32_t)p;
+        break;
+    }
+
+    case 16:
+    {
+        uint16_t* s = ((uint16_t*)scanline) + x;
+        *s = (uint16_t)p;
+        break;
+    }
+
+    case 8:
+    {
+        char* s = ((char*)scanline) + x;
+        *s = (char)p;
+        break;
+    }
+    case 4:
+    {
+        char* s = ((char*)scanline) + (x >> 1);
+        *s = (char)((p << ((x & 1) << 2)) | ((unsigned int)*s & ~(0xf << ((x & 1) << 2))));
+        break;
+    }
+
+    case 2:
+    {
+        char* s = ((char*)scanline) + (x >> 2);
+        *s = (char)((p << ((x & 3) << 1)) | ((unsigned int)*s & ~(0x3 << ((x & 3) << 1))));
+        break;
+    }
+
+    default:
+    {
+        break;
+    }
+    }
+}
+
+vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* temp, vg_lite_blend_t operation)
+{
+    Color c_src, c_dst, c_temp;
+    /* copy source region to tmp dst */
+    for (int j = 0; j < dst->height; j++)
+    {
+        for (int i = 0; i < dst->width; i++)
+        {
+            if (src) {
+                c_src = readPixel(src, i, j);
+            }
+            if (dst) {
+                c_dst = readPixel(dst, i, j);
+            }
+            switch (operation)
+            {
+            case VG_LITE_BLEND_NORMAL_LVGL:
+                c_temp.a = c_src.a;
+                c_temp.r = c_src.a * c_src.r;
+                c_temp.g = c_src.a * c_src.g;
+                c_temp.b = c_src.a * c_src.b;
+                break;
+            case VG_LITE_BLEND_ADDITIVE_LVGL:
+                c_temp.a = c_src.a;
+                c_temp.r = (c_src.r + c_dst.r) * c_src.a;
+                c_temp.g = (c_src.g + c_dst.g) * c_src.a;
+                c_temp.b = (c_src.b + c_dst.b) * c_src.a;
+                break;
+            case VG_LITE_BLEND_SUBTRACT_LVGL:
+                c_temp.a = c_src.a;
+                c_temp.r = c_src.r < c_dst.r ? (c_dst.r - c_src.r) * c_src.a : 0;
+                c_temp.g = c_src.g < c_dst.g ? (c_dst.g - c_src.g) * c_src.a : 0;
+                c_temp.b = c_src.b < c_dst.b ? (c_dst.b - c_src.b) * c_src.a : 0;
+                break;
+            case VG_LITE_BLEND_MULTIPLY_LVGL:
+                c_temp.a = c_src.a;
+                c_temp.r = c_src.r * c_dst.r * c_src.a;
+                c_temp.g = c_src.g * c_dst.g * c_src.a;
+                c_temp.b = c_src.b * c_dst.b * c_src.a;
+                break;
+            default:
+                break;
+            }
+            if (temp) {
+                writePixel(temp, i, j, &c_temp);
+            }
+        }
+    }
+    return;
+}
+
+#endif  /* !gcFEATURE_VG_LVGL_SUPPORT */
+
 /****************** FLEXA Support ***************/
 
 vg_lite_error_t vg_lite_flexa_enable()
