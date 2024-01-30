@@ -3256,9 +3256,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     get_st_gamma_src_dest(source, target);
 #endif
 
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
+#endif
 
     /*blend input into context*/
     s_context.blend_mode = blend;
@@ -4018,9 +4020,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     get_st_gamma_src_dest(source, target);
 #endif
 
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
+#endif
 
     /*blend input into context*/
     s_context.blend_mode = blend;

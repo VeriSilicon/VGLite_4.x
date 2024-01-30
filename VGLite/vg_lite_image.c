@@ -1770,12 +1770,9 @@ vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_l
     {
         for (int i = 0; i < dst->width; i++)
         {
-            if (src) {
-                c_src = readPixel(src, i, j);
-            }
-            if (dst) {
-                c_dst = readPixel(dst, i, j);
-            }
+            c_src = readPixel(src, i, j);
+            c_dst = readPixel(dst, i, j);
+
             switch (operation)
             {
             case VG_LITE_BLEND_NORMAL_LVGL:
@@ -1808,6 +1805,10 @@ vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_l
             if (temp) {
                 writePixel(temp, i, j, &c_temp);
             }
+#if !gcFEATURE_VG_GLOBAL_ALPHA
+            c_dst.a = 1.0;
+            writePixel(dst, i, j, &c_dst);
+#endif
         }
     }
     return;
