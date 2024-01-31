@@ -4397,7 +4397,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
     }
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
     
 #if VG_SW_BLIT_PRECISION_OPT
