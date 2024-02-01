@@ -1587,7 +1587,11 @@ uint32_t convert_blend(vg_lite_blend_t blend)
             return 0x00000A00;
 
         case VG_LITE_BLEND_SUBTRACT_LVGL:
+#if gcFEATURE_VG_LVGL_SUPPORT
             return 0x00000C00;
+#else
+            return 0x00000A00;
+#endif
 
         default:
             return 0;

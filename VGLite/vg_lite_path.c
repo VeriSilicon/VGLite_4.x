@@ -1043,11 +1043,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -1352,6 +1347,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+    uint8_t  lvgl_sw_blend = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
@@ -1359,11 +1355,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -1384,6 +1375,22 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        if (!source->lvgl_buffer) {
+            source->lvgl_buffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
+            *source->lvgl_buffer = *source;
+            source->lvgl_buffer->lvgl_buffer = NULL;
+            vg_lite_allocate(source->lvgl_buffer);
+        }
+        /* Make sure render target is up to date before reading RT. */
+        vg_lite_finish();
+        setup_lvgl_image(target, source, source->lvgl_buffer, blend);
+        blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
+    }
+#endif
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
@@ -1566,6 +1573,13 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
             filter_mode | pattern_tile | conversion));
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, pattern_color));
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
+        if (lvgl_sw_blend) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->lvgl_buffer->address));
+        }
+        else
+#endif
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
@@ -2864,11 +2878,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
 #if !gcFEATURE_VG_24BIT
     if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
         return VG_LITE_NOT_SUPPORT;
@@ -3252,6 +3261,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+    uint8_t  lvgl_sw_blend = 0;
 #if (!gcFEATURE_VG_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -3270,11 +3280,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #if gcFEATURE_VG_ERROR_CHECK
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (source->image_mode == VG_LITE_RECOLOR_MODE)) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -3364,6 +3369,22 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
 #endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
+        if (!source->lvgl_buffer) {
+            source->lvgl_buffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
+            *source->lvgl_buffer = *source;
+            source->lvgl_buffer->lvgl_buffer = NULL;
+            vg_lite_allocate(source->lvgl_buffer);
+        }
+        /* Make sure render target is up to date before reading RT. */
+        vg_lite_finish();
+        setup_lvgl_image(target, source, source->lvgl_buffer, blend);
+        blend = VG_LITE_BLEND_SRC_OVER;
+        lvgl_sw_blend = 1;
+    }
+#endif
 
     if (!path->path_length) {
         return VG_LITE_SUCCESS;
@@ -3663,7 +3684,15 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         }
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, pattern_color));
+
+#if !gcFEATURE_VG_LVGL_SUPPORT
+        if (lvgl_sw_blend) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->lvgl_buffer->address));
+        }
+        else
+#endif
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
+
         /* 24bit format stride configured to 4bpp. */
         if (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658) {
             stride = source->stride / 3 * 4;

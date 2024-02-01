@@ -1766,9 +1766,9 @@ vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_l
 {
     Color c_src, c_dst, c_temp;
     /* copy source region to tmp dst */
-    for (int j = 0; j < dst->height; j++)
+    for (int j = 0; j < src->height; j++)
     {
-        for (int i = 0; i < dst->width; i++)
+        for (int i = 0; i < src->width; i++)
         {
             c_src = readPixel(src, i, j);
             c_dst = readPixel(dst, i, j);
