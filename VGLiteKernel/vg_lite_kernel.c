@@ -84,6 +84,9 @@ static uint32_t state_map_table[4096] = {
 static uint32_t backup_command_buffer_physical;
 static void *backup_command_buffer_klogical;
 static uint32_t backup_command_buffer_size;
+uint32_t init_buffer[12];
+uint32_t is_init;
+size_t physical_address;
 #endif
 
 static int s_reference = 0;
@@ -741,19 +744,54 @@ static void dump_last_frame(void)
     uint32_t i = 0;
     uint32_t data = 0;
 
-    vg_lite_kernel_print("the last submit command before hang:\n");
-    for (i = 0; i < size / 4; i+=4) {
-        vg_lite_kernel_print("0x%08X 0x%08X", ptr[i], ptr[i+1]);
-        if ((i + 2) <= (size / 4 - 1))
-#if defined(__linux__)
-            vg_lite_kernel_print(KERN_CONT " 0x%08X 0x%08X\n", ptr[i+2], ptr[i+3]);
-#else
-            vg_lite_kernel_print(" 0x%08X 0x%08X\n", ptr[i+2], ptr[i+3]);
-#endif
+    vg_lite_kernel_print("This is init command buffer:\n");
+    vg_lite_kernel_print("@[%s 0x%08X 0x00000088\n", "command", physical_address);
+    vg_lite_kernel_print("  0x30010A35 0x%08X 0x30010AC8 0x%08X\n", init_buffer[0], init_buffer[1]);
+    vg_lite_kernel_print("  0x30010ACB 0x%08X 0x30010ACC 0x%08X\n", init_buffer[2], init_buffer[3]);
+    vg_lite_kernel_print("  0x30010A90 0x%08X 0x30010A91 0x%08X\n", init_buffer[4], init_buffer[5]);
+    vg_lite_kernel_print("  0x30010A92 0x%08X 0x30010A93 0x%08X\n", init_buffer[6], init_buffer[7]);
+    vg_lite_kernel_print("  0x30010A94 0x%08X 0x30010A95 0x%08X\n", init_buffer[8], init_buffer[9]);
+    vg_lite_kernel_print("  0x30010A96 0x%08X 0x30010A97 0x%08X\n", init_buffer[10], init_buffer[11]);
+    vg_lite_kernel_print("  0x30010A00 0x00000001 0x30010A1B 0x00000011\n");
+    vg_lite_kernel_print("  0x10000007 0x00000000 0x20000007 0x00000000\n");
+    vg_lite_kernel_print("  0x00000000 0x00000000\n");
+    vg_lite_kernel_print("] -- %s\n", "command");
+
+    if (is_init == 1)
+    {
+        vg_lite_kernel_print("the last submit command is init command.\n");
     }
+    else
+    {
+        vg_lite_kernel_print("the last submit command before hang:\n");
+        vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", (unsigned int)ptr, size));
+        for (i = 0; i < size; i += 4) {
+            if (i + 4 + size % 4 == size)
+            {
+                int j = size % 4;
+                switch (j)
+                {
+                case 1:
+                    vg_lite_kernel_print("  0x%08X\n", ptr[i]);
+                    break;
+                case 2:
+                    vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[i], ptr[i + 1]);
+                    break;
+                case 3:
+                    vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2]);
+                    break;
+                }
+            }
+            else
+            {
+                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
+            }
+        }
+    }
+    vg_lite_kernel_print("] -- %s\n", "command");
 
     data = vg_lite_hal_peek(VG_LITE_HW_IDLE);
-    vg_lite_kernel_print("vg idle reg = 0x%08X\n", data);
+    vg_lite_kernel_print("vgidle reg = 0x%08X\n", data);
 }
 #endif
 

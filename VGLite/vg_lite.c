@@ -2058,6 +2058,10 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 #endif
 #endif
 
+#if DUMP_INIT_COMMAND
+    is_init++;
+#endif
+
     /* Reset command buffer. */
     CMDBUF_OFFSET(*context) = 0;
 
@@ -4587,6 +4591,18 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     s_context.path_counter = 0;
 
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
+
+#if DUMP_INIT_COMMAND   
+    physical_address = (size_t)CMDBUF_BUFFER(s_context);
+    uint32_t * ptr = (uint32_t*) s_context.context.command_buffer_logical[CMDBUF_INDEX(s_context)];
+    ptr += 1;
+    for (int i = 0; i < 12; i++)
+    {
+        init_buffer[i] = *ptr;
+        ptr+=2;
+    }
+    is_init = 0;
+#endif
 
 #if DUMP_CAPTURE
     _SetDumpFileInfo();

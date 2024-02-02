@@ -564,6 +564,10 @@ vg_lite_kernel_export_memory_t;
 
 vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data);
 
+extern uint32_t init_buffer[12];
+extern uint32_t is_init;
+extern size_t physical_address;
+
 #ifdef __cplusplus
 }
 #endif
