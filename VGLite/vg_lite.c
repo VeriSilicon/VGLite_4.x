@@ -5072,6 +5072,15 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
         memset(s_context.rtbuffer, 0, sizeof(vg_lite_buffer_t));
     }
 
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (buffer->lvgl_buffer != NULL) {
+        free.memory_handle = buffer->lvgl_buffer->handle;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
+        vg_lite_os_free(buffer->lvgl_buffer);
+        buffer->lvgl_buffer = NULL;
+    }
+#endif
+
     if (buffer->yuv.uv_planar) {
         /* Free UV(U) planar buffer. */
 #if !DUMP_COMMAND_BY_USER
@@ -5131,15 +5140,6 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     /* Mark the buffer as freed. */
     buffer->handle = NULL;
     buffer->memory = NULL;
-
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (buffer->lvgl_buffer != NULL) {
-        free.memory_handle = buffer->lvgl_buffer->handle;
-        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
-        vg_lite_os_free(buffer->lvgl_buffer);
-        buffer->lvgl_buffer = NULL;
-    }
-#endif
 
     return VG_LITE_SUCCESS;
 }
