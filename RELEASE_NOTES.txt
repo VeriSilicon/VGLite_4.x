@@ -25,7 +25,26 @@ LIMITATION
 
 CHANGES
 =======
+
+January 2024: vglite_4_0_64
+-------------------------
+
+	1. Add a new parameter "vg_lite_buffer_t *target" to vg_lite_scissor_rects() API. 
+    2. Add a new API vg_lite_set_memory_pool.
+    3. Allow all VGLite API matrix paramters to be NULL which indicates an identify matrix as the default input paramter.
+    4. Support two memory pool in Linux environment.
+    5. Support single command buffer.
+    6. change the logic of gcFEATURE_VG_STRIPE_MODE\ gcFEATURE_VG_SPLIT_PATH\ gcFEATURE_VG_CLOCK_GATING.
+    7. Replace "s_context.pre_mul" and "s_context.pre_div" with function local variables "premul_flag" and "prediv_flag".
+    8. Restore VGLite default command buffer size to 32KB to reduce memory consumption.
+    9. Remove VG_LITE_BLEND_PREMULTIPLY_SRC_OVER enum as it is the same as VG_LITE_BLEND_NORMAL_LVGL.
+    10. Add a new API "vg_lite_error_t vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer)" for Linux debugging.
+    11. Add VG_LITE_GPU_IDLE_STATE query in vg_lite_get_parameter() API for application.
+    12. Add new Feature gcFEATURE_VG_NV24_INPUT.
+
 November 2023: vglite_4_0_47
+-------------------------
+
 	1. Add fill stroke support.
 	2. Update gc265 new revision blend mode config.
 	3. 265 add src_premultiply in draw pattern api.
@@ -37,6 +56,8 @@ November 2023: vglite_4_0_47
 	9. [kernel]: add gcdVG_ENABLE_AUTO_CLOCK_GATING to determine if auto clock gating feature is enabled.
 	10. Add dec2.0 feature.
 	11. Refine vg_lite_copy_image() API in vg_lite.h header and its parameters.
+    12. Add new ts clock gating patch,fix [TS] Clock gating bug. Add clock gating feature into option.h.
+	13. Add logic in vg_lite_init() to handle repeated vg_lite_init() calls. vg_lite_init() just return if VGLite is already initialized properly.
 
 May 2023: vglite_4_0_22
 -------------------------
