@@ -29,48 +29,43 @@ CHANGES
 January 2024: vglite_4_0_64
 -------------------------
 
-	1. Add a new parameter "vg_lite_buffer_t *target" to vg_lite_scissor_rects() API. 
-    2. Add a new API vg_lite_set_memory_pool.
-    3. Allow all VGLite API matrix paramters to be NULL which indicates an identify matrix as the default input paramter.
-    4. Support two memory pool in Linux environment.
-    5. Support single command buffer.
-    6. change the logic of gcFEATURE_VG_STRIPE_MODE\ gcFEATURE_VG_SPLIT_PATH\ gcFEATURE_VG_CLOCK_GATING.
-    7. Replace "s_context.pre_mul" and "s_context.pre_div" with function local variables "premul_flag" and "prediv_flag".
-    8. Restore VGLite default command buffer size to 32KB to reduce memory consumption.
-    9. Remove VG_LITE_BLEND_PREMULTIPLY_SRC_OVER enum as it is the same as VG_LITE_BLEND_NORMAL_LVGL.
-    10. Add a new API "vg_lite_error_t vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer)" for Linux debugging.
-    11. Add VG_LITE_GPU_IDLE_STATE query in vg_lite_get_parameter() API for application.
-    12. Add new Feature gcFEATURE_VG_NV24_INPUT.
+    1. Add a new parameter "vg_lite_buffer_t *target" to vg_lite_scissor_rects() API. 
+    2. Support two memory pool in Linux environment. Add a new API vg_lite_set_memory_pool.
+    3. Allow VGLite API matrix paramters to be NULL which indicates an identify matrix.
+    4. Support single command buffer. By default, VGLite driver uses two command buffers.
+    5. Refine driver settings for gcFEATURE_VG_STRIPE_MODE, gcFEATURE_VG_SPLIT_PATH, gcFEATURE_VG_CLOCK_GATING.
+    6. Restore VGLite default command buffer size to 32KB to reduce memory consumption.
+    7. Define VG_LITE_BLEND_PREMULTIPLY_SRC_OVER as an alias of VG_LITE_BLEND_NORMAL_LVGL.
+    8. Add a new API "vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer)" for Linux debugging.
+    9. Add VG_LITE_GPU_IDLE_STATE query in vg_lite_get_parameter() API for application.
+    10. Add driver support for the new gcFEATURE_VG_NV24_INPUT.
 
 November 2023: vglite_4_0_47
 -------------------------
 
-	1. Add fill stroke support.
-	2. Update gc265 new revision blend mode config.
-	3. 265 add src_premultiply in draw pattern api.
-	4. Add gcFEATURE_VG_MATH_PRECISION_FIX for enabling the new driver code for math precision fix.
-	5. Remove gcFEATURE_VG_SIMPLYFIED_BEZIER and the old _flatten_quad_bezier(), _flatten_cubic_bezier() functions. Use the new simplied bezier implementation by default.
-	6. After GPU hang, use reset operation to restart the GPU.
-	7. Add a new API vg_lite_get_parameter to get scissor parameter by user.
-	8. Delete vg_lite_set_premultiply API as vg_lite_blend_t now covers all blend modes (non-premultiplied and premultiplied).
-	9. [kernel]: add gcdVG_ENABLE_AUTO_CLOCK_GATING to determine if auto clock gating feature is enabled.
-	10. Add dec2.0 feature.
-	11. Refine vg_lite_copy_image() API in vg_lite.h header and its parameters.
-    12. Add new ts clock gating patch,fix [TS] Clock gating bug. Add clock gating feature into option.h.
-	13. Add logic in vg_lite_init() to handle repeated vg_lite_init() calls. vg_lite_init() just return if VGLite is already initialized properly.
+    1. Add a new vg_lite_copy_image() API for OpenVG vgCopyImage support.
+    2. Add logic in vg_lite_init() to handle repeated vg_lite_init() calls.
+    3. Add gcFEATURE_VG_MATH_PRECISION_FIX for enabling the new driver code for math precision fix.
+    4. Use the new simplied bezier implementation by default. Remove gcFEATURE_VG_SIMPLYFIED_BEZIER.
+    5. Use reset operation to restart the GPU after GPU hang.
+    6. Add a new API vg_lite_get_parameter to get scissor parameter.
+    7. Delete vg_lite_set_premultiply API as vg_lite_blend_t now covers all blend modes (non-premultiplied and premultiplied).
+    8. Add gcdVG_ENABLE_AUTO_CLOCK_GATING to determine if auto clock gating feature is enabled.
+    9. Add DEC2.0 feature support in driver for the new gc265 core.
+    10. Fix a TS Clock gating bug. Add clock gating feature into option.h.
+
 
 May 2023: vglite_4_0_22
 -------------------------
 
     1. Free masklayer correctly and refine masklayer parameter.
-    2. Fix gc265 set_scissor draw path hang bug.Ts area size (A39 A3A)must less than target size(A13)
-    3. [vglite kernel]: fix memory leak issue.
-    4. Fix issue when scale/bias is negative
+    2. Fix gc265 set_scissor draw path hang bug. TS area size must be less than target size.
+    3. Fix a VGLite kernel memory leak issue.
+    4. Fix issue when scale/bias is negative.
     5. Adding the -g0 option to reduce ko file size. 
     6. Add paint type enum and config related register in vg_lite_blit.
-    7. Use vg_lite_os_free() instead of free() api
-    8. Replace VLC_OP_CLOSE to VLC_OP_END in vg_lite_init_arc_path.
-    9. Add inputcolor parameter in vg_lite_draw_pattern.
+    7. Replace VLC_OP_CLOSE to VLC_OP_END in vg_lite_init_arc_path.
+    8. Add input color parameter in vg_lite_draw_pattern.
 
 April 2023: vglite_4_0_18
 -------------------------
