@@ -2904,11 +2904,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GAMMA
     set_gamma_dest_only(target, VGL_FALSE);
 #endif
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
-
+#endif
     /*blend input into context*/
     s_context.blend_mode = blend;
 
@@ -3199,11 +3199,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         }
     }
 #endif
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
     return error;
 }
 
@@ -3418,11 +3418,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif
 
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
-
+#endif
     /*blend input into context*/
     s_context.blend_mode = blend;
     in_premult = 0x00000000;
@@ -3902,11 +3902,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         }
     }
 #endif
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -4031,11 +4031,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GAMMA
     set_gamma_dest_only(target, VGL_TRUE);
 #endif
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
-
+#endif
     /*blend input into context*/
     s_context.blend_mode = blend;
 
@@ -4533,11 +4533,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -4684,11 +4684,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #if gcFEATURE_VG_GAMMA
     set_gamma_dest_only(target, VGL_TRUE);
 #endif
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
     }
-
+#endif
     /*blend input into context*/
     s_context.blend_mode = blend;
 
@@ -5421,11 +5421,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     /* Finialize command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);

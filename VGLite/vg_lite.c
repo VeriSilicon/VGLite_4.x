@@ -3661,11 +3661,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (!s_context.flexa_mode) {
         error = flush_target();
     }
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #endif
@@ -4421,11 +4421,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (!s_context.flexa_mode) {
         error = flush_target();
     }
-
+#if gcFEATURE_VG_GLOBAL_ALPHA
     if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
-
+#endif
 #if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 #endif
