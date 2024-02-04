@@ -2272,11 +2272,12 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         uint32_t tile_flag1 = 0;
         uint32_t align, mul, div;
         get_format_bytes(target->format, &mul, &div, &align);
-
+#if (CHIPID != 0x555)
         if ((uint32_t)(target->address) % 64 != 0) {
             printf("target address need to be aligned to 64 byte.");
             return VG_LITE_INVALID_ARGUMENT;
         }
+#endif
         if (target->tiled == VG_LITE_TILED) {
             tile_flag = 1;
 
@@ -3323,11 +3324,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         target->apply_premult = 0;
     }
 
-    error = set_render_target(target);
-    if (error != VG_LITE_SUCCESS) {
-        return error;
-    }
-
 #if VG_SW_BLIT_PRECISION_OPT
     if (enableSwPreOpt) {
         get_format_bytes(target->format, &mul, &div, &required_align);
@@ -3365,6 +3361,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         point_min.y = 0;
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
+
+    error = set_render_target(target);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
+    }
 
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
@@ -4083,11 +4084,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         target->apply_premult = 0;
     }
 
-    error = set_render_target(target);
-    if (error != VG_LITE_SUCCESS) {
-        return error;
-    }
-
 #if VG_SW_BLIT_PRECISION_OPT
     if (enableSwPreOpt) {
         get_format_bytes(target->format, &mul, &div, &required_align);
@@ -4125,6 +4121,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         point_min.y = 0;
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
+    error = set_render_target(target);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
+    }
 
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
