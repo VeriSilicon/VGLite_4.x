@@ -1570,7 +1570,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, &matrix));
         /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
-            filter_mode | pattern_tile | conversion));
+            filter_mode | pattern_tile | conversion | src_premultiply_enable));
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, pattern_color));
 
@@ -1993,7 +1993,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
-                                                            filter_mode | linear_tile | conversion));
+                                                            filter_mode | linear_tile | conversion | src_premultiply_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, paint_color));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source->address));
@@ -2681,7 +2681,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
-                                                            filter_mode | rad_tile | conversion));
+                                                            filter_mode | rad_tile | conversion | src_premultiply_enable));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, paint_color));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source->address));
