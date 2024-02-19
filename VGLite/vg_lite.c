@@ -2452,6 +2452,10 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
                               vg_lite_rectangle_t * rect,
                               vg_lite_color_t color)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_clear)(target, rect, color);
+#endif
+
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max;
     int32_t  left, top, right, bottom;
@@ -2603,6 +2607,10 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
                             vg_lite_blend_t blend,
                             vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_blit2)(target, source0, source1, matrix0, matrix1, blend, filter);
+#endif
+
 #if gcFEATURE_VG_DOUBLE_IMAGE && gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
@@ -2959,6 +2967,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
                             vg_lite_color_t color,
                             vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_blit)(target, source, matrix, blend, color, filter);
+#endif
+
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
@@ -3692,6 +3704,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                                 vg_lite_color_t color,
                                 vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_blit_rect)(target, source, rect, matrix, blend, color, filter);
+#endif
+
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
@@ -4509,6 +4525,10 @@ static vg_lite_error_t program_tessellation(vg_lite_context_t *context)
 
 vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_init)(tess_width, tess_height);
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_initialize_t initialize;
     uint8_t i;
@@ -4613,6 +4633,10 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
 
 vg_lite_error_t vg_lite_close(void)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_close)();
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_terminate_t terminate;
 
@@ -4662,6 +4686,10 @@ vg_lite_error_t vg_lite_close(void)
 
 vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_set_command_buffer_size)(size);
+#endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_set_command_buffer_size %d\n", size);
 #endif
@@ -4927,6 +4955,10 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
 
 vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_allocate)(buffer);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_allocate_t allocate;
 
@@ -5059,6 +5091,10 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 
 vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_free)(buffer);
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_free_t free, uv_free, v_free;
 
@@ -5162,6 +5198,10 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 
 vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, int32_t fd)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_map)(buffer, flag, fd);
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_map_t map;
 
@@ -5208,6 +5248,10 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
 
 vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_unmap)(buffer);
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_unmap_t unmap;
 
@@ -5232,6 +5276,10 @@ vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
 
 vg_lite_error_t vg_lite_flush_mapped_buffer(vg_lite_buffer_t * buffer)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_flush_mapped_buffer)(buffer);
+#endif
+
     vg_lite_error_t error;
     vg_lite_kernel_cache_t cache;
 
@@ -5348,6 +5396,10 @@ vg_lite_uint32_t vg_lite_query_feature(vg_lite_feature_t feature)
 
 vg_lite_error_t vg_lite_finish()
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_finish)();
+#endif
+
     vg_lite_error_t  error;
 
 #if gcFEATURE_VG_TRACE_API
@@ -5391,6 +5443,10 @@ vg_lite_error_t vg_lite_finish()
 
 vg_lite_error_t vg_lite_flush(void)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_flush)();
+#endif
+
 #if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     vg_lite_error_t error;
 
@@ -5598,6 +5654,10 @@ Empty_sequence_handler:
 
 vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_update_linear_grad)(grad);
+#endif
+
     uint32_t ramp_length;
     vg_lite_color_ramp_t *color_ramp;
     uint32_t stop;
@@ -5891,6 +5951,10 @@ Empty_sequence_handler:
 
 vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_update_radial_grad)(grad);
+#endif
+
     uint32_t ramp_length;
     vg_lite_color_ramp_t *colorRamp;
     uint32_t common, stop;
@@ -6070,6 +6134,10 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 
 vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_update_grad)(grad);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     int32_t r0, g0, b0, a0;
     int32_t r1, g1, b1, a1;
@@ -6145,6 +6213,10 @@ vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_clear_linear_grad)(grad);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
 #if gcFEATURE_VG_TRACE_API
@@ -6163,6 +6235,10 @@ vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_clear_grad)(grad);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
 #if gcFEATURE_VG_TRACE_API
@@ -6181,6 +6257,10 @@ vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_radial_grad(vg_lite_radial_gradient_t *grad)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_clear_radial_grad)(grad);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
 #if gcFEATURE_VG_TRACE_API
@@ -6226,6 +6306,10 @@ vg_lite_matrix_t * vg_lite_get_radial_grad_matrix(vg_lite_radial_gradient_t *gra
 
 vg_lite_error_t vg_lite_dump_command_buffer()
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_dump_command_buffer)();
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_submit_t submit;
     vg_lite_context_t* context = &s_context;

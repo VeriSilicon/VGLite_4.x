@@ -343,6 +343,10 @@ vg_lite_error_t vg_lite_clear_path(vg_lite_path_t* path)
 
 vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_upload_path)(path);
+#endif
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t bytes;
     vg_lite_buffer_t Buf, *buffer;
@@ -2842,6 +2846,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
                             vg_lite_blend_t blend,
                             vg_lite_color_t color)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_draw)(target, path, fill_rule, matrix, blend, color);
+#endif
+
     uint32_t blend_mode;
     uint32_t format, quality, tiling, fill;
     uint32_t tessellation_size;
@@ -3221,6 +3229,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
                                     vg_lite_color_t  color,
                                     vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_draw_pattern)(target, path, fill_rule, path_matrix, source, pattern_matrix, blend, pattern_mode, pattern_color, color, filter);
+#endif
+
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_matrix_t inverse_matrix;
@@ -3928,6 +3940,10 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
                                         vg_lite_blend_t blend,
                                         vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_draw_linear_grad)(target, path, fill_rule, path_matrix, grad, paint_color, blend, filter);
+#endif
+
 #if gcFEATURE_VG_LINEAR_GRADIENT_EXT && gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t image_mode = 0;
@@ -4560,6 +4576,10 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
                                         vg_lite_blend_t blend,
                                         vg_lite_filter_t filter)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_draw_radial_grad)(target, path, fill_rule, path_matrix, grad, paint_color, blend, filter);
+#endif
+
 #if gcFEATURE_VG_RADIAL_GRADIENT && gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t imageMode = 0;
@@ -5448,6 +5468,10 @@ vg_lite_error_t vg_lite_draw_grad(vg_lite_buffer_t* target,
                                 vg_lite_linear_gradient_t* grad,
                                 vg_lite_blend_t blend)
 {
+#if DUMP_API
+    FUNC_DUMP(vg_lite_draw_grad)(target, path, fill_rule, matrix, grad, blend);
+#endif
+
     return vg_lite_draw_pattern(target, path, fill_rule, matrix,
         &grad->image, &grad->matrix, blend, VG_LITE_PATTERN_PAD, 0, 0, VG_LITE_FILTER_LINEAR);
 }
