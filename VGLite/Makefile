@@ -7,6 +7,11 @@ SOURCES = vg_lite_dump.c vg_lite.c vg_lite_path.c vg_lite_stroke.c vg_lite_matri
 
 CFLAGS += -I../inc -I../VGLiteKernel -I. -I./linux
 
+ifeq ($(dumpAPI), 1)
+SOURCES += ../dumpAPI/dumpVgl/dumpVgl.c
+CFLAGS += -I../dumpAPI/dumpVgl -I../dumpAPI/inc
+endif
+
 LDFLAGS += -fPIC -shared -Wl,-z,defs
 LDFLAGS += -Wl,--version-script=vglite.map
 LDFLAGS += -lpthread -lpng -lm

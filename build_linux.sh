@@ -1,5 +1,7 @@
 #!/bin/bash
                                                                                                
+export dumpAPI=0
+
 usage()
 {
     echo
