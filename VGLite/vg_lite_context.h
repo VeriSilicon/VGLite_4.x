@@ -40,8 +40,9 @@
 #define DUMP_COMMAND_CAPTURE                    0
 #define DUMP_INIT_COMMAND                       0
 #define DUMP_API                                0
+
 #if DUMP_API
-#include "dumpVgl.h"
+#include "dumpAPI.h"
 #endif
 
 #define VGLITE_LOG    printf
