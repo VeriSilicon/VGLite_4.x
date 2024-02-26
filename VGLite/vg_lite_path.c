@@ -1353,6 +1353,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t prediv_flag = 0;
     uint8_t  lvgl_sw_blend = 0;
 
+#if(CHIPID == 0X355)
+    uint8_t* path_re = NULL;
+    uint32_t index = 0;
+#endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
         target, path, fill_rule, path_matrix, source, pattern_matrix, blend, pattern_mode, pattern_color, filter);
@@ -1657,7 +1661,78 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix.m[1][2]));
 
     /* Setup tessellation loop. */
-    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
+    if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO)
+    {
+#if (CHIPID == 0x355) /* Need to patch path data for GC355. */
+        if (path->format == VG_LITE_S16 || path->format == VG_LITE_S32 || path->format == VG_LITE_FP32)
+        {
+            uint32_t data_size, dataCount, i;
+            uint8_t* path_data = (uint8_t*)path->path;
+            uint32_t offset = 0;
+            uint8_t* pathc;
+
+            path_re = (uint8_t*)vg_lite_os_malloc(path->path_length);
+            memset(path_re, 0, path->path_length);
+            if (!path_re) {
+                return VG_LITE_OUT_OF_RESOURCES;
+            }
+            pathc = path_re;
+
+            data_size = get_data_size(path->format);
+            switch (data_size)
+            {
+            case 2:
+                while (offset < path->path_length)
+                {
+                    if ((offset - 2 >= 0) && ((*(uint16_t*)&path_data[offset - 2]) == VLC_OP_CLOSE) &&
+                        (((*(uint16_t*)&path_data[offset]) == VLC_OP_MOVE) || ((*(uint16_t*)&path_data[offset]) == VLC_OP_MOVE_REL)))
+                    {
+                        *(pathc + index - 1) = (uint8_t)(*(uint16_t*)&path_data[offset]);
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 2;
+                    }
+                    else
+                    {
+                        *(uint16_t*)(pathc + index) = *(uint16_t*)&path_data[offset];
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 2;
+                        index += 2;
+                    }
+                    for (i = 0; i < dataCount; i++) {
+                        *(uint16_t*)(pathc + index) = *(uint16_t*)&path_data[offset];
+                        offset += 2;
+                        index += 2;
+                    }
+                }
+                break;
+
+            case 4:
+                while (offset < path->path_length)
+                {
+                    if ((offset - 4 >= 0) && ((*(uint32_t*)&path_data[offset - 4]) == VLC_OP_CLOSE) &&
+                        (((*(uint32_t*)&path_data[offset]) == VLC_OP_MOVE) || ((*(uint32_t*)&path_data[offset]) == VLC_OP_MOVE_REL)))
+                    {
+                        *(pathc + index - 3) = (uint8_t)(*(uint32_t*)&path_data[offset]);
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 4;
+                    }
+                    else
+                    {
+                        *(uint32_t*)(pathc + index) = *(uint32_t*)&path_data[offset];
+                        dataCount = get_data_count(path_data[offset]);
+                        offset += 4;
+                        index += 4;
+                    }
+                    for (i = 0; i < dataCount; i++) {
+                        *(uint32_t*)(pathc + index) = *(uint32_t*)&path_data[offset];
+                        offset += 4;
+                        index += 4;
+                    }
+                }
+                break;
+            }
+        }
+#endif
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
                 /* Tessellate path. */
@@ -1669,11 +1744,27 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
-                } else {
+                }
+                else {
+#if (CHIPID == 0x355)
+                    if (path->format == VG_LITE_S8) {
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+                    }
+                    else {
+                        VG_LITE_RETURN_ERROR(push_data(&s_context, index, path_re));
+                    }
+#else
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+#endif
                 }
             }
         }
+#if (CHIPID == 0x355)
+        if (path_re) {
+            vg_lite_os_free(path_re);
+            path_re = NULL;
+        }
+#endif
     }
     /* Setup tessellation loop. */
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
