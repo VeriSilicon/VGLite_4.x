@@ -717,7 +717,7 @@ void get_format_bytes(vg_lite_buffer_format_t format,
 
         case VG_LITE_NV12:
         case VG_LITE_NV12_TILED:
-            *mul = 3;
+            *mul = 1;
             break;
 
         case VG_LITE_ANV12:
