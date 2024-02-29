@@ -774,13 +774,13 @@ static void dump_last_frame(void)
             switch (j)
             {
             case 1:
-                vg_lite_kernel_print("  0x%08X\n", ptr[i]);
+                vg_lite_kernel_print("  0x%08X\n", ptr[(size - size % 16) / 4]);
                 break;
             case 2:
-                vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[i], ptr[i + 1]);
+                vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[(size - size % 16) / 4], ptr[(size - size % 16) / 4 + 1]);
                 break;
             case 3:
-                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2]);
+                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[(size - size % 16) / 4], ptr[(size - size % 16) / 4 + 1], ptr[(size - size % 16) / 4 + 2]);
                 break;
             default:
                 break;
