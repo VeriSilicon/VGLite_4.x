@@ -766,25 +766,24 @@ static void dump_last_frame(void)
         vg_lite_kernel_print("the last submit command before hang:\n");
         vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", (unsigned int)ptr, size));
         for (i = 0; i < size; i += 4) {
-            if (i + 4 + size % 4 == size)
+            vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
+        }
+        if (size % 16)
+        {
+            int j = size % 16 / 4;
+            switch (j)
             {
-                int j = size % 4;
-                switch (j)
-                {
-                case 1:
-                    vg_lite_kernel_print("  0x%08X\n", ptr[i]);
-                    break;
-                case 2:
-                    vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[i], ptr[i + 1]);
-                    break;
-                case 3:
-                    vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2]);
-                    break;
-                }
-            }
-            else
-            {
-                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
+            case 1:
+                vg_lite_kernel_print("  0x%08X\n", ptr[i]);
+                break;
+            case 2:
+                vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[i], ptr[i + 1]);
+                break;
+            case 3:
+                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2]);
+                break;
+            default:
+                break;
             }
         }
     }
