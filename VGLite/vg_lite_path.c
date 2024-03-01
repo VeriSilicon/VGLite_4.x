@@ -41,6 +41,7 @@ extern uint32_t convert_uv_swizzle(vg_lite_swizzle_t swizzle);
 extern uint32_t convert_source_format(vg_lite_buffer_format_t format);
 extern vg_lite_error_t check_compress(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode, vg_lite_buffer_layout_t tiled, uint32_t width, uint32_t height);
 extern void get_format_bytes(vg_lite_buffer_format_t format, uint32_t* mul, uint32_t* div, uint32_t* bytes_align);
+extern vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source);
 
 extern vg_lite_matrix_t identity_mtx;
 
@@ -3449,28 +3450,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     if (!path || !path->path) {
         return VG_LITE_INVALID_ARGUMENT;
     }
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
+
+    error = srcbuf_align_check(source);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
     }
-    if (source->tiled == 1) {
-        uint32_t align, mult, divi;
-        get_format_bytes(source->format, &mult, &divi, &align);
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-#if gcFEATURE_VG_16PIXELS_ALIGNED
-    {
-        if (source->tiled == 0) {
-            uint32_t align, mult, divi;
-            get_format_bytes(source->format, &mult, &divi, &align);
-            if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-    }
-#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT

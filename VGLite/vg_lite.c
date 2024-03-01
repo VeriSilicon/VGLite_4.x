@@ -331,6 +331,15 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_NV24_INPUT,
         gcFEATURE_VG_TILED_LIMIT,
         gcFEATURE_VG_TILED_MODE,
+        gcFEATURE_VG_SRC_ADDRESS_64BYTES_ALIGNED,
+        gcFEATURE_VG_SRC_TILE_4PIXELS_ALIGNED,
+        gcFEATURE_VG_SRC_BUF_ALINGED,
+        gcFEATURE_VG_DST_ADDRESS_64BYTES_ALIGNED,
+        gcFEATURE_VG_DST_TILE_4PIXELS_ALIGNED,
+        gcFEATURE_VG_DST_BUF_ALIGNED,
+        gcFEATURE_VG_DST_24BIT_DEC_ALIGNED,
+        gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED,
+        gcFEATURE_VG_DST_BUFLEN_ALIGNED,
     }
 };
 
@@ -1200,6 +1209,327 @@ static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint
     }
 }
 #endif
+
+#if gcFEATURE_VG_SRC_BUF_ALINGED
+static vg_lite_error_t _check_source_aligned_2(vg_lite_buffer_format_t format, uint32_t stride)
+{
+    switch (format) {
+    case VG_LITE_A4:
+    case VG_LITE_A8:
+    case VG_LITE_L8:
+    case VG_LITE_INDEX_1:
+    case VG_LITE_INDEX_2:
+    case VG_LITE_INDEX_4:
+    case VG_LITE_INDEX_8:
+    case VG_LITE_RGBA2222:
+    case VG_LITE_BGRA2222:
+    case VG_LITE_ABGR2222:
+    case VG_LITE_ARGB2222:
+    case VG_LITE_YV24:
+    case VG_LITE_NV24:
+    case VG_LITE_RGBA8888_ETC2_EAC:
+        FORMAT_ALIGNMENT(stride, 1);
+        break;
+
+    case VG_LITE_RGBA4444:
+    case VG_LITE_BGRA4444:
+    case VG_LITE_ABGR4444:
+    case VG_LITE_ARGB4444:
+    case VG_LITE_RGB565:
+    case VG_LITE_BGR565:
+    case VG_LITE_BGRA5551:
+    case VG_LITE_RGBA5551:
+    case VG_LITE_ABGR1555:
+    case VG_LITE_ARGB1555:
+    case VG_LITE_YV16:
+    case VG_LITE_NV16:
+    case VG_LITE_YV12:
+    case VG_LITE_NV12:
+    case VG_LITE_ABGR8565_PLANAR:
+    case VG_LITE_BGRA5658_PLANAR:
+    case VG_LITE_ARGB8565_PLANAR:
+    case VG_LITE_RGBA5658_PLANAR:
+        FORMAT_ALIGNMENT(stride, 2);
+        break;
+
+    case VG_LITE_YUYV:
+    case VG_LITE_YUY2:
+    case VG_LITE_RGB888:
+    case VG_LITE_BGR888:
+    case VG_LITE_ABGR8565:
+    case VG_LITE_BGRA5658:
+    case VG_LITE_ARGB8565:
+    case VG_LITE_RGBA5658:
+    case VG_LITE_RGBA8888:
+    case VG_LITE_BGRA8888:
+    case VG_LITE_ABGR8888:
+    case VG_LITE_ARGB8888:
+    case VG_LITE_RGBX8888:
+    case VG_LITE_BGRX8888:
+    case VG_LITE_XBGR8888:
+    case VG_LITE_XRGB8888:
+        FORMAT_ALIGNMENT(stride, 4);
+        break;
+
+    default:
+        return VG_LITE_SUCCESS;
+    }
+}
+
+static vg_lite_error_t _check_source_aligned_3(vg_lite_buffer_format_t format, uint32_t stride)
+{
+    switch (format) {
+    case VG_LITE_INDEX_1:
+    case VG_LITE_INDEX_2:
+        FORMAT_ALIGNMENT(stride, 1);
+        break;
+
+    case VG_LITE_A4:
+    case VG_LITE_INDEX_4:
+        FORMAT_ALIGNMENT(stride, 2);
+        break;
+
+    case VG_LITE_A8:
+    case VG_LITE_L8:
+    case VG_LITE_YV24:
+    case VG_LITE_NV24:
+    case VG_LITE_INDEX_8:
+    case VG_LITE_RGBA2222:
+    case VG_LITE_BGRA2222:
+    case VG_LITE_ABGR2222:
+    case VG_LITE_ARGB2222:
+    case VG_LITE_RGBA8888_ETC2_EAC:
+        FORMAT_ALIGNMENT(stride, 4);
+        break;
+
+    case VG_LITE_RGBA4444:
+    case VG_LITE_BGRA4444:
+    case VG_LITE_ABGR4444:
+    case VG_LITE_ARGB4444:
+    case VG_LITE_BGRA5551:
+    case VG_LITE_RGBA5551:
+    case VG_LITE_ABGR1555:
+    case VG_LITE_ARGB1555:
+    case VG_LITE_RGB565:
+    case VG_LITE_BGR565:
+    case VG_LITE_YUYV:
+    case VG_LITE_YUY2:
+    case VG_LITE_YV12:
+    case VG_LITE_NV12:
+    case VG_LITE_ABGR8565_PLANAR:
+    case VG_LITE_BGRA5658_PLANAR:
+    case VG_LITE_ARGB8565_PLANAR:
+    case VG_LITE_RGBA5658_PLANAR:
+        FORMAT_ALIGNMENT(stride, 8);
+        break;
+
+    case VG_LITE_RGB888:
+    case VG_LITE_BGR888:
+    case VG_LITE_ABGR8565:
+    case VG_LITE_BGRA5658:
+    case VG_LITE_ARGB8565:
+    case VG_LITE_RGBA5658:
+    case VG_LITE_RGBA8888:
+    case VG_LITE_BGRA8888:
+    case VG_LITE_ABGR8888:
+    case VG_LITE_ARGB8888:
+    case VG_LITE_RGBX8888:
+    case VG_LITE_BGRX8888:
+    case VG_LITE_XBGR8888:
+    case VG_LITE_XRGB8888:
+        FORMAT_ALIGNMENT(stride, 16);
+        break;
+
+    default:
+        return VG_LITE_SUCCESS;
+    }
+}
+#endif
+
+vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+#if gcFEATURE_VG_SRC_ADDRESS_64BYTES_ALIGNED
+    if ((uint32_t)(source->address) % 64 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
+#if gcFEATURE_VG_SRC_BUF_ALINGED
+    if ((uint32_t)(source->address) % 8 != 0) {
+        printf("buffer address need to be aglined to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
+    if (source->tiled == VG_LITE_TILED) {
+#if gcFEATURE_VG_SRC_TILE_4PIXELS_ALIGNED
+        uint32_t align, mul, div;
+        get_format_bytes(source->format, &mul, &div, &align);
+        if ((source->stride % (4 * mul / div) != 0) || (source->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+#endif
+
+#if gcFEATURE_VG_SRC_BUF_ALINGED
+        vg_lite_error_t error;
+        error = _check_source_aligned_3(source->format, source->stride);
+        if (error != VG_LITE_SUCCESS) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+#endif
+    }
+
+    if (source->tiled == VG_LITE_LINEAR) {
+#if gcFEATURE_VG_16PIXELS_ALIGNED
+        uint32_t align, mul, div;
+        get_format_bytes(source->format, &mul, &div, &align);
+        if (source->stride % (16 * mul / div) != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+#endif
+
+#if gcFEATURE_VG_SRC_BUF_ALINGED
+        vg_lite_error_t error;
+        error = _check_source_aligned_2(source->format, source->stride);
+        if (error != VG_LITE_SUCCESS) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+#endif
+    }
+
+    return error;
+}
+
+vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    uint32_t align, mul, div, bpp;
+    uint32_t tile_flag = 0;
+    uint32_t tile_flag1 = 0;
+    get_format_bytes(target->format, &mul, &div, &align);
+    bpp = 8 * mul / div;
+
+#if gcFEATURE_VG_DST_TILE_4PIXELS_ALIGNED
+    if (target->tiled == VG_LITE_TILED) {
+        if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#endif
+
+#if gcFEATURE_VG_DST_BUF_ALIGNED
+    if (target->tiled == VG_LITE_TILED) {
+        if (bpp == 8 || bpp == 16 || bpp == 32) {
+            if (target->stride % (4 * mul / div)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+
+        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
+            if (target->stride % 16 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+
+        if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
+            if (target->stride % 8 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+    }
+    else {
+        if (bpp == 8 || bpp == 16 || bpp == 32) {
+            if (target->stride % (mul / div)) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+
+        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
+            if (target->stride % 4 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+
+        if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
+            if (target->stride % 2 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+    }
+
+    if (bpp == 8 || bpp == 16 || bpp == 32)
+    {
+        if ((uint32_t)(target->address) % 4 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+
+    if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
+        if ((uint32_t)(target->address) % 64 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#endif
+
+#if gcFEATURE_VG_DST_ADDRESS_64BYTES_ALIGNED
+    if ((uint32_t)(target->address) % 64 != 0) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
+#if gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED
+    if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
+        if ((uint32_t)(target->address) % 32 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        if ((uint32_t)(target->yuv.alpha_planar) % 16 != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+#endif
+
+#if gcFEATURE_VG_DST_24BIT_DEC_ALIGNED
+#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0)
+    if ((target->compress_mode != VG_LITE_DEC_DISABLE) && (bpp == 24) && ((uint32_t)(target->address) % 64 != 0)) {
+        printf("target address need to be aligned to 64 byte.");
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+#endif
+
+    if (target->tiled == VG_LITE_TILED) {
+#if gcFEATURE_VG_RECTANGLE_TILED_OUT
+        tile_flag1 = 1;
+#else
+        tile_flag1 = 0;
+#endif
+        tile_flag = 1;
+    }
+
+#if (gcFEATURE_VG_TILED_LIMIT == 1)
+    if (tile_flag1 ^ tile_flag) {
+        if (bpp != 24) {
+            if (target->stride % 64 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+        else {
+            if (target->stride % 48 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+    }
+#elif (gcFEATURE_VG_TILED_LIMIT == 2)
+    if (tile_flag1 ^ tile_flag) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+    return error;
+}
+
 
 /* Convert VGLite source color format to HW values. */
 uint32_t convert_source_format(vg_lite_buffer_format_t format)
@@ -2266,80 +2596,11 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-#if gcFEATURE_VG_16PIXELS_ALIGNED
-    {
-        uint32_t tile_flag = 0;
-        uint32_t tile_flag1 = 0;
-        uint32_t align, mul, div;
-        get_format_bytes(target->format, &mul, &div, &align);
-#if (CHIPID != 0x555)
-        if ((uint32_t)(target->address) % 64 != 0) {
-            printf("target address need to be aligned to 64 byte.");
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-#endif
-        if (target->tiled == VG_LITE_TILED) {
-            tile_flag = 1;
 
-            if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#if gcFEATURE_VG_RECTANGLE_TILED_OUT
-        if (target->tiled == VG_LITE_TILED) {
-            tile_flag1 = 1;
-        }
-#endif
-
-#if gcFEATURE_VG_TILED_LIMIT
-        if (tile_flag1 ^ tile_flag) {
-            if (mul / div != 3) {
-                if (target->stride % 64 != 0) {
-                    return VG_LITE_INVALID_ARGUMENT;
-                }
-            }
-            else {
-                if (target->stride % 48 != 0) {
-                    return VG_LITE_INVALID_ARGUMENT;
-                }
-            }
-        }
-#else
-        if (tile_flag1 ^ tile_flag) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-#endif
+    error = dstbuf_align_check(target);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
     }
-#else
-#if gcFEATURE_VG_TILED_LIMIT
-    uint32_t align, mul, div;
-    get_format_bytes(target->format, &mul, &div, &align);
-    if (target->tiled == VG_LITE_TILED) {
-#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0)
-        if ((target->compress_mode != VG_LITE_DEC_DISABLE) && (mul / div == 3) && ((uint32_t)(target->address) % 64 != 0))
-        {
-            printf("target address need to be aligned to 64 byte.");
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-
-#endif
-        if ((target->stride % (4 * mul / div) != 0) || (target->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-#if gcFEATURE_VG_24BIT_PLANAR
-    if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
-        if ((uint32_t)(target->address) % 32 != 0) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-        if ((uint32_t)(target->yuv.alpha_planar) % 16 != 0) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-#endif
-
-#endif
-#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if gcFEATURE_VG_IM_FASTCLEAR
@@ -2566,7 +2827,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) &&
              !s_context.scissor_enable && !s_context.scissor_set && !s_context.enable_mask)
         {
-#if gcFEATURE_VG_16PIXELS_ALIGNED
+#if gcFEATURE_VG_DST_BUFLEN_ALIGNED
             uint32_t align, mul, div;
             get_format_bytes(target->format, &mul, &div, &align);
 
@@ -3109,28 +3370,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
+
+    error = srcbuf_align_check(source);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
     }
-    if (source->tiled == 1) {
-        uint32_t align, mult, divi;
-        get_format_bytes(source->format, &mult, &divi, &align);
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-#if gcFEATURE_VG_16PIXELS_ALIGNED
-    {
-        if (source->tiled == 0) {
-            uint32_t align, mult, divi;
-            get_format_bytes(source->format, &mult, &divi, &align);
-            if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-    }
-#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
@@ -3847,28 +4091,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-    if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
-        return VG_LITE_INVALID_ARGUMENT;
+
+    error = srcbuf_align_check(source);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
     }
-    if (source->tiled == 1) {
-        uint32_t align, mult, divi;
-        get_format_bytes(source->format, &mult, &divi, &align);
-        if ((source->stride % (4 * mult / divi) != 0) || (source->height % 4 != 0)) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
-#if gcFEATURE_VG_16PIXELS_ALIGNED
-    {
-        if (source->tiled == 0) {
-            uint32_t align, mult, divi;
-            get_format_bytes(source->format, &mult, &divi, &align);
-            if (source->stride % (16 * mult / divi) != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-    }
-#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
@@ -6491,6 +6718,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
+
+    error = srcbuf_align_check(source);
+    if (error != VG_LITE_SUCCESS) {
+        return error;
+    }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if gcFEATURE_VG_INDEX_ENDIAN
