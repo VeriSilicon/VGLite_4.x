@@ -370,11 +370,11 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
     
     /* Copy the path data. */
     memcpy((uint32_t *) buffer->memory + 2, path->path, path->path_length);
-    
+
     /* Initialize command buffer postfix. */
-    ((uint32_t *) buffer->memory)[bytes / 4 - 2] = VG_LITE_RETURN();
-    ((uint32_t *) buffer->memory)[bytes / 4 - 1] = 0;
-    
+    ((uint32_t *) buffer->memory)[(bytes >> 2) - 2] = VG_LITE_RETURN();
+    ((uint32_t *) buffer->memory)[(bytes >> 2) - 1] = 0;
+
     /* Mark path as uploaded. */
     path->path = buffer->memory;
     path->uploaded.handle = buffer->handle;

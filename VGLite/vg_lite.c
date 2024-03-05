@@ -2236,13 +2236,14 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
         VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
     }
 
-    if ((bytes + 8) > CMDBUF_SIZE(*context)) {
-        printf("Command buffer size needs increase for data sized %d bytes!\n", (int)bytes);
+    /* Command buffer size must be at least data size "bytes" plus header and END command */
+    if ((bytes + 16) > CMDBUF_SIZE(*context)) {
+        printf("Command buffer size needs increase for data sized %d bytes!\n", (int)(bytes + 16));
         return VG_LITE_OUT_OF_RESOURCES;
     }
 
-    ((uint64_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(bytes / 8)] = 0;
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(bytes / 8);
+    ((uint64_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(bytes >> 3)] = 0;
+    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA((bytes >> 3));
     ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
     memcpy(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context) + 8, data, size);
 
@@ -2261,7 +2262,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
 
         fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
                 ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
-        for (loops = 0; loops < bytes / 8; loops++) {
+        for (loops = 0; loops < (bytes >> 3); loops++) {
             fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
                    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2],
                    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 + 1]);
@@ -2332,12 +2333,14 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
     if (CMDBUF_OFFSET(*context) == 0)
         return VG_LITE_INVALID_ARGUMENT;
 
-    /* Check if there is enough space in the command buffer for the END. */
-    if (CMDBUF_OFFSET(*context) + 8 > CMDBUF_SIZE(*context)) {
+#if 0
+    /* This case is safe as command buffer is allocated with (command_buffer_size + 8) bytes */
+    if (CMDBUF_OFFSET(*context) + 8 >= CMDBUF_SIZE(*context)) {
         /* Reset command buffer offset. */
         CMDBUF_OFFSET(*context) = 0;
         return VG_LITE_OUT_OF_RESOURCES;
     }
+#endif
 
     /* Append END command into the command buffer. */
     ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_END(EVENT_END);
@@ -4789,8 +4792,9 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     }
     tess_width  = VG_LITE_ALIGN(tess_width, 16);
 
-    /* Allocate a command buffer and a tessellation buffer. */
-    initialize.command_buffer_size = command_buffer_size;
+    /* Allocate a command buffer and a tessellation buffer.
+       Add extra 8 bytes in the allocated command buffer so there is space for a END command. */
+    initialize.command_buffer_size = command_buffer_size + 8;
     initialize.tess_width = tess_width;
     initialize.tess_height = tess_height;
     initialize.command_buffer_pool = s_context.command_buffer_pool;
@@ -4805,7 +4809,7 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     s_context.capabilities = initialize.capabilities;
     s_context.command_buffer[0] = (uint8_t *)initialize.command_buffer[0];
     s_context.command_buffer[1] = (uint8_t *)initialize.command_buffer[1];
-    s_context.command_buffer_size = initialize.command_buffer_size;
+    s_context.command_buffer_size = command_buffer_size;
     s_context.command_offset[0] = 0;
     s_context.command_offset[1] = 0;
 
@@ -4949,6 +4953,7 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
         
         if (submit_flag)
             VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+
         if (!s_context.custom_cmdbuf)
         {
             vg_lite_kernel_free_t free;
@@ -4964,10 +4969,10 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
         {
             vg_lite_kernel_unmap_memory_t unmap = { 0 };
             
-            unmap.bytes = s_context.command_buffer_size;
+            unmap.bytes = s_context.command_buffer_size + 8;
             unmap.logical = s_context.command_buffer[0];
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
-            unmap.bytes = s_context.command_buffer_size;
+            unmap.bytes = s_context.command_buffer_size + 8;
             unmap.logical = s_context.command_buffer[1];
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
         }
@@ -4986,7 +4991,8 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
     s_context.command_offset[0] = 0;
     s_context.command_offset[1] = 0;
     s_context.command_buffer_current = 0;
-    s_context.command_buffer_size = map.bytes / 2;
+    /* Reserve 8 bytes in mapped command buffer so there is space for a END command. */
+    s_context.command_buffer_size = (map.bytes / 2) - 8;
     s_context.custom_cmdbuf = 1;
 
     return error;
