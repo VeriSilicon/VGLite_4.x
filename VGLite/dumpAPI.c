@@ -407,7 +407,7 @@ DLLEXPORT void FUNC_DUMP(vg_lite_blit)(vg_lite_buffer_t* target,
     DUMP_PARAM(hasMatrix, char);
     if (hasMatrix)
         DUMP_BYTES(matrix, sizeof(vg_lite_matrix_t), alignof(vg_lite_matrix_t));
-    DUMP_BYTES(source->memory, source->stride * source->height, 64);
+    DUMP_BYTES(source->memory, source->stride * source->height, 1);
     DUMP_PARAM(blend, vg_lite_blend_t);
     DUMP_PARAM(color, vg_lite_color_t);
     DUMP_PARAM(filter, vg_lite_filter_t);
