@@ -247,6 +247,7 @@ typedef int FunctionIdx_t;
 #define _vg_lite_load_dev_info_to_buffer_dump_idx     (FunctionIdx_t)82
 #define _vg_lite_load_decnano_compressd_data_dump_idx (FunctionIdx_t)83
 #define _vg_lite_save_decnano_compressd_data_dump_idx (FunctionIdx_t)84
+#define _vg_lite_set_memory_pool_dump_idx             (FunctionIdx_t)85
 
 #define DUMP_PARAM(param, type)\
     dump_vgl_serialize(&param, sizeof(param), alignof(type))
@@ -270,19 +271,34 @@ typedef int FunctionIdx_t;
 DLLEXPORT void FUNC_DUMP(vg_lite_init)(
     vg_lite_int32_t tess_width, 
     vg_lite_int32_t tess_height) {
-    if (createVgl)
-    {
+    if (createVgl) {
         const char fp_vgl[] = "./dump.vgl";
         memset(&handler, 0, sizeof(DumpVGLHandler));
         handler.file = fopen(fp_vgl, "wb");
         createVgl = 0;
     }
 
-
     DUMP_FUNCTION(vg_lite_init);
     DUMP_PARAM(tess_width, vg_lite_int32_t);
     DUMP_PARAM(tess_height, vg_lite_int32_t);
     DUMP_FLUSH();
+
+    return;
+}
+
+DLLEXPORT void FUNC_DUMP(vg_lite_set_memory_pool)(
+    vg_lite_buffer_type_t type, 
+    vg_lite_memory_pool_t pool) {
+    if (createVgl) {
+        const char fp_vgl[] = "./dump.vgl";
+        memset(&handler, 0, sizeof(DumpVGLHandler));
+        handler.file = fopen(fp_vgl, "wb");
+        createVgl = 0;
+    }
+
+    DUMP_FUNCTION(vg_lite_set_memory_pool);
+    DUMP_PARAM(type, vg_lite_buffer_type_t);
+    DUMP_PARAM(pool, vg_lite_memory_pool_t);
 
     return;
 }
@@ -1217,8 +1233,7 @@ DLLEXPORT void FUNC_DUMP(vg_lite_save_decnano_compressd_data)(
 
 DLLEXPORT void FUNC_DUMP(vg_lite_set_command_buffer_size)(
     vg_lite_uint32_t size) {
-    if (createVgl)
-    {
+    if (createVgl) {
         const char fp_vgl[] = "./dump.vgl";
         memset(&handler, 0, sizeof(DumpVGLHandler));
         handler.file = fopen(fp_vgl, "wb");
