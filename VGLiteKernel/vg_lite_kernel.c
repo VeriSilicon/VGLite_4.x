@@ -764,7 +764,7 @@ static void dump_last_frame(void)
     else
     {
         vg_lite_kernel_print("the last submit command before hang:\n");
-        vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", (unsigned int)ptr, size);
+        vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", backup_command_buffer_klogical, size);
         for (i = 0; i < size; i += 4) {
             vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
         }
