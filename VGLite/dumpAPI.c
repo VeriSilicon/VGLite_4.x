@@ -1164,7 +1164,8 @@ DLLEXPORT void FUNC_DUMP(vg_lite_load_pkm)(
     bytes = strlen(name) + 1;
 
     DUMP_FUNCTION(vg_lite_load_pkm);
-    DUMP_ALLOC(buffer);
+
+    DUMP_BUFFER(buffer);
     DUMP_PARAM(bytes, size_t);
     DUMP_BYTES(name, bytes, alignof(char));
     DUMP_FLUSH();
@@ -1179,7 +1180,7 @@ DLLEXPORT void FUNC_DUMP(vg_lite_load_pkm_info_to_buffer)(
     bytes = strlen(name) + 1;
 
     DUMP_FUNCTION(vg_lite_load_pkm_info_to_buffer);
-    DUMP_ALLOC(buffer);
+    DUMP_BYTES(buffer, sizeof(vg_lite_buffer_t), alignof(vg_lite_buffer_t));
     DUMP_PARAM(bytes, size_t);
     DUMP_BYTES(name, bytes, alignof(char));
     DUMP_FLUSH();
