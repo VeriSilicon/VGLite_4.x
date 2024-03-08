@@ -652,6 +652,15 @@ typedef unsigned int        vg_lite_color_t;
     /* Four 2D Point that form a polygon */
     typedef vg_lite_point_t vg_lite_point4_t[4];
 
+    /* A 2D float Point definition. */
+    typedef struct vg_lite_float_point {
+        vg_lite_float_t x;
+        vg_lite_float_t y;
+    } vg_lite_float_point_t;
+
+    /* Four 2D float Point that form a polygon */
+    typedef vg_lite_float_point_t vg_lite_float_point4_t[4];
+
     /* A rectangle.*/
     typedef struct vg_lite_rectangle {
         vg_lite_int32_t x;                      /*! Left coordinate of rectangle. */
@@ -1034,7 +1043,7 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_get_register(vg_lite_uint32_t address, vg_lite_uint32_t* result);
 
     /* Generate a 3x3 homogenous matrix to transform 4 source coordinates to 4 target coordinates. */
-    vg_lite_error_t vg_lite_get_transform_matrix(vg_lite_point4_t src, vg_lite_point4_t dst, vg_lite_matrix_t *mat);
+    vg_lite_error_t vg_lite_get_transform_matrix(vg_lite_float_point4_t src, vg_lite_float_point4_t dst, vg_lite_matrix_t *mat);
 
     /* Allocate a buffer from GPU hardware accessible memory. */
     vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t *buffer);

@@ -174,7 +174,7 @@ static vg_lite_error_t swap(float* a, float* b)
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t vg_lite_get_transform_matrix(vg_lite_point4_t src, vg_lite_point4_t dst, vg_lite_matrix_t* mat)
+vg_lite_error_t vg_lite_get_transform_matrix(vg_lite_float_point4_t src, vg_lite_float_point4_t dst, vg_lite_matrix_t* mat)
 {
     float a[8][8], b[9], A[64];
     int i, j, k, m = 8, n = 1;
