@@ -780,7 +780,7 @@ static vg_lite_error_t _flatten_quad_bezier(
         {
             VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_END));
         }
-        else if((v2[0] != rootCurve[4]) && (v2[1] != rootCurve[5]))
+        else if((v2[0] != rootCurve[4]) || (v2[1] != rootCurve[5]))
         {
             VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v2[0], v2[1], vgcFLATTEN_MIDDLE));
         }
@@ -918,13 +918,34 @@ static vg_lite_error_t _flatten_cubic_bezier(
                         root[rootNum++] = t;
                 }
             }
+            if (rootNum == 2 && root[0] > root[1]) {
+                /* Exchange root. */
+                float tmp;
+                tmp = root[0];
+                root[0] = root[1];
+                root[1] = tmp;
+            }
             if ((rootNum <= 2) && (level == 0)) {
-                uint8_t rootNum = 8;
                 float  pt[2];
-                for (uint8_t i = 1; i < rootNum; i++) {
-                    vg_lite_float_t t = (vg_lite_float_t)i / (vg_lite_float_t)rootNum;
-                    cubic_bezier(&pt[0], &pt[1], curve, t);
-                    VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
+                uint8_t n = 8;
+                if (rootNum == 2)
+                {
+                    float step = (root[1] - root[0]) / 8;
+                    float t = root[0];
+                    while (t < root[1])
+                    {
+                        cubic_bezier(&pt[0], &pt[1], curve, t);
+                        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
+                        t += step;
+                    }
+                }
+                else
+                {
+                    for (uint8_t i = 1; i < n; i++) {
+                        vg_lite_float_t t = (vg_lite_float_t)i / (vg_lite_float_t)n;
+                        cubic_bezier(&pt[0], &pt[1], curve, t);
+                        VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
+                    }
                 }
             }
             else {
@@ -983,7 +1004,7 @@ static vg_lite_error_t _flatten_cubic_bezier(
                 cubic_bezier(&pt[0], &pt[1], curve, t);
                 VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, pt[0], pt[1], vgcFLATTEN_MIDDLE));
             }
-            if ((v3[0] != rootCurve[6]) && (v3[1] != rootCurve[7]))
+            if ((v3[0] != rootCurve[6]) || (v3[1] != rootCurve[7]))
             {
                 VG_LITE_ERROR_HANDLER(_add_point_to_point_list(stroke_conversion, v3[0], v3[1], vgcFLATTEN_MIDDLE));
             }
