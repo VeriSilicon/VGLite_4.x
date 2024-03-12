@@ -129,6 +129,7 @@ static vg_lite_error_t restore_init_command(uint32_t physical, uint32_t size)
     return error;
 }
 
+#if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
 static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite_gpu_reset_type_t reset_type)
 {
     vg_lite_kernel_wait_t wait;
@@ -148,6 +149,7 @@ static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite
 
     return error;
 }
+#endif
 
 static uint32_t push_command(uint32_t command, uint32_t data, uint32_t index)
 {
@@ -892,7 +894,10 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         vg_lite_kernel_print("0x%x = 0x%08x\n", 0xA8, debug);
         debug = vg_lite_hal_peek(0xE8);
         vg_lite_kernel_print("0x%x = 0x%08x\n", 0xE8, debug); 
-
+#if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
+        dump_last_frame();
+#endif
+        return VG_LITE_TIMEOUT;
     }
 #else
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {

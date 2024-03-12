@@ -85,7 +85,7 @@ extern "C" {
  * when set to 1, vg_lite_hal_trace can use to print message
 */
 #ifndef gcdVG_ENABLE_DEBUG
-    #define gcdVG_ENABLE_DEBUG                           0
+    #define gcdVG_ENABLE_DEBUG                           1
 #endif
 
 /*
@@ -99,7 +99,7 @@ extern "C" {
  * when gpu hang, set 1 to open gpu reset function
 */
 #ifndef gcdVG_ENABLE_GPU_RESET
-    #define gcdVG_ENABLE_GPU_RESET                       1
+    #define gcdVG_ENABLE_GPU_RESET                       0
 #endif
 
 /*
