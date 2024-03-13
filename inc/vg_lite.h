@@ -235,6 +235,7 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_DST_24BIT_DEC_ALIGNED,
         gcFEATURE_BIT_VG_DST_24BIT_PLANAR_ALIGNED,
         gcFEATURE_BIT_VG_DST_BUFLEN_ALIGNED,
+        gcFEATURE_BIT_VG_512_PARALLEL_PATHS,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 

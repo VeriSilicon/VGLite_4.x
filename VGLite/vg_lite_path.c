@@ -2957,11 +2957,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     uint32_t tile_setting = 0;
     uint32_t in_premult = 0;
     uint32_t premul_flag = 0;
-#if (!gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_512_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS || !gcFEATURE_VG_512_PARALLEL_PATHS)
     int32_t y = 0;
     uint32_t par_height = 0;
     int32_t next_boundary = 0;
@@ -3173,7 +3173,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         width = target->width - point_min.x;
     }
 
-#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS || !gcFEATURE_VG_512_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
 #if !gcFEATURE_VG_PARALLEL_PATHS
@@ -3186,7 +3186,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             parallel_workpaths1 = parallel_workpaths2;
 #endif
         for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
+#if !gcFEATURE_VG_512_PARALLEL_PATHS
+            next_boundary = (y + 512) & 0xfffffe00;
+#elif (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
             next_boundary = (y + 32) & 0xffffffe0;
 #else
             next_boundary = (y + 16) & 0xfffffff0;
@@ -3227,7 +3229,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             parallel_workpaths1 = parallel_workpaths2;
 #endif
         for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
+#if !gcFEATURE_VG_512_PARALLEL_PATHS
+            next_boundary = (y + 512) & 0xfffffe00;
+#elif (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
             next_boundary = (y + 32) & 0xffffffe0;
 #else           
             next_boundary = (y + 16) & 0xfffffff0;
@@ -3366,11 +3370,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
     uint8_t  lvgl_sw_blend = 0;
-#if (!gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_512_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
-#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS || !gcFEATURE_VG_512_PARALLEL_PATHS)
     int32_t y = 0;
     uint32_t par_height = 0;
     int32_t next_boundary = 0;
@@ -3920,7 +3924,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         width = target->width - point_min.x;
     }
 
-#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS)
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS || !gcFEATURE_VG_512_PARALLEL_PATHS)
     s_context.tessbuf.tess_w_h = width | (height << 16);
 
 #if !gcFEATURE_VG_PARALLEL_PATHS
@@ -3933,7 +3937,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         parallel_workpaths1 = parallel_workpaths2;
 #endif 
     for (y = point_min.y; y < point_max.y; y += par_height) {
-#if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
+#if !gcFEATURE_VG_512_PARALLEL_PATHS
+        next_boundary = (y + 512) & 0xfffffe00;
+#elif (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_SPLIT_PATH)
         next_boundary = (y + 32) & 0xffffffe0;
 #else   
         next_boundary = (y + 16) & 0xfffffff0;
@@ -4063,10 +4069,13 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     vg_lite_float_t lg_step_x_lin, lg_step_y_lin, lg_constant_lin;
 
 #if !gcFEATURE_VG_PARALLEL_PATHS
-    int y;
-    int temp_height = 0;
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
+
+#endif
+#if !gcFEATURE_VG_512_PARALLEL_PATHS
+    int y;
+    int temp_height = 0;
 #endif
 
 #if gcFEATURE_VG_TRACE_API
@@ -4533,7 +4542,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
         width = target->width - point_min.x;
     }
 
-#if gcFEATURE_VG_PARALLEL_PATHS
+#if (gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_512_PARALLEL_PATHS)
     {
         /* Tessellate path. */
         s_context.tessbuf.tess_w_h = width | (height << 16);
@@ -4559,6 +4568,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     {
         height = s_context.tessbuf.tess_w_h >> 16;
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
+#if gcFEATURE_VG_512_PARALLEL_PATHS
             if (height <= 128)
                 parallel_workpaths1 = 4;
             else 
@@ -4566,7 +4576,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
             if (parallel_workpaths1 > parallel_workpaths2)
                 parallel_workpaths1 = parallel_workpaths2;
-
+#endif
             for (y = point_min.y; y < point_max.y; y += height) {
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
@@ -4583,12 +4593,14 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+#if gcFEATURE_VG_512_PARALLEL_PATHS
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
                         s_context.path_counter = 0;
                     }
+#endif
                 }
             }
         }
@@ -4613,12 +4625,14 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+#if gcFEATURE_VG_512_PARALLEL_PATHS
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
                         s_context.path_counter = 0;
                     }
+#endif
                 }
             }
         }
@@ -4712,9 +4726,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     vg_lite_float_t rgConstantLin, rgStepXLin, rgStepYLin;
     vg_lite_float_t rgConstantRad, rgStepXRad, rgStepYRad;
     vg_lite_float_t rgStepXXRad, rgStepYYRad, rgStepXYRad;
-#if !gcFEATURE_VG_PARALLEL_PATHS
+#if !gcFEATURE_VG_512_PARALLEL_PATHS
     int y;
     int temp_height = 0;
+#endif
+#if !gcFEATURE_VG_PARALLEL_PATHS
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
 #endif
@@ -5426,7 +5442,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
         width = target->width - point_min.x;
     }
 
-#if gcFEATURE_VG_PARALLEL_PATHS
+#if (gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_512_PARALLEL_PATHS)
     {
         /* Tessellate path. */
         s_context.tessbuf.tess_w_h = width | (height << 16);
@@ -5452,6 +5468,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     {
         height = s_context.tessbuf.tess_w_h >> 16;
         if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
+#if gcFEATURE_VG_512_PARALLEL_PATHS
             if (height <= 128)
                 parallel_workpaths1 = 4;
             else 
@@ -5459,6 +5476,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
             if (parallel_workpaths1 > parallel_workpaths2)
                 parallel_workpaths1 = parallel_workpaths2;
+#endif
 
             for (y = point_min.y; y < point_max.y; y += height) {
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
@@ -5476,12 +5494,14 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
+#if gcFEATURE_VG_512_PARALLEL_PATHS
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
                         s_context.path_counter = 0;
                     }
+#endif
                 }
             }
         }
@@ -5505,12 +5525,14 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
+#if gcFEATURE_VG_512_PARALLEL_PATHS
                     s_context.path_counter ++;
                     if (parallel_workpaths1 == s_context.path_counter) {
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
                         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
                         s_context.path_counter = 0;
                     }
+#endif
                 }
             }
         }

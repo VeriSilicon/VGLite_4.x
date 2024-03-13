@@ -340,6 +340,7 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_DST_24BIT_DEC_ALIGNED,
         gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED,
         gcFEATURE_VG_DST_BUFLEN_ALIGNED,
+        gcFEATURE_VG_512_PARALLEL_PATHS,
     }
 };
 
