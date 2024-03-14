@@ -36,7 +36,6 @@
 #include "vg_lite_options.h"
 
 #define DUMP_CAPTURE                            0
-#define DUMP_COMMAND_BY_USER                    0
 #define DUMP_COMMAND_CAPTURE                    0
 #define DUMP_INIT_COMMAND                       0
 #define DUMP_API                                0

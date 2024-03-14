@@ -2384,12 +2384,10 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 
     submit_flag = 1;
 
-#if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("command", (size_t)CMDBUF_BUFFER(*context),
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
 #if !DUMP_COMMAND_CAPTURE
     vglitemDUMP("@[commit]");
-#endif
 #endif
 
 #if DUMP_INIT_COMMAND
@@ -3935,9 +3933,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
 #endif
-#if !DUMP_COMMAND_BY_USER
+
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
-#endif
+
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
@@ -4684,9 +4682,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
 #endif
-#if !DUMP_COMMAND_BY_USER
+
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
-#endif
+
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
@@ -5349,7 +5347,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
         if (VG_LITE_SUCCESS == submit(&s_context)) {
             VG_LITE_RETURN_ERROR(stall(&s_context, 0, ~0));
         }
-#if !DUMP_COMMAND_BY_USER
+
 #if !DUMP_COMMAND_CAPTURE
         vglitemDUMP("@[swap 0x%08X %dx%d +%u]",
             s_context.rtbuffer->address,
@@ -5361,7 +5359,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
             0,
             s_context.rtbuffer->stride*(s_context.rtbuffer->height));
 #endif
-#endif
+
         memset(s_context.rtbuffer, 0, sizeof(vg_lite_buffer_t));
     }
 
@@ -5376,13 +5374,12 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 
     if (buffer->yuv.uv_planar) {
         /* Free UV(U) planar buffer. */
-#if !DUMP_COMMAND_BY_USER
         vglitemDUMP_BUFFER(
             "uv_plane",
             (size_t)buffer->yuv.uv_planar,buffer->yuv.uv_memory,
             0,
             buffer->yuv.uv_stride*buffer->yuv.uv_height);
-#endif
+
         uv_free.memory_handle = buffer->yuv.uv_handle;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &uv_free));
 
@@ -7017,9 +7014,8 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         error = flush_target();
     }
 
-#if !DUMP_COMMAND_BY_USER
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride) * (source->height));
-#endif
+
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
 #endif
