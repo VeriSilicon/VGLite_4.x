@@ -1353,14 +1353,14 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 
 #if gcFEATURE_VG_SRC_ADDRESS_64BYTES_ALIGNED
     if ((uint32_t)(source->address) % 64 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
+        printf("buffer address need to be aglined to 64 bytes.");
         return VG_LITE_INVALID_ARGUMENT;
     }
 #endif
 
 #if gcFEATURE_VG_SRC_BUF_ALINGED
     if ((uint32_t)(source->address) % 8 != 0) {
-        printf("buffer address need to be aglined to 64 byte.");
+        printf("buffer address need to be aglined to 8 bytes.");
         return VG_LITE_INVALID_ARGUMENT;
     }
 #endif
@@ -1495,7 +1495,7 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 #if gcFEATURE_VG_DST_24BIT_DEC_ALIGNED
 #if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0)
     if ((target->compress_mode != VG_LITE_DEC_DISABLE) && (bpp == 24) && ((uint32_t)(target->address) % 64 != 0)) {
-        printf("target address need to be aligned to 64 byte.");
+        printf("target address need to be aligned to 64 bytes.");
         return VG_LITE_INVALID_ARGUMENT;
     }
 #endif
