@@ -498,9 +498,9 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
                 data->capabilities.cap.tiled = 0x2;
             }
 
-            vg_countbuffer_size = height * 3;
-            vg_countbuffer_size = VG_LITE_ALIGN(vg_countbuffer_size, 64);
-            total_size = height * 128;
+            vg_countbuffer_size = (height + 13) / 14;
+            vg_countbuffer_size = vg_countbuffer_size * 64;
+            total_size = height * 128 + vg_countbuffer_size;
             if (total_size < MIN_TS_SIZE)
                 total_size = MIN_TS_SIZE;
             ts_buffer_size = total_size - vg_countbuffer_size;
