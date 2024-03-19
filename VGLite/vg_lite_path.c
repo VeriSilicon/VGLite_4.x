@@ -3945,7 +3945,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         next_boundary = (y + 16) & 0xfffffff0;
 #endif
         par_height = ((next_boundary < point_max.y) ? next_boundary - y : (point_max.y - y));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | paintType | s_context.capabilities.cap.tiled | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.scissor_enable | s_context.color_transform | s_context.matrix_enable | 0x2));
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000000 | format | quality | tiling | fill));
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));;
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
