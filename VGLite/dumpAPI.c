@@ -68,6 +68,17 @@ static int dump_vgl_refer_to_buffer(vg_lite_buffer_t* buf) {
     return -1;
 }
 
+static int dump_vgl_free_buffer(vg_lite_buffer_t* buf) {
+    int i;
+    i = dump_vgl_refer_to_buffer(buf);
+    if (i == -1)
+        return -1;
+    else {
+        handler.buffer[i] = NULL;
+    }
+    return i;
+}
+
 static void dump_vgl_allocate_lgradEX(vg_lite_ext_linear_gradient_t* lgradEX) {
     vg_lite_ext_linear_gradient_t srlg;
     
@@ -267,6 +278,7 @@ typedef int FunctionIdx_t;
     }while(0)
 #define DUMP_PATH(path)         dump_vgl_serialize_path(path)
 #define DUMP_FLUSH()            dump_vgl_flush()
+#define DUMP_FREE(buf)          dump_vgl_free_buffer(buf)
 
 DLLEXPORT void FUNC_DUMP(vg_lite_init)(
     vg_lite_int32_t tess_width, 
@@ -337,6 +349,7 @@ DLLEXPORT void FUNC_DUMP(vg_lite_free)(vg_lite_buffer_t* buffer) {
     DUMP_FUNCTION(vg_lite_free);
     DUMP_BUFFER(buffer);
     DUMP_FLUSH();
+    DUMP_FREE(buffer);
 
     return ;
 }
