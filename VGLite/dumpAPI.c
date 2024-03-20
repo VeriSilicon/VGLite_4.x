@@ -226,7 +226,7 @@ typedef int FunctionIdx_t;
 #define _vg_lite_scissor_rects_dump_idx               (FunctionIdx_t)50
 #define _vg_lite_set_mirror_dump_idx                  (FunctionIdx_t)51
 #define _vg_lite_set_gamma_dump_idx                   (FunctionIdx_t)52
-/*#define _vg_lite_set_premultiply_dump_idx             (FunctionIdx_t)53  Remove*/
+#define _vg_lite_init_grad_dump_idx                   (FunctionIdx_t)53
 #define _vg_lite_enable_color_transform_dump_idx      (FunctionIdx_t)54
 #define _vg_lite_disable_color_transform_dump_idx     (FunctionIdx_t)55
 #define _vg_lite_set_color_transform_dump_idx         (FunctionIdx_t)56
@@ -1264,4 +1264,8 @@ DLLEXPORT void FUNC_DUMP(vg_lite_set_command_buffer_size)(
     DUMP_FLUSH();
         
     return;
+}
+
+DLLEXPORT void FUNC_DUMP(vg_lite_init_grad)(vg_lite_linear_gradient_t* grad) {
+    DUMP_FUNCTION(vg_lite_init_grad);
 }

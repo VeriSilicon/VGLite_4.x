@@ -119,5 +119,6 @@ DLLEXPORT void FUNC_DUMP(vg_lite_load_decnano_compressd_data)(vg_lite_buffer_t* 
 DLLEXPORT void FUNC_DUMP(vg_lite_save_decnano_compressd_data)(const char* name, vg_lite_buffer_t* buffer);
 DLLEXPORT void FUNC_DUMP(vg_lite_set_command_buffer_size)(vg_lite_uint32_t size);
 DLLEXPORT void FUNC_DUMP(vg_lite_set_memory_pool)(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool);
+DLLEXPORT void FUNC_DUMP(vg_lite_init_grad)(vg_lite_linear_gradient_t* grad);
 
 #endif

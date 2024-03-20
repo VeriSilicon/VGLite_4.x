@@ -5728,6 +5728,10 @@ vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
+#if DUMP_API
+    FUNC_DUMP(vg_lite_init_grad)(grad);
+#endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_init_grad %p\n", grad);
 #endif
