@@ -53,7 +53,7 @@ extern "C" {
 
 #define VGLITE_API_VERSION_3_0      VGLITE_MAKE_VERSION(3, 0, 0)
 
-#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4, 0, 32)
+#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4,0,73)
 
 #define VGL_FALSE                   0
 #define VGL_TRUE                    1
