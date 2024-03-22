@@ -3462,7 +3462,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    if ((blend >= VG_LITE_BLEND_ADDITIVE_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (blend == VG_LITE_BLEND_NORMAL_LVGL && gcFEATURE_VG_SRC_PREMULTIPLIED)) {
+    if ((blend >= VG_LITE_BLEND_ADDITIVE_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) || (blend == VG_LITE_BLEND_NORMAL_LVGL && (gcFEATURE_VG_SRC_PREMULTIPLIED || CHIPID == 0x255))) {
         if (!source->lvgl_buffer) {
             source->lvgl_buffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
             *source->lvgl_buffer = *source;
@@ -3564,7 +3564,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     else {
         target->apply_premult = 0;
     }
-#if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
+#if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0 && CHIPID != 0x255)
     if (blend == VG_LITE_BLEND_NORMAL_LVGL)
         in_premult = 0x00000000;
 #endif
