@@ -552,7 +552,16 @@ void vg_lite_IRQHandler(void)
                 portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
             }
         }
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+        record_running_time();
+#endif
     }
+#if 0
+    if(flags = VGLITE_EVENT_FRAME_END){
+    /* A callback function can be added here to inform that gpu is idle. */
+        (*callback)();
+    }
+#endif
 }
 
 int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *value)

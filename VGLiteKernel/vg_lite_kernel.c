@@ -66,6 +66,21 @@
 #include <linux/suspend.h>
 #endif
 
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+
+#ifdef __linux__
+#include <linux/jiffies.h>
+unsigned long start_time, end_time;
+unsigned long period_time, total_time = 0;
+
+#else
+#include <sys/time.h>
+struct timeval start_time, end_time;
+unsigned long period_time, total_time = 0;
+#endif
+
+#endif
+
 #define FLEXA_TIMEOUT_STATE                 BIT(21)
 #define FLEXA_HANDSHEKE_FAIL_STATE          BIT(22)
 #define MIN_TS_SIZE                         (8 << 10)
@@ -78,9 +93,7 @@
 
 static vg_lite_kernel_context_t global_power_context = {0};
 static uint32_t *power_context_klogical = NULL;
-static uint32_t state_map_table[4096] = {
-    [0 ... 4095] = -1
-};
+static uint32_t state_map_table[4096];
 static uint32_t backup_command_buffer_physical;
 static void *backup_command_buffer_klogical;
 static uint32_t backup_command_buffer_size;
@@ -90,6 +103,11 @@ size_t physical_address;
 #endif
 
 static int s_reference = 0;
+
+#if gcdVG_ENABLE_DELAY_RESUME
+static int delay_resume = 0;
+#endif
+
 #if gcdVG_ENABLE_GPU_RESET
 static uint32_t gpu_reset_count = 0;
 #endif
@@ -128,7 +146,6 @@ static vg_lite_error_t restore_init_command(uint32_t physical, uint32_t size)
 
     return error;
 }
-
 #if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
 static vg_lite_error_t execute_command(uint32_t physical, uint32_t size, vg_lite_gpu_reset_type_t reset_type)
 {
@@ -233,6 +250,11 @@ static void gpu(int enable)
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
         vg_lite_hal_delay(5);
 
+#if gcdVG_DUMP_DEBUG_REGISTER
+        value.control.debug_registers = 0;
+        vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
+#endif
+
         /* Perform a soft reset. */
         soft_reset();
         do {
@@ -247,9 +269,16 @@ static void gpu(int enable)
         vg_lite_hal_poke(VG_LITE_POWER_CONTROL, data);
         vg_lite_hal_delay(1);
 
-#if !gcFEATURE_VG_CLOCK_GATING
+#if !gcFEATURE_VG_CLOCK_GATING_TS_MODULE
         data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
         data |= 0x800;
+        vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);
+        vg_lite_hal_delay(1);
+#endif
+
+#if !gcFEATURE_VG_CLOCK_GATING_VG_MODULE
+        data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
+        data |= 0x100;
         vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);
         vg_lite_hal_delay(1);
 #endif
@@ -728,6 +757,14 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     backup_command_buffer_size = data->command_size;
 #endif
 
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+#ifdef __linux__
+    start_time = jiffies;
+#else
+    gettimeofday(&start_time, NULL);
+#endif
+#endif
+
     /* set gpu to busy state  */
     vg_lite_set_gpu_execute_state(VG_LITE_GPU_RUN);
 
@@ -807,25 +844,30 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
          /* Timeout. */
         unsigned int debug;
         unsigned int iter;
+
         debug = vg_lite_hal_peek(VG_LITE_HW_IDLE);
         vg_lite_kernel_print("idle = 0x%x\n",debug);
+
+        debug = vg_lite_hal_peek(VG_LITE_HW_CLOCK_CONTROL);
+        vg_lite_kernel_print("QAHiClockControl = 0x%x\n", debug);
+        
         for(iter =0; iter < 16 ; iter ++) 
         {   
              vg_lite_hal_poke(0x470, iter);
              debug = vg_lite_hal_peek(0x448);
-             vg_lite_kernel_print("0x448[%d] = 0x%x\n", iter,debug);
+             vg_lite_kernel_print("0x448[%d] = 0x%x\n", iter, debug);
         }     
         for(iter =0; iter < 16 ; iter ++) 
         {   
              vg_lite_hal_poke(0x470, iter<<8);
              debug = vg_lite_hal_peek(0x44C);
-             vg_lite_kernel_print("0x44c[%d] = 0x%x\n", iter,debug);
+             vg_lite_kernel_print("0x44c[%d] = 0x%x\n", iter, debug);
         }
         for(iter =0; iter < 28 ; iter ++) 
         {   
              vg_lite_hal_poke(0x470, iter<<16);
              debug = vg_lite_hal_peek(0x450);
-             vg_lite_kernel_print("0x450[%d] = 0x%x\n", iter,debug);
+             vg_lite_kernel_print("0x450[%d] = 0x%x\n", iter, debug);
         }   
         for (iter = 0; iter < 31; iter++)
         {
@@ -902,6 +944,13 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 #else
     if (!vg_lite_hal_wait_interrupt(data->timeout_ms, data->event_mask, &data->event_got)) {
         /* Timeout. */
+        unsigned int debug;
+        debug = vg_lite_hal_peek(VG_LITE_HW_IDLE);
+        if(!VG_LITE_KERNEL_IS_GPU_IDLE()){
+            vg_lite_kernel_print("GPU hang.\n");
+            vg_lite_kernel_print("GPU idle register = 0x%x\n", debug);
+        }
+
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
         dump_last_frame();
 #endif
@@ -993,8 +1042,15 @@ static vg_lite_error_t restore_gpu_state(void)
 }
 #endif
 
-static vg_lite_error_t do_reset(void)
+static vg_lite_error_t do_reset(vg_lite_kernel_reset_t* data)
 {
+#if gcdVG_ENABLE_DELAY_RESUME
+    if(data->delay_resume_flag == 1)
+    {
+        /* If delay resume is enabled, power and clock should be turned on first.*/
+        vg_lite_hal_initialize();
+    }
+#endif
     /* reset and enable the GPU interrupt */
     gpu(1);
 
@@ -1107,6 +1163,36 @@ static vg_lite_error_t do_query_mem(vg_lite_kernel_mem_t * data)
     return error;
 }
 
+#if gcdVG_ENABLE_DELAY_RESUME
+static vg_lite_error_t set_delay_resume(vg_lite_kernel_delay_resume_t* data)
+{
+    delay_resume = data->set_delay_resume;
+
+    return VG_LITE_SUCCESS;
+}
+
+static int do_query_delay_resume(void)
+{
+    if (delay_resume == 1) 
+    {
+        /* Reset delay resume to 0 after query*/
+        delay_resume = 0; 
+        return 1;
+    }
+    else
+        return 0;
+}
+
+static int set_gpu_clock_state(vg_lite_kernel_gpu_clock_state_t* gpu_state)
+{
+#ifdef __ZEPHYR__
+    vg_lite_gpu_execute_state_t state = gpu_state->state;
+    vg_lite_set_gpu_clock_state(state);
+#endif
+    return VG_LITE_SUCCESS;
+}
+#endif
+
 static vg_lite_error_t do_map_memory(vg_lite_kernel_map_memory_t * data)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -1136,6 +1222,45 @@ static vg_lite_error_t do_export_memory(vg_lite_kernel_export_memory_t * data)
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
     error = vg_lite_hal_memory_export(&data->fd); 
+
+    return error;
+}
+
+static vg_lite_error_t do_get_running_time(vg_lite_kernel_hardware_running_time_t * data)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+#ifdef __linux__
+    data->run_time = total_time;
+    data->hertz = HZ;
+#else
+    data->run_time = total_time;
+    data->hertz = 1e6;
+#endif
+#endif
+    return error;
+}
+
+vg_lite_error_t record_running_time(void)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+
+#ifdef __linux__
+    end_time = jiffies;
+    period_time = end_time - start_time;
+    total_time += period_time;
+
+#else
+    gettimeofday(&end_time, NULL);
+    period_time = (end_time.tv_sec - start_time.tv_sec)*1e6 + end_time.tv_usec - start_time.tv_usec;
+    total_time += period_time;
+    //printk("GPU hardware running period time: %f s\n", (float)period_time/1e-6);
+    //printk("GPU hardware running total time: %f s\n", (float)total_time/1e-6);
+#endif
+
+#endif
 
     return error;
 }
@@ -1187,7 +1312,7 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
 
         case VG_LITE_RESET:
             /* Reset the GPU. */
-            return do_reset();
+            return do_reset(data);
             
         case VG_LITE_DEBUG:
             /* Perform debugging features. */
@@ -1244,6 +1369,19 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         case VG_LITE_EXPORT_MEMORY:
             return do_export_memory(data);
 
+        case VG_LITE_RECORD_RUNNING_TIME:
+            return do_get_running_time(data);
+
+#if gcdVG_ENABLE_DELAY_RESUME
+        case VG_LITE_SET_DELAY_RESUME:
+            return set_delay_resume(data);
+
+        case VG_LITE_QUERY_DELAY_RESUME:
+            return do_query_delay_resume();
+        
+        case VG_LITE_SET_GPU_CLOCK_STATE:
+            return set_gpu_clock_state(data);
+#endif
         default:
             break;
     }

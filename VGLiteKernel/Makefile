@@ -11,6 +11,10 @@ ifeq ($(ENABLE_PCIE), 1)
 ccflags-y += -DENABLE_PCIE
 endif
 
+ifeq ($(ENABLE_PCIE_EMU), 1)
+EXTRA_CFLAGS += -DUSE_LINUX_PCIE_EMU
+endif
+
 ifeq ($(gcdIRQ_SHARED), 1)
 ccflags-y += -DgcdIRQ_SHARED
 endif

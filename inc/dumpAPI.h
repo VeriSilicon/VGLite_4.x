@@ -67,7 +67,7 @@ typedef struct DumpVGLHandler {
     int rgradNum;
 } DumpVGLHandler;
 
-static DumpVGLHandler handler;
+extern DumpVGLHandler handler;
 
 #define FUNC_DUMP(func)                   _##func##_dump
 

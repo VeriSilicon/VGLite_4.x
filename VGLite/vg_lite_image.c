@@ -385,7 +385,7 @@ vg_lite_error_t vg_lite_set_CLUT(vg_lite_uint32_t count, vg_lite_uint32_t* color
     }
 #endif
 
-    VG_LITE_RETURN_ERROR(push_clut(&s_context, addr, count, colors));
+    VG_LITE_RETURN_ERROR(push_clut(&s_context, addr, count, (uint32_t*)colors));
 
     return error;
 #else
@@ -889,13 +889,6 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         s_context.scissor_layer->height = target->height;
         s_context.scissor_layer->format = VG_LITE_A8;
         VG_LITE_RETURN_ERROR(vg_lite_allocate(s_context.scissor_layer));
-
-        VG_LITE_RETURN_ERROR(vg_lite_clear(s_context.scissor_layer, NULL, 0xFFFFFFFF));
-        vg_lite_finish();
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
-        vg_lite_finish();
     }
     s_context.scissor_layer->scissor_buffer = 1;
 
@@ -983,7 +976,10 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
             }
         }
     }
-
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+    vg_lite_finish();
     s_context.scissor_enable = enable;
     s_context.scissor_dirty = 1;
 

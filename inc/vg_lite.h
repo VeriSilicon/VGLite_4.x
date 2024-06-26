@@ -53,7 +53,7 @@ extern "C" {
 
 #define VGLITE_API_VERSION_3_0      VGLITE_MAKE_VERSION(3, 0, 0)
 
-#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4,0,73)
+#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4,0,90)
 
 #define VGL_FALSE                   0
 #define VGL_TRUE                    1
@@ -91,6 +91,9 @@ extern "C" {
 #define VLM_PATH_ENABLE_UPLOAD(path)    (path).uploaded.property |= 1
 #define VLM_PATH_DISABLE_UPLOAD(path)   (path).uploaded.property &= (~1)
 #define VLM_PATH_GET_UPLOAD_BIT(path)   ((path).uploaded.property & 1)
+#define VLM_PATH_STROKE_ENABLE_UPLOAD(path)    (path).stroke->uploaded.property |= 1
+#define VLM_PATH_STROKE_DISABLE_UPLOAD(path)   (path).stroke->uploaded.property &= (~1)
+#define VLM_PATH_STROKE_GET_UPLOAD_BIT(path)   ((path).stroke->uploaded.property & 1)
 
 /* Gradient constants. */
 #define VLC_MAX_COLOR_RAMP_STOPS    256             /*! The max number of radial gradient stops. */
@@ -226,15 +229,17 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_NV24_INPUT,
         gcFEATURE_BIT_VG_TILED_LIMIT,
         gcFEATURE_BIT_TILED_MODE,
+        gcFEATURE_BIT_VG_SRC_ADDRESS_16BYTES_ALIGNED,
         gcFEATURE_BIT_VG_SRC_ADDRESS_64BYTES_ALIGNED,
         gcFEATURE_BIT_VG_SRC_TILE_4PIXELS_ALIGNED,
         gcFEATURE_BIT_VG_SRC_BUF_ALINGED,
         gcFEATURE_BIT_VG_DST_ADDRESS_64BYTES_ALIGNED,
         gcFEATURE_BIT_VG_DST_TILE_4PIXELS_ALIGNED,
         gcFEATURE_BIT_VG_DST_BUF_ALIGNED,
-        gcFEATURE_BIT_VG_DST_24BIT_DEC_ALIGNED,
         gcFEATURE_BIT_VG_DST_24BIT_PLANAR_ALIGNED,
         gcFEATURE_BIT_VG_DST_BUFLEN_ALIGNED,
+        gcFEATURE_BIT_VG_FORMAT_SUPPORT_CHECK,
+        gcFEATURE_BIT_VG_YUV_ALIGNED_CHECK,
         gcFEATURE_BIT_VG_512_PARALLEL_PATHS,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
@@ -446,34 +451,58 @@ typedef unsigned int        vg_lite_color_t;
     typedef enum vg_lite_blend
     {
         /* Non-premultiplied Blending modes !*/
-        VG_LITE_BLEND_NONE                      = 0,        /*!  S, No blend                                !*/
-        VG_LITE_BLEND_SRC_OVER                  = 1,        /*!  S + D*(1 - Sa)                             !*/
-        VG_LITE_BLEND_DST_OVER                  = 2,        /*!  S*(1 - Da) + D                             !*/
-        VG_LITE_BLEND_SRC_IN                    = 3,        /*!  S*Da                                       !*/
-        VG_LITE_BLEND_DST_IN                    = 4,        /*!  D*Sa                                       !*/
-        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  S*(1 - Da) + D*(1 - Sa) + S*D              !*/
-        VG_LITE_BLEND_SCREEN                    = 6,        /*!  S + D - S*D                                !*/
-        VG_LITE_BLEND_DARKEN                    = 7,        /*!  min(SrcOver, DstOver)                      !*/
-        VG_LITE_BLEND_LIGHTEN                   = 8,        /*!  max(SrcOver, DstOver)                      !*/
-        VG_LITE_BLEND_ADDITIVE                  = 9,        /*!  S + D                                      !*/
-        VG_LITE_BLEND_SUBTRACT                  = 10,       /*!  D*(1 - Sa)                                 !*/
-        VG_LITE_BLEND_NORMAL_LVGL               = 11,       /*!  S*Sa + D*(1 - Sa)                          !*/
-        VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  (S + D)*Sa + D*(1 - Sa)                    !*/
-        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  (S - D)*Sa + D*(1 - Sa)                    !*/
-        VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  (S*D)*Sa + D*(1 - Sa)                      !*/
+        VG_LITE_BLEND_NONE                      = 0,        /*!  RGB: S, No blend                                !*/
+                                                            /*!  A:   Sa                                         !*/
+        VG_LITE_BLEND_SRC_OVER                  = 1,        /*!  RGB: S + D*(1 - Sa)                             !*/
+                                                            /*!  A:   Sa + Da*(1 - Sa)                           !*/
+        VG_LITE_BLEND_DST_OVER                  = 2,        /*!  RGB: S*(1 - Da) + D                             !*/
+                                                            /*!  A:   Sa*(1 - Da) + Da                           !*/
+        VG_LITE_BLEND_SRC_IN                    = 3,        /*!  RGB: S*Da                                       !*/
+                                                            /*!  A:   Sa*Da                                      !*/
+        VG_LITE_BLEND_DST_IN                    = 4,        /*!  RGB: D*Sa                                       !*/
+                                                            /*!  A:   Da*Sa                                      !*/
+        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  RGB: S*(1 - Da) + D*(1 - Sa) + S*D              !*/
+                                                            /*!  A:   Sa*(1 - Da) + Da*(1 - Sa) + Sa*Da          !*/
+        VG_LITE_BLEND_SCREEN                    = 6,        /*!  RGB: S + D - S*D                                !*/
+                                                            /*!  A:   Sa + Da - Sa*Da                            !*/
+        VG_LITE_BLEND_DARKEN                    = 7,        /*!  RGB: min(SrcOver, DstOver)                      !*/
+                                                            /*!  A:   min(SrcOver, DstOver)                      !*/
+        VG_LITE_BLEND_LIGHTEN                   = 8,        /*!  RGB: max(SrcOver, DstOver)                      !*/
+                                                            /*!  A:   max(SrcOver, DstOver)                      !*/
+        VG_LITE_BLEND_ADDITIVE                  = 9,        /*!  RGB: S + D                                      !*/
+                                                            /*!  A:   Sa + Da                                    !*/
+        VG_LITE_BLEND_SUBTRACT                  = 10,       /*!  RGB: D*(1 - Sa)                                 !*/
+                                                            /*!  A:   Da*(1 - Sa)                                !*/
+        VG_LITE_BLEND_NORMAL_LVGL               = 11,       /*!  RGB: S*Sa + D*(1 - Sa)                          !*/
+                                                            /*!  A:   0xFF                                       !*/
+        VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  RGB: (S + D)*Sa + D*(1 - Sa)                    !*/
+                                                            /*!  A:   0xFF                                       !*/
+        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  RGB: (S - D)*Sa + D*(1 - Sa)                    !*/
+                                                            /*!  A:   0xFF                                       !*/
+        VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  RGB: (S*D)*Sa + D*(1 - Sa)                      !*/
+                                                            /*!  A:   0xFF                                       !*/
 
         /* Porter Duff Premultiplied Blending modes !*/
-        OPENVG_BLEND_SRC                        = 0x2000,   /*!  SP / Sa                                                                !*/
-        OPENVG_BLEND_SRC_OVER                   = 0x2001,   /*!  (SP + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))                                !*/
-        OPENVG_BLEND_DST_OVER                   = 0x2002,   /*!  (SP*(1 - Da) + DP) / (Sa*(1 - Da) + Da)                                !*/
-        OPENVG_BLEND_SRC_IN                     = 0x2003,   /*!  (SP*Da) / (Sa*Da)                                                      !*/
-        OPENVG_BLEND_DST_IN                     = 0x2004,   /*!  (DP*Sa) / (Sa*Da)                                                      !*/
-        OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*!  (SP*DP + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))               !*/
-        OPENVG_BLEND_SCREEN                     = 0x2006,   /*!  (SP + DP - (SP*DP)) / (Sa + Da*(1 - Sa))                               !*/
-        OPENVG_BLEND_DARKEN                     = 0x2007,   /*!  (min(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
-        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  (max(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))   !*/
-        OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  (SP + DP) / (Sa + Da)                                                  !*/
-
+        OPENVG_BLEND_SRC                        = 0x2000,   /*!  RGB: SP / Sa,  No blend                                                    !*/
+                                                            /*!  A:   Sa                                                                    !*/
+        OPENVG_BLEND_SRC_OVER                   = 0x2001,   /*!  RGB: (SP + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))                               !*/
+                                                            /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
+        OPENVG_BLEND_DST_OVER                   = 0x2002,   /*!  RGB: (SP*(1 - Da) + DP) / (Sa*(1 - Da) + Da)                               !*/
+                                                            /*!  A:   (Sa*(1 - Da) + Da)                                                    !*/
+        OPENVG_BLEND_SRC_IN                     = 0x2003,   /*!  RGB: (SP*Da) / (Sa*Da)                                                     !*/
+                                                            /*!  A:   (Sa*Da)                                                               !*/
+        OPENVG_BLEND_DST_IN                     = 0x2004,   /*!  RGB: (DP*Sa) / (Sa*Da)                                                     !*/
+                                                            /*!  A:   (Sa*Da)                                                               !*/
+        OPENVG_BLEND_MULTIPLY                   = 0x2005,   /*!  RGB: (SP*DP + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))              !*/
+                                                            /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
+        OPENVG_BLEND_SCREEN                     = 0x2006,   /*!  RGB: (SP + DP - (SP*DP)) / (Sa + Da*(1 - Sa))                              !*/
+                                                            /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
+        OPENVG_BLEND_DARKEN                     = 0x2007,   /*!  RGB: (min(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))  !*/
+                                                            /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
+        OPENVG_BLEND_LIGHTEN                    = 0x2008,   /*!  RGB: (max(SP*Da, DP*Sa) + SP*(1 - Da) + DP*(1 - Sa)) / (Sa + Da*(1 - Sa))  !*/
+                                                            /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
+        OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  RGB: (SP + DP) / (Sa + Da)                                                 !*/
+                                                            /*!  A:   (Sa + Da)                                                             !*/
     } vg_lite_blend_t;
 
     /* Fill rules. Match OpenVG enum VGFillRule */
@@ -617,6 +646,7 @@ typedef unsigned int        vg_lite_color_t;
     {
         VG_LITE_GPU_IDLE_STATE,                 /*! count must be 1 for GPU idle state TRUE or FALSE */
         VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
+        VG_LITE_HARDWARE_RUNNING_TIME,          /*! count must be 1 */
     } vg_lite_param_type_t;
 
     /* Vg lite buffer type */
@@ -633,6 +663,11 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_MEMORY_POOL_1 = 0,
         VG_LITE_MEMORY_POOL_2 = 1,
     } vg_lite_memory_pool_t;
+
+    typedef enum vg_lite_frame_flag
+    {
+        VG_LITE_FRAME_END_FLAG = 1,
+    } vg_lite_frame_flag_t;
 
 /* VGLite API Structures ******************************************************************************************************************/
 
@@ -762,6 +797,18 @@ typedef unsigned int        vg_lite_color_t;
 
     } vg_lite_path_list_t;
 
+    /* Memory allocation info by kernel. */
+    typedef struct vg_lite_hw_memory
+    {
+        vg_lite_pointer handle;                 /*! gpu memory object handle. */
+        vg_lite_pointer memory;                 /*! logical memory address. */
+        vg_lite_uint32_t address;               /*! GPU memory address. */
+        vg_lite_uint32_t bytes;                 /*! Size of memory. */
+        vg_lite_uint32_t property;              /*! Currently bit0 is used for path upload state:
+                                                 *!   1 : enable auto path data uploading.
+                                                 *!   0 : disable path data uploading. path data is embedded in command buffer. */
+    } vg_lite_hw_memory_t;
+
     typedef struct vg_lite_stroke
     {
         /* Stroke parameters */
@@ -826,6 +873,7 @@ typedef unsigned int        vg_lite_color_t;
         /* The stroke line is fat line. */
         vg_lite_uint8_t                     fattened;
         vg_lite_uint8_t                     closed;
+        vg_lite_hw_memory_t                 uploaded;
 
     } vg_lite_stroke_t;
 
@@ -865,19 +913,8 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint8_t premultiplied;          /*! The RGB pixel values are alpha-premultipled */
         vg_lite_uint8_t apply_premult;          /*! Need to apply alpha-premultiply */
         struct vg_lite_buffer *lvgl_buffer;     /*! Buffer for SW LVGL blending support */
+        vg_lite_color_t bg_color;               /*! Background for edge filter */
     } vg_lite_buffer_t;
-
-    /* Memory allocation info by kernel. */
-    typedef struct vg_lite_hw_memory
-    {
-        vg_lite_pointer handle;                 /*! gpu memory object handle. */
-        vg_lite_pointer memory;                 /*! logical memory address. */
-        vg_lite_uint32_t address;               /*! GPU memory address. */
-        vg_lite_uint32_t bytes;                 /*! Size of memory. */
-        vg_lite_uint32_t property;              /*! Currently bit0 is used for path upload state:
-                                                 *!   1 : enable auto path data uploading.
-                                                 *!   0 : disable path data uploading. path data is embedded in command buffer. */
-    } vg_lite_hw_memory_t;
 
     /* Path info for drawing command. */
     typedef struct vg_lite_path
@@ -896,6 +933,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint32_t stroke_size;           /*! Number of bytes in the stroke path data. */
         vg_lite_color_t stroke_color;           /*! The stroke path fill color. */
         vg_lite_int8_t add_end;                 /*! Flag that add end_path in driver. */
+        vg_lite_int8_t stroke_valid;            /*! Flag that judge whether current stroke data is come from current pathdata. */
     } vg_lite_path_t;
 
     /* Color ramp definition. */
@@ -1023,7 +1061,7 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height);
 
     /* Destroy a vglite context. */
-    vg_lite_error_t vg_lite_close();
+    vg_lite_error_t vg_lite_close(void);
 
     /* Get the VGLite driver information. */
     vg_lite_error_t vg_lite_get_info(vg_lite_info_t* info);
@@ -1035,10 +1073,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_uint32_t vg_lite_query_feature(vg_lite_feature_t feature);
 
     /* Flush command buffer and wait for GPU to complete. */
-    vg_lite_error_t vg_lite_finish();
+    vg_lite_error_t vg_lite_finish(void);
 
     /* Flush the command buffer without waiting for GPU to complete. */
-    vg_lite_error_t vg_lite_flush();
+    vg_lite_error_t vg_lite_flush(void);
 
     /* Get the value of register from register's address. */
     vg_lite_error_t vg_lite_get_register(vg_lite_uint32_t address, vg_lite_uint32_t* result);
@@ -1282,10 +1320,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
 
     /* Enable scissor rects defined on mask layer. */
-    vg_lite_error_t vg_lite_enable_scissor();
+    vg_lite_error_t vg_lite_enable_scissor(void);
 
     /* Disable scissor rects defined on mask layer. */
-    vg_lite_error_t vg_lite_disable_scissor();
+    vg_lite_error_t vg_lite_disable_scissor(void);
 
     /* Query size of available contiguous video memory. */
     vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t *size);
@@ -1300,10 +1338,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_color_key(vg_lite_color_key4_t colorkey);
 
     /* Enable dither function. Dither is OFF by default. */
-    vg_lite_error_t vg_lite_enable_dither();
+    vg_lite_error_t vg_lite_enable_dither(void);
 
     /* Disable dither function. Dither is OFF by default. */
-    vg_lite_error_t vg_lite_disable_dither();
+    vg_lite_error_t vg_lite_disable_dither(void);
 
     /* Set a 64-byte aligned memory buffer (physical) as VGLite tessellation buffer. */
     vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size);
@@ -1311,7 +1349,8 @@ typedef unsigned int        vg_lite_color_t;
     /* Can be called before vg_lite_init() to overwrite the default VG_LITE_COMMAND_BUFFER_SIZE */
     vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size);
 
-    /* Set a user-defined external memory buffer (physical, 64-byte aligned) as VGLite command buffer. */
+    /* Set a user-defined external memory buffer (physical, 64-byte aligned) as VGLite command buffer.
+       It should be called after vg_lite_init(). */
     vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size);
 
     /* Setup a pixel transform matrix m[20] which transforms each pixel as following:
@@ -1350,10 +1389,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_gaussian_filter(vg_lite_float_t w0, vg_lite_float_t w1, vg_lite_float_t w2);
 
     /*  Enable masklayer function. Masklayer is OFF by default. */
-    vg_lite_error_t vg_lite_enable_masklayer();
+    vg_lite_error_t vg_lite_enable_masklayer(void);
 
     /*  Disable masklayer function. Masklayer is OFF by default. */
-    vg_lite_error_t vg_lite_disable_masklayer();
+    vg_lite_error_t vg_lite_disable_masklayer(void);
 
     /* Setup a masklayer. */
     vg_lite_error_t vg_lite_set_masklayer(vg_lite_buffer_t *masklayer);
@@ -1392,10 +1431,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_gamma(vg_lite_gamma_conversion_t gamma_value);
 
     /* Enable color transformation, which is OFF by default. */
-    vg_lite_error_t vg_lite_enable_color_transform();
+    vg_lite_error_t vg_lite_enable_color_transform(void);
 
     /* Disable color transformation, which is OFF by default. */
-    vg_lite_error_t vg_lite_disable_color_transform();
+    vg_lite_error_t vg_lite_disable_color_transform(void);
 
     /* Set pixel color transformation scale and bias values for each pixel channel. */
     vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t *values);
@@ -1410,16 +1449,16 @@ typedef unsigned int        vg_lite_color_t;
                                     vg_lite_uint32_t seg_size);
 
     /* Enable flexa. */
-    vg_lite_error_t vg_lite_flexa_enable();
+    vg_lite_error_t vg_lite_flexa_enable(void);
 
     /* Disable flexa.*/
-    vg_lite_error_t vg_lite_flexa_disable();
+    vg_lite_error_t vg_lite_flexa_disable(void);
 
     /* Set flexa stop flag after the last frame. */
-    vg_lite_error_t vg_lite_flexa_stop_frame();
+    vg_lite_error_t vg_lite_flexa_stop_frame(void);
 
     /* Dump command buffer */
-    vg_lite_error_t vg_lite_dump_command_buffer();
+    vg_lite_error_t vg_lite_dump_command_buffer(void);
 
     /* Dump vg_lite_buffer_t image to a png file. Support on Linux for now. */
     vg_lite_error_t vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer);
@@ -1434,6 +1473,12 @@ typedef unsigned int        vg_lite_color_t;
      * This API can be called anytime for VG_LITE_RENDER_BUFFER to affect the following vg_lite_allocate() calls.
      */
     vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool);
+
+    /* Set an end flag for GPU to signal its completion of current frame.
+     * This API can be called at the end of a frame, and a vg_lite_finish() is contained withen the API.
+     * An interrupt will be received to indicate that GPU is idle.
+     */
+    vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag);
 
 #endif /* VGLITE_VERSION_3_0 */
 

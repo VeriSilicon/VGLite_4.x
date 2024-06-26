@@ -61,6 +61,10 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         sizeof(vg_lite_kernel_close_t),
         sizeof(vg_lite_kernel_cache_t),
         sizeof(vg_lite_kernel_export_memory_t),
+        sizeof(vg_lite_kernel_hardware_running_time_t),
+        sizeof(vg_lite_kernel_delay_resume_t),
+        sizeof(vg_lite_kernel_delay_resume_t),
+        sizeof(vg_lite_kernel_gpu_clock_state_t),
     };
 
     if (device == 0) {

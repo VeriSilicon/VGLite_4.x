@@ -56,6 +56,8 @@
 #define _vg_lite_kernel_h_
 
 #include "../VGLite/vg_lite_options.h"
+#include "vg_lite_option.h"
+
 /* Interrupt IDs from GPU. */
 #define EVENT_UNEXPECTED_MESH  0x80000000
 #define EVENT_CMD_BAD_WRITE    0x40000000
@@ -63,6 +65,7 @@
 #define EVENT_CMD_SWITCH       0x10000000
 #define EVENT_MCU_BAD_WRITE    0x08000000
 #define EVENT_END              0
+#define EVENT_FRAME_END        1
 
 #define MAX_CONTIGUOUS_SIZE 0x04000000
 
@@ -212,6 +215,19 @@ typedef enum vg_lite_kernel_command
 
     /* Export memory */
     VG_LITE_EXPORT_MEMORY,
+
+    /* Record GPU hardware running time */
+    VG_LITE_RECORD_RUNNING_TIME,
+
+    /* Set delay resume state */
+    VG_LITE_SET_DELAY_RESUME,
+
+    /* Query delay resume state */
+    VG_LITE_QUERY_DELAY_RESUME,
+
+    /* Set GPU clock state */
+    VG_LITE_SET_GPU_CLOCK_STATE,
+
 }
 vg_lite_kernel_command_t;
 
@@ -417,6 +433,7 @@ typedef struct vg_lite_kernel_reset
 {
     /* Context to reset. */
     vg_lite_kernel_context_t * context;
+    uint32_t delay_resume_flag;
 }
 vg_lite_kernel_reset_t;
 
@@ -562,7 +579,29 @@ typedef struct vg_lite_kernel_export_memory
 }
 vg_lite_kernel_export_memory_t;
 
+typedef struct vg_lite_kernel_hardware_running_time
+{
+    unsigned long run_time;
+    int32_t hertz;
+}
+vg_lite_kernel_hardware_running_time_t;
+
+typedef struct vg_lite_kernel_delay_resume
+{
+    uint32_t set_delay_resume;
+    uint32_t query_delay_resume;
+}
+vg_lite_kernel_delay_resume_t;
+
+typedef struct vg_lite_kernel_gpu_clock_state
+{
+    uint32_t state;
+}
+vg_lite_kernel_gpu_clock_state_t;
+
 vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data);
+
+vg_lite_error_t record_running_time(void);
 
 extern uint32_t init_buffer[12];
 extern uint32_t is_init;

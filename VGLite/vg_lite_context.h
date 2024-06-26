@@ -39,6 +39,7 @@
 #define DUMP_COMMAND_CAPTURE                    0
 #define DUMP_INIT_COMMAND                       0
 #define DUMP_API                                0
+#define DUMP_LAST_CAPTURE                       0
 
 #if DUMP_API
 #include "dumpAPI.h"
@@ -76,7 +77,6 @@
 
 #define FC_BURST_BYTES              64
 #define FC_BIT_TO_BYTES             64
-#define DEST_ALIGNMENT_LIMITATION   64  /* To match hardware alignment requirement */
 
 #define STATES_COUNT                208
 #define MIN_TS_SIZE                 8 << 10
@@ -209,6 +209,10 @@ typedef struct vg_lite_context {
     uint32_t                    color_transform;
     uint32_t                    path_counter;
     vg_lite_filter_t            filter;
+    void*                       last_command_buffer_logical;
+    size_t                      Physical;
+    uint32_t                    last_command_size;
+    vg_lite_frame_flag_t        frame_flag;
 
 } vg_lite_context_t;
 
@@ -236,6 +240,25 @@ extern vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buff
 
 extern vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* temp, vg_lite_blend_t operation);
 
+#if defined(__ZEPHYR__)
+extern void * vg_lite_os_fopen(const char *__restrict path, const char *__restrict mode);
+extern int vg_lite_os_fclose(void * fp);
+extern size_t vg_lite_os_fread(void *__restrict ptr, size_t size, size_t nmemb, void *__restrict fp);
+extern size_t vg_lite_os_fwrite(const void *__restrict ptr, size_t size, size_t nmemb, void * fp);
+extern int vg_lite_os_fseek(void * fp, long offset, int whence);
+extern int vg_lite_os_fflush(void *fp);
+extern int vg_lite_os_fprintf(void *__restrict fp, const char *__restrict format, ...);
+extern int vg_lite_os_getpid(void);
+#else
+extern int   vg_lite_os_fseek(FILE* Stream, long Offset, int Origin);
+extern FILE* vg_lite_os_fopen(char const* FileName, char const* Mode);
+extern long  vg_lite_os_ftell(FILE* Stream);
+extern size_t vg_lite_os_fread(void* Buffer, size_t ElementSize, size_t ElementCount, FILE* Stream);
+extern size_t vg_lite_os_fwrite(void const* Buffer, size_t ElementSize, size_t ElementCount, FILE* Stream);
+extern int    vg_lite_os_close(FILE* Stream);
+extern int    vg_lite_os_fflush(FILE* fp);
+#endif
+
 /**************************** Dump command, image ********************************************/
 
 #define DUMP_COMMAND                            0
@@ -262,6 +285,12 @@ char filename[30];
 #   define vgliteDUMP_KEY                       "process"
 #endif
 
+#if DUMP_LAST_CAPTURE
+void _SetDumpFileInfo();
+vg_lite_error_t vglitefDumpBuffer_single(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes);
+#define vglitemDUMP_single                             vglitefDump
+#define vglitemDUMP_BUFFER_single                     vglitefDumpBuffer_single
+#endif 
 #if DUMP_CAPTURE
 void _SetDumpFileInfo();
 vg_lite_error_t vglitefDump(char* String, ...);

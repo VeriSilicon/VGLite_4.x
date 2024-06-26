@@ -26,6 +26,18 @@ LIMITATION
 CHANGES
 =======
 
+March 2024: vglite_4_0_70
+-------------------------
+
+    1. Port DumpVGL to driver project, and rename it to dumpAPI.
+    2. Modify vg_lite_get_transform_matrix() input parameters to float type, improve transform accuracy. 
+    3. Add alignment rules and refine original alignment rules.
+    4. Refine submit() function to avoid the boundary case that there is less than 8 bytes left in the command buffer for a END command.
+    5. Enable hw process lvgl normal blend mode when lvgl not support while src premultiply is zero.
+    6. Add driver support for the new gcFEATURE_VG_512_PARALLEL_PATHS.
+    7. Add ts buffer and count buffer size to avoid memory overflow.
+    8. Merger Zephyr plateform code.
+
 January 2024: vglite_4_0_64
 -------------------------
 

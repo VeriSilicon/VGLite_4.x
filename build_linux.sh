@@ -56,7 +56,7 @@ PCIE-GEN6)
 ;;
 
 X86_51510)
-    export SDK_DIR=./build
+    export SDK_DIR=`pwd`/../build.s2c/sdk
     export TOOLCHAIN=/usr
     export CROSS_COMPILE=""
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-5.15.10/
@@ -69,7 +69,7 @@ X86_51510)
 ;;
 
 IMX6Q35)
-    export SDK_DIR=./build
+    export SDK_DIR=`pwd`/../build.s2c/sdk
     export KERNEL_DIR=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Kernel/32/linux-lts-nxp
     export TOOLCHAIN=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi
     export CROSS_COMPILE=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi/arm-poky-linux-gnueabi-

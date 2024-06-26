@@ -29,6 +29,7 @@
 #include<stdio.h>
 #include<string.h>
 #include"dumpAPI.h"
+#include"vg_lite_context.h"
 
 #ifdef _MSC_VER
 #define alignof(type) _Alignof(type)
@@ -47,11 +48,11 @@
 #define RESOLUTION_2K_HEIGHT 1024
 #define BYTE_PER_PIXEL 4
 
-
 #if DUMP_API
 
-int createVgl = 1;
+DumpVGLHandler handler;
 
+static int createVgl = 1;
 static int lgradEX_count = 0;
 
 static void dump_vgl_serialize(const void* ptr, size_t bytes, size_t alignto) {
@@ -132,14 +133,6 @@ static void dump_vgl_allocate_lgradEX(vg_lite_ext_linear_gradient_t* lgradEX) {
     dump_vgl_serialize(&srlg, sizeof(srlg), alignof(vg_lite_ext_linear_gradient_t));
 }
 
-static int dump_vgl_refer_to_lgradEX(vg_lite_ext_linear_gradient_t* lgradEX) {
-    for (int i = 0; i < handler.lgradEXNum; ++i) {
-        if (handler.lgradEX[i] == lgradEX) return i;
-    }
-    /* Error: not found lgradEX. */
-    return -1;
-}
-
 static void dump_vgl_allocate_lgrad(vg_lite_linear_gradient_t* lgrad) {
     vg_lite_linear_gradient_t srlg;
     
@@ -160,14 +153,6 @@ static void dump_vgl_allocate_lgrad(vg_lite_linear_gradient_t* lgrad) {
     0;
 
     dump_vgl_serialize(&srlg, sizeof(srlg), alignof(vg_lite_linear_gradient_t));
-}
-
-static int dump_vgl_refer_to_lgrad(vg_lite_linear_gradient_t* lgrad) {
-    for (int i = 0; i < handler.lgradNum; ++i) {
-        if (handler.lgrad[i] == lgrad) return i;
-    }
-    /* Error: not found lgrad. */
-    return -1;
 }
 
 static void dump_vgl_allocate_rgrad(vg_lite_radial_gradient_t* rgrad) {

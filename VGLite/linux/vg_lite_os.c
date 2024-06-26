@@ -26,6 +26,7 @@
 *****************************************************************************/
 
 #include "stdlib.h"
+#include "stdio.h"
 
 void* vg_lite_os_malloc(size_t size)
 {
@@ -35,4 +36,53 @@ void* vg_lite_os_malloc(size_t size)
 void vg_lite_os_free(void* memory)
 {
     free(memory);
+}
+
+int vg_lite_os_fseek(FILE* Stream, long Offset, int Origin)
+{
+    int value = 0;
+    value = fseek(Stream, Offset, Origin);
+    return value;
+}
+
+FILE* vg_lite_os_fopen(char const* FileName, char const* Mode) 
+{
+    FILE* file;
+    file = fopen(FileName, Mode);
+    return file;
+}
+
+long vg_lite_os_ftell(FILE* Stream)
+{
+    long value;
+    value = ftell(Stream);
+    return value;
+}
+
+size_t vg_lite_os_fread(void* Buffer, size_t ElementSize, size_t ElementCount, FILE* Stream)
+{
+    size_t value;
+    value = fread(Buffer, ElementSize, ElementCount, Stream);
+    return value;
+}
+
+size_t vg_lite_os_fwrite(void const* Buffer, size_t ElementSize, size_t ElementCount, FILE* Stream)
+{
+    size_t value;
+    value = fwrite(Buffer, ElementSize, ElementCount, Stream);
+    return value;
+}
+
+int vg_lite_os_close(FILE* Stream)
+{
+    int value;
+    value = fclose(Stream);
+    return value;
+}
+
+int vg_lite_os_fflush(FILE* Stream)
+{
+    int value;
+    value = fflush(Stream);
+    return value;
 }

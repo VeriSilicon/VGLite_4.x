@@ -159,8 +159,13 @@ static const struct pci_device_id vg_lite_ids[] = {
     {
         .class = 0,
         .class_mask = 0,
+#ifdef USE_LINUX_PCIE_EMU
+        .vendor = 0x1d9b,
+        .device = 0xface,
+#else
         .vendor = 0x10ee,
         .device = 0x7012,
+#endif
         .subvendor = PCI_ANY_ID,
         .subdevice = PCI_ANY_ID,
         .driver_data = 0

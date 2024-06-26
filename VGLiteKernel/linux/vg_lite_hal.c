@@ -80,20 +80,37 @@ MODULE_LICENSE("Dual MIT/GPL");
 /*#define GPU_REG_START   0x02204000
 #define GPU_REG_SIZE    0x00004000
 #define GPU_IRQ         43*/
+
+#ifdef USE_LINUX_PCIE_EMU
+static ulong registerMemBase = 0xCE000000;
+module_param(registerMemBase, ulong, 0644);
+
+static uint registerMemSize = 0x02000000;//128M-0x06000000
+module_param(registerMemSize, uint, 0644);
+#else
 static ulong registerMemBase = 0x02204000;
 module_param(registerMemBase, ulong, 0644);
 
 static uint registerMemSize = 0x00004000;
 module_param(registerMemSize, uint, 0644);
+#endif
 
 static uint irqLine         = 0;
 module_param(irqLine, uint, 0644);
 
+#ifdef USE_LINUX_PCIE_EMU
+static uint contiguousSize = 0x3c000000;//1G-64M
+module_param(contiguousSize, uint, 0644);
+
+static ulong contiguousBase = 0x39BFC4000000;
+module_param(contiguousBase, ulong, 0644);
+#else
 static uint contiguousSize = 0x04000000;
 module_param(contiguousSize, uint, 0644);
 
 static ulong contiguousBase = 0x38000000;
 module_param(contiguousBase, ulong, 0644);
+#endif
 
 static uint contiguousSizes[VG_SYSTEM_RESERVE_COUNT] = {
     [0 ... VG_SYSTEM_RESERVE_COUNT - 1] = 0
@@ -689,8 +706,11 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
             /* Return the logical/physical address. */
             *logical  = (uint8_t *)private_data->contiguous_mapped[pool] + pos->offset;
             *klogical = (uint8_t *)private_data->contiguous_klogical[pool] + pos->offset;
+#ifdef USE_LINUX_PCIE_EMU
+            *physical = 0x04000000 + pos->offset;
+#else
             *physical = vg_lite_hal_cpu_to_gpu(device->physical[pool]) + pos->offset;
-
+#endif
             /* Mark which pool the pos belong to */
             pos->pool = pool;
 
@@ -1746,16 +1766,20 @@ vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cac
 #ifdef USE_RESERVE_MEMORY
 static void *map_contiguous_memory_to_kernel(vg_lite_uintptr_t physical, vg_lite_uint32_t size)
 {
+#ifndef USE_LINUX_PCIE_EMU
     struct resource *region = NULL;
+#endif
     void *contiguous_klogical = NULL;
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    
+
+#ifndef USE_LINUX_PCIE_EMU    
     region = request_mem_region(physical, size, "vglite contiguous memory");
     if (!region) {
         vg_lite_kernel_error("request mem %s(0x%llx - 0x%llx) failed, ",
             "vglite contiguous memory", physical, physical + size - 1);
         ONERROR(VG_LITE_OUT_OF_RESOURCES);
     }
+#endif
 
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
     contiguous_klogical = ioremap(physical, size);
@@ -2102,10 +2126,19 @@ static irqreturn_t irq_hander(int irq, void *context)
  
         /* Wake up any waiters. */
         wake_up_interruptible(&device->int_queue);
-
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+        record_running_time();
+#endif
         /* We handled the IRQ. */
         return IRQ_HANDLED;
     }
+
+#if 0
+    if(flags = VGLITE_EVENT_FRAME_END){
+    /* A callback function can be added here to inform that gpu is idle.*/
+        (*callback)();
+    }
+#endif
 
     /* Not our IRQ. */
     return IRQ_NONE;

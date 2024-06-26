@@ -21,7 +21,7 @@ endif
 CFLAGS += -fPIC -std=c99 -fno-strict-aliasing -D_GNU_SOURCE
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -O0 -DDEBUG -D_DEBUG
+CFLAGS += -g -O0 -DDEBUG -D_DEBUG -Wno-cpp
 else
 CFLAGS += -O2 -Werror
 endif

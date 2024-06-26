@@ -113,7 +113,22 @@ extern "C" {
  * Set 1 to open dump debug register
 */
 #ifndef gcdVG_DUMP_DEBUG_REGISTER
-    #define gcdVG_DUMP_DEBUG_REGISTER               0
+    #define gcdVG_DUMP_DEBUG_REGISTER                    0
+#endif
+
+/*
+ * For zephyr system
+ * Set gcdVG_ENABLE_DELAY_RESUME to 1 to open delay resume feature.
+*/
+#ifndef gcdVG_ENABLE_DELAY_RESUME
+    #define gcdVG_ENABLE_DELAY_RESUME                    0
+#endif
+
+/*
+ * Set 1 to record GPU hardware running time.
+*/
+#ifndef gcdVG_RECORD_HARDWARE_RUNNING_TIME
+    #define gcdVG_RECORD_HARDWARE_RUNNING_TIME           0
 #endif
 
 #ifdef __cplusplus
