@@ -2307,19 +2307,19 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
 vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32_t data)
 {
     vg_lite_error_t error;
-    if (!has_valid_command_buffer(context))
-        return VG_LITE_NO_CONTEXT;
 
-    /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    if (context->hw.hw_states[address & 0xff].non_cacheable || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init)
     {
+        if (!has_valid_command_buffer(context))
+            return VG_LITE_NO_CONTEXT;
+
         if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
             VG_LITE_RETURN_ERROR(submit(context));
             VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
         }
 
-        /* TODO context->hw.hw_states[address & 0xff].state = data;
-        context->hw.hw_states[address & 0xff].init = 1;*/
+        context->hw.hw_states[address & 0xff].state = data;
+        context->hw.hw_states[address & 0xff].init = 1;
 
         ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -2353,19 +2353,18 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
 {
     vg_lite_error_t error;
     uint32_t data = *(uint32_t *) data_ptr;
-    if (!has_valid_command_buffer(context))
-        return VG_LITE_NO_CONTEXT;
-
-    /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    if (context->hw.hw_states[address & 0xff].non_cacheable || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init)
     {
+        if (!has_valid_command_buffer(context))
+            return VG_LITE_NO_CONTEXT;
+
         if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
             VG_LITE_RETURN_ERROR(submit(context));
             VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
         }
 
-        /* TODO context->hw.hw_states[address & 0xff].state = data;
-        context->hw.hw_states[address & 0xff].init = 1;*/
+        context->hw.hw_states[address & 0xff].state = data;
+        context->hw.hw_states[address & 0xff].init = 1;
 
         ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -5195,6 +5194,12 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
 
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
 
+    // Setting non_cacheable registers
+    s_context.hw.hw_states[0x0A01 & 0xFF].non_cacheable = 1;
+    s_context.hw.hw_states[0x0A1B & 0xFF].non_cacheable = 1;
+    s_context.hw.hw_states[0x0A1F & 0xFF].non_cacheable = 1;
+    s_context.hw.hw_states[0x0A39 & 0xFF].non_cacheable = 1;
+    s_context.hw.hw_states[0x0A3D & 0xFF].non_cacheable = 1;
 #if DUMP_INIT_COMMAND   
     physical_address = (size_t)CMDBUF_BUFFER(s_context);
     uint32_t * ptr = (uint32_t*) s_context.context.command_buffer_logical[CMDBUF_INDEX(s_context)];

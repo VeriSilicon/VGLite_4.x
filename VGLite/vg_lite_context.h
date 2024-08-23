@@ -78,7 +78,7 @@
 #define FC_BURST_BYTES              64
 #define FC_BIT_TO_BYTES             64
 
-#define STATES_COUNT                208
+#define STATES_COUNT                0xFF
 #define MIN_TS_SIZE                 8 << 10
 
 #define VG_LITE_RETURN_ERROR(func) \
@@ -125,6 +125,7 @@
 typedef struct vg_lite_states {
     uint32_t                    state;
     uint8_t                     init;
+    uint8_t                     non_cacheable;
 } vg_lite_states_t;
 
 typedef struct vg_lite_hardware {
