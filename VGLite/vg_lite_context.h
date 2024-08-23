@@ -226,6 +226,7 @@ extern vg_lite_ftable_t         s_ftable;
 extern vg_lite_error_t set_render_target(vg_lite_buffer_t* target);
 extern vg_lite_error_t push_state(vg_lite_context_t* context, uint32_t address, uint32_t data);
 extern vg_lite_error_t push_state_ptr(vg_lite_context_t* context, uint32_t address, void* data_ptr);
+extern vg_lite_error_t push_state_ptr_consecutive(vg_lite_context_t * context, uint32_t address, void * data_ptr, uint8_t len);
 extern vg_lite_error_t push_call(vg_lite_context_t* context, uint32_t address, uint32_t bytes);
 extern vg_lite_error_t push_data(vg_lite_context_t* context, uint32_t size, void* data);
 extern vg_lite_error_t push_clut(vg_lite_context_t* context, uint32_t address, uint32_t count, uint32_t* data);
