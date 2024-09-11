@@ -26,6 +26,7 @@
 #include "vg_lite_kernel.h"
 #include "vg_lite_hal.h"
 #include "vg_lite_hw.h"
+#include "vg_lite_type.h"
 #if defined(__linux__) && !defined(EMULATOR)
 #include <linux/sched.h>
 /*#include <asm/uaccess.h>*/

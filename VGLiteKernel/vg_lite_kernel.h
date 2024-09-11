@@ -37,7 +37,9 @@
 #define EVENT_END              0
 #define EVENT_FRAME_END        1
 
+#ifndef MAX_CONTIGUOUS_SIZE
 #define MAX_CONTIGUOUS_SIZE 0x04000000
+#endif
 
 #define VG_LITE_INFINITE    0xFFFFFFFF
 

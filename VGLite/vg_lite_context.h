@@ -1,6 +1,7 @@
 /****************************************************************************
 *
 *    Copyright 2012 - 2023 Vivante Corporation, Santa Clara, California.
+*
 *    All Rights Reserved.
 *
 *    Permission is hereby granted, free of charge, to any person obtaining
@@ -249,7 +250,7 @@ extern int vg_lite_os_fseek(void * fp, long offset, int whence);
 extern int vg_lite_os_fflush(void *fp);
 extern int vg_lite_os_fprintf(void *__restrict fp, const char *__restrict format, ...);
 extern int vg_lite_os_getpid(void);
-#else
+#elif defined(__linux__)
 extern int   vg_lite_os_fseek(FILE* Stream, long Offset, int Origin);
 extern FILE* vg_lite_os_fopen(char const* FileName, char const* Mode);
 extern long  vg_lite_os_ftell(FILE* Stream);
