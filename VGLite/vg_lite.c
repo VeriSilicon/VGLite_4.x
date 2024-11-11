@@ -6662,6 +6662,10 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
         }
         else
         {
+            /* Make sure stop stays within range */
+            if (stop < 1 || stop >= ramp_length)
+                return VG_LITE_INVALID_ARGUMENT;
+
             /* Compute weight. */
             weight = (colorRamp[stop].stop - gradient)
                     / (colorRamp[stop].stop - colorRamp[stop - 1].stop);

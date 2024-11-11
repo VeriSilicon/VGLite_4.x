@@ -1860,7 +1860,7 @@ void writePixel(vg_lite_buffer_t* temp, int x, int y, Color* c)
 
 vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* lvgl_buf, vg_lite_blend_t operation)
 {
-    Color c_src, c_dst, c_temp;
+    Color c_src = {0}, c_dst = {0}, c_temp = {0};
     /* copy source region to tmp dst */
     for (int j = 0; j < src->height; j++)
     {

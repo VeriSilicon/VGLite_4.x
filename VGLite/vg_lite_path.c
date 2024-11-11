@@ -370,7 +370,7 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t bytes;
-    vg_lite_buffer_t Buf, *buffer;
+    vg_lite_buffer_t Buf = {0}, *buffer;
 
     buffer = &Buf;
 
