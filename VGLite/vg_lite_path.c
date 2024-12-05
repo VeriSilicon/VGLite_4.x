@@ -921,13 +921,15 @@ static vg_lite_error_t transform_bounding_box(vg_lite_rectangle_t *in_bbx,
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
-                                               vg_lite_int32_t s_height,
-                                               vg_lite_matrix_t *matrix)
+vg_lite_error_t compute_interpolation_steps(vg_lite_int32_t s_width,
+                                            vg_lite_int32_t s_height,
+                                            vg_lite_matrix_t *matrix,
+                                            vg_lite_float_t *xs,
+                                            vg_lite_float_t *ys,
+                                            vg_lite_float_t *cs)
 {
     vg_lite_matrix_t    im;
     vg_lite_rectangle_t src_bbx, bounding_box, clip;
-    vg_lite_float_t     xs[3], ys[3], cs[3];
     vg_lite_error_t     error = VG_LITE_SUCCESS;
     float               dx = 0.0f, dy = 0.0f;
 
@@ -949,7 +951,7 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
         clip.width  = s_context.rtbuffer->width;
         clip.height = s_context.rtbuffer->height;
     }
-    transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL);
+    VG_LITE_RETURN_ERROR(transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL));
     /* Compute inverse matrix. */
     if (!inverse(&im, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -968,6 +970,19 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
     /* C step 0, 1*/
     cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
     cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
+                                               vg_lite_int32_t s_height,
+                                               vg_lite_matrix_t *matrix)
+{
+    vg_lite_error_t     error = VG_LITE_SUCCESS;
+    vg_lite_float_t     xs[3], ys[3], cs[3];
+
+    VG_LITE_RETURN_ERROR(compute_interpolation_steps(s_width, s_height, matrix, xs, ys, cs));
+
     /* Set command buffer */
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *)&cs[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *)&cs[1]));
@@ -987,50 +1002,10 @@ static vg_lite_error_t set_interpolation_steps_draw_paint(vg_lite_int32_t s_widt
                                                           vg_lite_int32_t s_height,
                                                           vg_lite_matrix_t* matrix)
 {
-    vg_lite_matrix_t    im;
-    vg_lite_rectangle_t src_bbx, bounding_box, clip;
-    vg_lite_float_t     xs[3], ys[3], cs[3];
     vg_lite_error_t     error = VG_LITE_SUCCESS;
-    float               dx = 0.0f, dy = 0.0f;
+    vg_lite_float_t     xs[3], ys[3], cs[3];
 
-#define ERR_LIMIT   0.0000610351562f
-
-    /* Get bounding box. */
-    memset(&src_bbx, 0, sizeof(vg_lite_rectangle_t));
-    memset(&clip, 0, sizeof(vg_lite_rectangle_t));
-    src_bbx.width = (int32_t)s_width;
-    src_bbx.height = (int32_t)s_height;
-
-    if (s_context.scissor_set) {
-        clip.x = s_context.scissor[0];
-        clip.y = s_context.scissor[1];
-        clip.width = s_context.scissor[2];
-        clip.height = s_context.scissor[3];
-    }
-    else {
-        clip.x = clip.y = 0;
-        clip.width = s_context.rtbuffer->width;
-        clip.height = s_context.rtbuffer->height;
-    }
-    transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL);
-    /* Compute inverse matrix. */
-    if (!inverse(&im, matrix))
-        return VG_LITE_INVALID_ARGUMENT;
-    /* Compute interpolation steps. */
-    /* X step */
-    xs[0] = im.m[0][0] / s_width;
-    xs[1] = im.m[1][0] / s_height;
-    xs[2] = im.m[2][0];
-    /* Y step */
-    ys[0] = im.m[0][1] / s_width;
-    ys[1] = im.m[1][1] / s_height;
-    ys[2] = im.m[2][1];
-    /* C step 2 */
-    cs[2] = 0.5f * (im.m[2][0] + im.m[2][1]) + im.m[2][2];
-
-    /* C step 0, 1*/
-    cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
-    cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
+    VG_LITE_RETURN_ERROR(compute_interpolation_steps(s_width, s_height, matrix, xs, ys, cs));
 
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A04, (void*)&cs[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A05, (void*)&cs[1]));
