@@ -967,6 +967,24 @@ vg_lite_error_t compute_interpolation_steps(vg_lite_int32_t s_width,
     /* C step 2 */
     cs[2] = 0.5f * (im.m[2][0] + im.m[2][1]) + im.m[2][2];
 
+#if (CHIPID==0x255)
+    /* Keep track of the rounding errors (underflow) */
+    /* Check if matrix has rotation or perspective transformations */
+    if (matrix != NULL &&
+        (matrix->m[0][1] != 0.0f || matrix->m[1][0] != 0.0f ||
+            matrix->m[2][0] != 0.0f || matrix->m[2][1] != 0.0f ||
+            matrix->m[2][2] != 1.0f)) {
+        if (xs[0] != 0.0f && -ERR_LIMIT < xs[0] && xs[0] < ERR_LIMIT)
+            dx = 0.5f * (2 * bounding_box.x + bounding_box.width) * im.m[0][0];
+        else if (ys[0] != 0.0f && -ERR_LIMIT < ys[0] && ys[0] < ERR_LIMIT)
+            dx = 0.5f * (2 * bounding_box.y + bounding_box.height) * im.m[0][1];
+        if (xs[1] != 0.0f && -ERR_LIMIT < xs[1] && xs[1] < ERR_LIMIT)
+            dy = 0.5f * (2 * bounding_box.x + bounding_box.width) * im.m[1][0];
+        else if (ys[1] != 0.0f && -ERR_LIMIT < ys[1] && ys[1] < ERR_LIMIT)
+            dy = 0.5f * (2 * bounding_box.y + bounding_box.height) * im.m[1][1];
+    }
+#endif
+
     /* C step 0, 1*/
     cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
     cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
