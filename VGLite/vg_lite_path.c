@@ -994,24 +994,42 @@ vg_lite_error_t compute_interpolation_steps(vg_lite_int32_t s_width,
 
 static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
                                                vg_lite_int32_t s_height,
-                                               vg_lite_matrix_t *matrix)
+                                               vg_lite_matrix_t *matrix,
+                                               vg_lite_uint8_t push_states,
+                                               vg_lite_float_t **steps)
 {
     vg_lite_error_t     error = VG_LITE_SUCCESS;
     vg_lite_float_t     xs[3], ys[3], cs[3];
 
     VG_LITE_RETURN_ERROR(compute_interpolation_steps(s_width, s_height, matrix, xs, ys, cs));
 
-    /* Set command buffer */
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *)&cs[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *)&cs[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *)&cs[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *)&xs[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *)&xs[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *)&xs[2]));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *)&ys[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *)&ys[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *)&ys[2]));
+    if (push_states) {
+        /* Set command buffer */
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *)&cs[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *)&cs[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *)&cs[2]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *)&xs[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *)&xs[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *)&xs[2]));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *)&ys[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *)&ys[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *)&ys[2]));
+    } else {
+        /* Save the interpolation steps for later use */
+        if (!steps) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        steps[0][0] = xs[0];
+        steps[0][1] = xs[1];
+        steps[0][2] = xs[2];
+        steps[1][0] = ys[0];
+        steps[1][1] = ys[1];
+        steps[1][2] = ys[2];
+        steps[2][0] = cs[0];
+        steps[2][1] = cs[1];
+        steps[2][2] = cs[2];
+    }
 
     return VG_LITE_SUCCESS;
 }
@@ -1522,7 +1540,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
     else
     {
-        VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, &matrix));
+        VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, &matrix, 1, NULL));
         /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion | src_premultiply_enable));
@@ -1951,7 +1969,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     data = &lg_step_y_lin;
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A08,*(uint32_t*) data));
 
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 1, NULL));
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
@@ -2641,7 +2659,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0A,*(uint32_t*) data));
     data = &rgStepXYRad;
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0B,*(uint32_t*) data));
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 1, NULL));
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
