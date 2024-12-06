@@ -921,14 +921,15 @@ static vg_lite_error_t transform_bounding_box(vg_lite_rectangle_t *in_bbx,
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t set_interpolation_steps(vg_lite_buffer_t *target,
-                                               vg_lite_int32_t s_width,
-                                               vg_lite_int32_t s_height,
-                                               vg_lite_matrix_t *matrix)
+vg_lite_error_t compute_interpolation_steps(vg_lite_int32_t s_width,
+                                            vg_lite_int32_t s_height,
+                                            vg_lite_matrix_t *matrix,
+                                            vg_lite_float_t *xs,
+                                            vg_lite_float_t *ys,
+                                            vg_lite_float_t *cs)
 {
     vg_lite_matrix_t    im;
     vg_lite_rectangle_t src_bbx, bounding_box, clip;
-    vg_lite_float_t     xs[3], ys[3], cs[3];
     vg_lite_error_t     error = VG_LITE_SUCCESS;
     float               dx = 0.0f, dy = 0.0f;
 
@@ -950,7 +951,7 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_buffer_t *target,
         clip.width  = s_context.rtbuffer->width;
         clip.height = s_context.rtbuffer->height;
     }
-    transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL);
+    VG_LITE_RETURN_ERROR(transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL));
     /* Compute inverse matrix. */
     if (!inverse(&im, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -966,73 +967,81 @@ static vg_lite_error_t set_interpolation_steps(vg_lite_buffer_t *target,
     /* C step 2 */
     cs[2] = 0.5f * (im.m[2][0] + im.m[2][1]) + im.m[2][2];
 
+#if (CHIPID==0x255)
+    /* Keep track of the rounding errors (underflow) */
+    /* Check if matrix has rotation or perspective transformations */
+    if (matrix != NULL &&
+        (matrix->m[0][1] != 0.0f || matrix->m[1][0] != 0.0f ||
+            matrix->m[2][0] != 0.0f || matrix->m[2][1] != 0.0f ||
+            matrix->m[2][2] != 1.0f)) {
+        if (xs[0] != 0.0f && -ERR_LIMIT < xs[0] && xs[0] < ERR_LIMIT)
+            dx = 0.5f * (2 * bounding_box.x + bounding_box.width) * im.m[0][0];
+        else if (ys[0] != 0.0f && -ERR_LIMIT < ys[0] && ys[0] < ERR_LIMIT)
+            dx = 0.5f * (2 * bounding_box.y + bounding_box.height) * im.m[0][1];
+        if (xs[1] != 0.0f && -ERR_LIMIT < xs[1] && xs[1] < ERR_LIMIT)
+            dy = 0.5f * (2 * bounding_box.x + bounding_box.width) * im.m[1][0];
+        else if (ys[1] != 0.0f && -ERR_LIMIT < ys[1] && ys[1] < ERR_LIMIT)
+            dy = 0.5f * (2 * bounding_box.y + bounding_box.height) * im.m[1][1];
+    }
+#endif
+
     /* C step 0, 1*/
     cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
     cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
-    /* Set command buffer */
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *)&cs[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *)&cs[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *)&cs[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *)&xs[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *)&xs[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *)&xs[2]));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *)&ys[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *)&ys[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *)&ys[2]));
 
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t set_interpolation_steps_draw_paint(vg_lite_buffer_t* target,
-    vg_lite_int32_t s_width,
-    vg_lite_int32_t s_height,
-    vg_lite_matrix_t* matrix)
+static vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
+                                               vg_lite_int32_t s_height,
+                                               vg_lite_matrix_t *matrix,
+                                               vg_lite_uint8_t push_states,
+                                               vg_lite_float_t **steps)
 {
-    vg_lite_matrix_t    im;
-    vg_lite_rectangle_t src_bbx, bounding_box, clip;
-    vg_lite_float_t     xs[3], ys[3], cs[3];
     vg_lite_error_t     error = VG_LITE_SUCCESS;
-    float               dx = 0.0f, dy = 0.0f;
+    vg_lite_float_t     xs[3], ys[3], cs[3];
 
-#define ERR_LIMIT   0.0000610351562f
+    VG_LITE_RETURN_ERROR(compute_interpolation_steps(s_width, s_height, matrix, xs, ys, cs));
 
-    /* Get bounding box. */
-    memset(&src_bbx, 0, sizeof(vg_lite_rectangle_t));
-    memset(&clip, 0, sizeof(vg_lite_rectangle_t));
-    src_bbx.width = (int32_t)s_width;
-    src_bbx.height = (int32_t)s_height;
-
-    if (s_context.scissor_set) {
-        clip.x = s_context.scissor[0];
-        clip.y = s_context.scissor[1];
-        clip.width = s_context.scissor[2];
-        clip.height = s_context.scissor[3];
+    if (push_states) {
+        /* Set command buffer */
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *)&cs[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *)&cs[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *)&cs[2]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *)&xs[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *)&xs[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *)&xs[2]));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *)&ys[0]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *)&ys[1]));
+        VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *)&ys[2]));
+    } else {
+        /* Save the interpolation steps for later use */
+        if (!steps) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        steps[0][0] = xs[0];
+        steps[0][1] = xs[1];
+        steps[0][2] = xs[2];
+        steps[1][0] = ys[0];
+        steps[1][1] = ys[1];
+        steps[1][2] = ys[2];
+        steps[2][0] = cs[0];
+        steps[2][1] = cs[1];
+        steps[2][2] = cs[2];
     }
-    else {
-        clip.x = clip.y = 0;
-        clip.width = s_context.rtbuffer->width;
-        clip.height = s_context.rtbuffer->height;
-    }
-    transform_bounding_box(&src_bbx, matrix, &clip, &bounding_box, NULL);
-    /* Compute inverse matrix. */
-    if (!inverse(&im, matrix))
-        return VG_LITE_INVALID_ARGUMENT;
-    /* Compute interpolation steps. */
-    /* X step */
-    xs[0] = im.m[0][0] / s_width;
-    xs[1] = im.m[1][0] / s_height;
-    xs[2] = im.m[2][0];
-    /* Y step */
-    ys[0] = im.m[0][1] / s_width;
-    ys[1] = im.m[1][1] / s_height;
-    ys[2] = im.m[2][1];
-    /* C step 2 */
-    cs[2] = 0.5f * (im.m[2][0] + im.m[2][1]) + im.m[2][2];
 
-    /* C step 0, 1*/
-    cs[0] = (0.5f * (im.m[0][0] + im.m[0][1]) + im.m[0][2] + dx) / s_width;
-    cs[1] = (0.5f * (im.m[1][0] + im.m[1][1]) + im.m[1][2] + dy) / s_height;
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t set_interpolation_steps_draw_paint(vg_lite_int32_t s_width,
+                                                          vg_lite_int32_t s_height,
+                                                          vg_lite_matrix_t* matrix)
+{
+    vg_lite_error_t     error = VG_LITE_SUCCESS;
+    vg_lite_float_t     xs[3], ys[3], cs[3];
+
+    VG_LITE_RETURN_ERROR(compute_interpolation_steps(s_width, s_height, matrix, xs, ys, cs));
 
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A04, (void*)&cs[0]));
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A05, (void*)&cs[1]));
@@ -1517,7 +1526,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
     if (source->paintType == VG_LITE_PAINT_PATTERN)
     {
-        VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(target, source->width, source->height, &matrix));
+        VG_LITE_RETURN_ERROR(set_interpolation_steps_draw_paint(source->width, source->height, &matrix));
         /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion | src_premultiply_enable));
@@ -1531,7 +1540,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
     else
     {
-        VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, &matrix));
+        VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, &matrix, 1, NULL));
         /* enable pre-multiplied in image unit */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) |
             filter_mode | pattern_tile | conversion | src_premultiply_enable));
@@ -1960,7 +1969,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     data = &lg_step_y_lin;
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A08,*(uint32_t*) data));
 
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 1, NULL));
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
@@ -2650,7 +2659,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0A,*(uint32_t*) data));
     data = &rgStepXYRad;
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A0B,*(uint32_t*) data));
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(target, source->width, source->height, matrix));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 1, NULL));
 
     /* enable pre-multiplied in image unit */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source->format) |
