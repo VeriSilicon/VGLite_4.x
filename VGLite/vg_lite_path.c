@@ -370,7 +370,7 @@ vg_lite_error_t vg_lite_upload_path(vg_lite_path_t * path)
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
     uint32_t bytes;
-    vg_lite_buffer_t Buf, *buffer;
+    vg_lite_buffer_t Buf = {0}, *buffer;
 
     buffer = &Buf;
 
@@ -1084,11 +1084,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     uint8_t ts_is_fullscreen = 0;
     uint32_t in_premult = 0;
     uint32_t premul_flag = 0;
-    uint32_t prediv_flag = 0;
-#if(CHIPID == 0x355)
-    uint8_t *path_re = NULL;
-    uint32_t index = 0;
-#endif
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw %p %p %d %p %d 0x%08X\n", target, path, fill_rule, matrix, blend, color);
@@ -1316,12 +1311,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+#if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
-
-#if(CHIPID == 0X355)
-    uint8_t* path_re = NULL;
-    uint32_t index = 0;
 #endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
         target, path, fill_rule, path_matrix, source, pattern_matrix, blend, pattern_mode, pattern_color, filter);
@@ -1722,10 +1715,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     vg_lite_float_t dx, dy, dxdx_dydy;
     vg_lite_float_t lg_step_x_lin, lg_step_y_lin, lg_constant_lin;
 
-#if(CHIPID == 0X355)
-    uint8_t* path_re = NULL;
-    uint32_t index = 0;
-#endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_linear_grad %p %p %d %p %p 0x%08X %d %d\n",
         target, path, fill_rule, path_matrix, grad, paint_color, blend, filter);
@@ -2182,10 +2171,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     vg_lite_float_t rgConstantLin, rgStepXLin, rgStepYLin;
     vg_lite_float_t rgConstantRad, rgStepXRad, rgStepYRad;
     vg_lite_float_t rgStepXXRad, rgStepYYRad, rgStepXYRad;
-#if(CHIPID == 0X355)
-    uint8_t* path_re = NULL;
-    uint32_t index = 0;
-#endif
+
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_radial_grad %p %p %d %p %p 0x%08X %d %d\n",
         target, path, fill_rule, path_matrix, grad, paint_color, blend, filter);
@@ -2391,7 +2377,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
             to inside the circle. Per vg11 spec pg125 "If (fx, fy) lies outside ... 
             For here, we set it at 0.9 ratio to the center.
         */
-        vg_lite_float_t fr = (vg_lite_float_t)sqrt(fx*fx + fy*fy);
+        vg_lite_float_t fr = (vg_lite_float_t)sqrt((double)(fx*fx + fy*fy));
         fx = radius * fx / fr * 0.9f;
         fy = radius * fy / fr * 0.9f;
         focalX = grad->radial_grad.fx + fx;
@@ -3258,7 +3244,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+#if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
+#endif
 #if (!gcFEATURE_VG_PARALLEL_PATHS && gcFEATURE_VG_512_PARALLEL_PATHS)
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -4870,7 +4858,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
             to inside the circle. Per vg11 spec pg125 "If (fx, fy) lies outside ... 
             For here, we set it at 0.9 ratio to the center.
         */
-        vg_lite_float_t fr = (vg_lite_float_t)sqrt(fx*fx + fy*fy);
+        vg_lite_float_t fr = (vg_lite_float_t)sqrt((double)(fx*fx + fy*fy));
         fx = radius * fx / fr * 0.9f;
         fy = radius * fy / fr * 0.9f;
         focalX = grad->radial_grad.fx + fx;

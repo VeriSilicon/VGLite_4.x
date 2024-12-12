@@ -666,6 +666,7 @@ typedef unsigned int        vg_lite_color_t;
 
     typedef enum vg_lite_frame_flag
     {
+        VG_LITE_END_FLAG       = 0,
         VG_LITE_FRAME_END_FLAG = 1,
     } vg_lite_frame_flag_t;
 

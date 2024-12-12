@@ -26,6 +26,7 @@
 #include "vg_lite_kernel.h"
 #include "vg_lite_hal.h"
 #include "vg_lite_hw.h"
+#include "vg_lite_type.h"
 
 #if !_BAREMETAL
 #include "FreeRTOS.h"
@@ -179,7 +180,7 @@ void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state)
     device->gpu_execute_state = state;
 }
 
-vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
+vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
@@ -330,7 +331,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 
     /* Judge if it exceeds the range of pool */
     if (pool >= VG_SYSTEM_RESERVE_COUNT)
-        pool = VG_SYSTEM_RESERVE_COUNT - 1;
+        pool = (vg_lite_vidmem_pool_t)(VG_SYSTEM_RESERVE_COUNT - 1);
 
     /* Align the size to 64 bytes. */
     aligned_size = (size + 63) & ~63;
