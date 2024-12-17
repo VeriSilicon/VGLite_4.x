@@ -19,22 +19,20 @@ set(CMAKE_STATIC_LIBRARY_PREFIX lib)
 add_library(${MCUX_SDK_PROJECT_NAME} STATIC)
 
 set(CMAKE_MODULE_PATH
-    ${VgliteDir}/vendor/nxp/rt500
-    ${SdkTopDir}/boards/evkmimxrt595/vglite_acceptance/armgcc
+    ${VgliteDir}/vendor/nxp/rt700
+#    ${SdkTopDir}/boards/evkmimxrt700/vglite_acceptance/armgcc
     ${SdkTopDir}/rtos/freertos/freertos-kernel/
 )
 
 include(toolchain_flags)
 
-include(middleware_vglite_MIMXRT595S_cm33)
-#include(middleware_vglite_elementary_MIMXRT595S_cm33)
+include(middleware_vglite_MIMXRT798S_cm33)
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
-    "$<BUILD_INTERFACE:${VgliteDir}/vendor/nxp/rt500>"
+    "$<BUILD_INTERFACE:${VgliteDir}/vendor/nxp/rt700>"
     "$<BUILD_INTERFACE:${VgliteDir}/VGLite>"
     "$<BUILD_INTERFACE:${VgliteDir}/VGLiteKernel>"
     ${SdkTopDir}/rtos/freertos/freertos-kernel/include
-    ${SdkTopDir}/rtos/freertos/freertos_kernel/portable/GCC/ARM_CM33_NTZ/non_secure
     ${SdkTopDir}/rtos/freertos/freertos-kernel/portable/GCC/ARM_CM33_NTZ/non_secure
 )
 
@@ -109,32 +107,32 @@ string(APPEND CMAKE_C_FLAGS                     " -DVG_TARGET_FAST_CLEAR=0")
 # string(APPEND CMAKE_C_FLAGS                   " -DVG_VIDEO_CONTROL=0")
 # string(APPEND CMAKE_C_FLAGS                   " -DVGLITE_TST_FIRMWARE=0")
 # string(APPEND CMAKE_C_FLAGS                   " -DVG_LITE_SYS_GPU_CTRL=0")
-string(APPEND CMAKE_C_FLAGS                     " -DVG_BLIT_WORKAROUND=1")
-# string(APPEND CMAKE_C_FLAGS                   " -DVG_GPU_AUTO_CLOCK_GATING=1")
+
 
 # ------------------------------------------------------------------------------
 # DEBUG specific compiler options
 # ------------------------------------------------------------------------------
-string(APPEND CMAKE_C_FLAGS_DEBUG               " -DVG_RENDER_TEXT=0")
+string(APPEND CMAKE_C_FLAGS_DEBUG         " -DVG_RENDER_TEXT=0")
 
 # ------------------------------------------------------------------------------
 # RELEASE specific compiler options
 # ------------------------------------------------------------------------------
-string(APPEND CMAKE_C_FLAGS_RELEASE             " -DVG_RENDER_TEXT=0")
+string(APPEND CMAKE_C_FLAGS_RELEASE       " -DVG_RENDER_TEXT=0")
 
 # ------------------------------------------------------------------------------
 # DEBUG_TEXT specific compiler options
 # ------------------------------------------------------------------------------
-string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT          " -g")
-string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT          " -O0")
+string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT    " -g")
+string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT    " -O0")
 
-string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT          " -DDEBUG")
-string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT          " -DVG_RENDER_TEXT=1")
+string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT    " -DDEBUG")
+string(APPEND CMAKE_C_FLAGS_DEBUG_TEXT    " -DVG_RENDER_TEXT=1")
+
 
 # ------------------------------------------------------------------------------
 # RELEASE_TEXT specific compiler options
 # ------------------------------------------------------------------------------
-string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT        " -Os")
+string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT  " -Os")
 
-string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT        " -DNDEBUG")
-string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT        " -DVG_RENDER_TEXT=1")
+string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT  " -DNDEBUG")
+string(APPEND CMAKE_C_FLAGS_RELEASE_TEXT  " -DVG_RENDER_TEXT=1")
