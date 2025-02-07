@@ -5599,6 +5599,11 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         return VG_LITE_INVALID_ARGUMENT;
     }
 
+    /* Default to tiled mode for ETC2 format */
+    if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC) {
+        buffer->tiled = VG_LITE_TILED;
+    }
+
     /* Set buffer->premultiplied properly according to buffer->format */
     if (buffer->format < VG_LITE_RGBA8888)
     {   /* For all OpenVG VG_* formats */
