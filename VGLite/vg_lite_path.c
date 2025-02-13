@@ -2088,8 +2088,12 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     }
     /* Setup tessellation loop. */
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
-        for (y = point_min.y; y < point_max.y; y += height) {
-            for (x = point_min.x; x < point_max.x; x += width) {
+        int stroke_dx = ((path->stroke->line_width + 1) / 2) * matrix->m[0][0];
+        int stroke_dy = ((path->stroke->line_width + 1) / 2) * matrix->m[1][1];
+        int temp_x = point_min.x - stroke_dx > 0 ? point_min.x - stroke_dx : 0;
+        int temp_y = point_min.y - stroke_dy > 0 ? point_min.y - stroke_dy : 0;
+        for (y = temp_y; y < point_max.y; y += height) {
+            for (x = temp_x; x < point_max.x; x += width) {
                 /* Tessellate path. */
                 VG_LITE_RETURN_ERROR(push_stall(&s_context, 15));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
@@ -2775,8 +2779,12 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     }
     /* Setup tessellation loop. */
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
-        for (y = point_min.y; y < point_max.y; y += height) {
-            for (x = point_min.x; x < point_max.x; x += width) {
+        int stroke_dx = ((path->stroke->line_width + 1) / 2) * matrix->m[0][0];
+        int stroke_dy = ((path->stroke->line_width + 1) / 2) * matrix->m[1][1];
+        int temp_x = point_min.x - stroke_dx > 0 ? point_min.x - stroke_dx : 0;
+        int temp_y = point_min.y - stroke_dy > 0 ? point_min.y - stroke_dy : 0;
+        for (y = temp_y; y < point_max.y; y += height) {
+            for (x = temp_x; x < point_max.x; x += width) {
                 /* Tessellate path. */
                 VG_LITE_RETURN_ERROR(push_stall(&s_context, 15));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011000));
