@@ -1161,6 +1161,17 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     }
 
     if (ts_is_fullscreen == 0){
+        if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH){
+            float add_width = path->stroke->line_width;
+            if (path->stroke->join_style == VG_LITE_JOIN_MITER)
+                add_width += path->stroke->miter_limit;
+            add_width = 1.5 * add_width;
+            path->bounding_box[0] -= add_width;
+            path->bounding_box[1] -= add_width;
+            path->bounding_box[2] += add_width;
+            path->bounding_box[3] += add_width;
+        }
+
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], matrix);
         point_min = point_max = temp;
     
@@ -1558,6 +1569,17 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     matrix = *path_matrix;
 
     if (ts_is_fullscreen == 0){
+        if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH){
+            float add_width = path->stroke->line_width;
+            if (path->stroke->join_style == VG_LITE_JOIN_MITER)
+                add_width += path->stroke->miter_limit;
+            add_width = 1.5 * add_width;
+            path->bounding_box[0] -= add_width;
+            path->bounding_box[1] -= add_width;
+            path->bounding_box[2] += add_width;
+            path->bounding_box[3] += add_width;
+        }
+
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], &matrix);
         point_min = point_max = temp;
     
@@ -1977,6 +1999,17 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     matrix = path_matrix;
 
     if (ts_is_fullscreen == 0){
+        if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH){
+            float add_width = path->stroke->line_width;
+            if (path->stroke->join_style == VG_LITE_JOIN_MITER)
+                add_width += path->stroke->miter_limit;
+            add_width = 1.5 * add_width;
+            path->bounding_box[0] -= add_width;
+            path->bounding_box[1] -= add_width;
+            path->bounding_box[2] += add_width;
+            path->bounding_box[3] += add_width;
+        }
+
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], matrix);
         point_min = point_max = temp;
 
@@ -2668,6 +2701,17 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     matrix = path_matrix;
 
     if (ts_is_fullscreen == 0){
+        if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH){
+            float add_width = path->stroke->line_width;
+            if (path->stroke->join_style == VG_LITE_JOIN_MITER)
+                add_width += path->stroke->miter_limit;
+            add_width = 1.5 * add_width;
+            path->bounding_box[0] -= add_width;
+            path->bounding_box[1] -= add_width;
+            path->bounding_box[2] += add_width;
+            path->bounding_box[3] += add_width;
+        }
+
         transform(&temp, (vg_lite_float_t)path->bounding_box[0], (vg_lite_float_t)path->bounding_box[1], matrix);
         point_min = point_max = temp;
 
