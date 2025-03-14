@@ -273,29 +273,10 @@ vg_lite_error_t vg_lite_clear_path(vg_lite_path_t* path)
             return error;
     }
 
-#if (CHIPID==0x355)
-    if (path->stroke && path->stroke->uploaded.handle != NULL) {
-        vg_lite_kernel_free_t free_cmd;
-        free_cmd.memory_handle = path->stroke->uploaded.handle;
-        error = vg_lite_kernel(VG_LITE_FREE, &free_cmd);
-        if (error != VG_LITE_SUCCESS)
-            return error;
-    }
-#endif
-
     path->uploaded.address = 0;
     path->uploaded.bytes = 0;
     path->uploaded.handle = NULL;
     path->uploaded.memory = NULL;
-
-#if (CHIPID==0x355)
-    if (path->stroke) {
-        path->stroke->uploaded.address = 0;
-        path->stroke->uploaded.bytes = 0;
-        path->stroke->uploaded.handle = NULL;
-        path->stroke->uploaded.memory = NULL;
-    }
-#endif
 
     if (path->pdata_internal == 1 && path->path != NULL) {
         vg_lite_os_free(path->path);

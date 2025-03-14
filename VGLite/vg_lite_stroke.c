@@ -3717,11 +3717,6 @@ static vg_lite_error_t _copy_stroke_path(
     vg_lite_sub_path_ptr sub_path;
     vg_lite_float_t half_width;
 
-#if (CHIPID==0x355)
-    vg_lite_buffer_t buffer = { 0 };
-    uint32_t bytes;
-#endif
-
     if (!stroke_conversion || !path)
         return VG_LITE_INVALID_ARGUMENT;
 
@@ -3747,29 +3742,6 @@ static vg_lite_error_t _copy_stroke_path(
 
         path->stroke_size += (int32_t)totalsize;
 
-#if (CHIPID==0x355)
-        if (sub_path->next == NULL) {
-            bytes = (8 + path->stroke_size + 7 + 8) & ~7;
-            buffer.width = bytes;
-            buffer.height = 1;
-            buffer.stride = 0;
-            buffer.format = VG_LITE_A8;
-            VG_LITE_RETURN_ERROR(vg_lite_allocate(&buffer));
-
-            memset(buffer.memory, 0, buffer.stride);
-            ((uint32_t*)buffer.memory)[0] = VG_LITE_DATA((path->stroke_size + 7) / 8);
-            ((uint32_t*)buffer.memory)[1] = 0;
-            if (temp_stroke_data) {
-                memcpy((char *)buffer.memory + 8, temp_stroke_data, temp_stroke_size);
-                vg_lite_os_free(temp_stroke_data);
-                temp_stroke_data = NULL;
-            }
-
-            path->stroke_path = 0;
-            pfloat = (vg_lite_float_t*)((char*)buffer.memory + 8 + temp_stroke_size);
-        }
-        else 
-#endif
         {
             path->stroke_path = (void*)vg_lite_os_malloc(path->stroke_size);
             if (!path->stroke_path) {
@@ -3925,19 +3897,6 @@ static vg_lite_error_t _copy_stroke_path(
 #endif
     }
 
-#if (CHIPID==0x355)
-    /* Initialize command buffer postfix. */
-    ((uint32_t*)buffer.memory)[(bytes >> 2) - 2] = VG_LITE_RETURN();
-    ((uint32_t*)buffer.memory)[(bytes >> 2) - 1] = 0;
-
-    /* Mark stroke as uploaded. */
-    path->stroke->uploaded.handle = buffer.handle;
-    path->stroke->uploaded.address = buffer.address;
-    path->stroke->uploaded.memory = buffer.memory;
-    path->stroke->uploaded.bytes = bytes;
-    VLM_PATH_STROKE_ENABLE_UPLOAD(*path);
-#endif
-
 ErrorHandler:
     if (temp_stroke_data) {
         vg_lite_os_free(temp_stroke_data);
@@ -4051,21 +4010,6 @@ vg_lite_error_t vg_lite_update_stroke(
 
     stroke_conversion = path->stroke;
     cur_list = stroke_conversion->cur_list;
-
-#if (CHIPID==0x355)
-    if (path->stroke && path->stroke->uploaded.handle != NULL) {
-        vg_lite_kernel_free_t free_cmd;
-        free_cmd.memory_handle = path->stroke->uploaded.handle;
-        error = vg_lite_kernel(VG_LITE_FREE, &free_cmd);
-        if (error != VG_LITE_SUCCESS)
-            return error;
-
-        path->stroke->uploaded.address = 0;
-        path->stroke->uploaded.bytes = 0;
-        path->stroke->uploaded.handle = NULL;
-        path->stroke->uploaded.memory = NULL;
-    }
-#endif
 
     /* Free the existing stroke path. */
     if (path->stroke_path)
@@ -5093,6 +5037,8 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     vg_lite_clear_path(path);
 
     data_format = VG_LITE_FP32;
+    data_size = 4;
+
     if (!path_length)
     {
         path->format = data_format;
