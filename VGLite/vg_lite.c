@@ -3624,6 +3624,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     vg_lite_point_t point0_0_afterTransform = { 0 };
     uint8_t enableSwPreOpt = 0;
     int32_t matrixOffsetX = 0;
+    vg_lite_matrix_t temp_matrix;
 
     /* Only accept interger move */
     if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
@@ -3634,6 +3635,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
             if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
                 enableSwPreOpt = 1;
+                memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
             }
         }
     }
@@ -4284,6 +4286,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt)
+        memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 
 #if DUMP_IMAGE
@@ -4344,6 +4351,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     vg_lite_point_t point0_0_afterTransform = { 0 };
     uint8_t enableSwPreOpt = 0;
     int32_t matrixOffsetX = 0;
+    vg_lite_matrix_t temp_matrix;
 
     /* Only accept interger move */
     if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
@@ -4354,6 +4362,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
             if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
                 enableSwPreOpt = 1;
+                memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
             }
         }
     }
@@ -5028,6 +5037,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
     }
 #endif
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enableSwPreOpt)
+        memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
+#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height));
 
