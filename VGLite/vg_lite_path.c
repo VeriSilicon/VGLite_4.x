@@ -3305,10 +3305,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (par_height << 16)));
 
-            if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+            if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
             }
             else {
                 format = convert_path_format(VG_LITE_FP32);
@@ -3354,10 +3354,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, point_min.x | (point_min.y << 16)));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, s_context.tessbuf.tess_w_h));
 
-            if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+            if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
-                VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
+                VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
             }
             else {
                 format = convert_path_format(VG_LITE_FP32);
