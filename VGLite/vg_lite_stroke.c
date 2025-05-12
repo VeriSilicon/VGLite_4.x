@@ -3990,6 +3990,7 @@ vg_lite_error_t vg_lite_update_stroke(
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_stroke_t * stroke_conversion;
     vg_lite_path_list_ptr cur_list;
+    vg_lite_pointer path_path = NULL;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_update_stroke %p\n", path);
@@ -4006,6 +4007,11 @@ vg_lite_error_t vg_lite_update_stroke(
 
     if (!path->stroke)
         return VG_LITE_INVALID_ARGUMENT;
+
+    if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+        path_path = path->path;
+        path->path = &((uint32_t*)path_path)[2];
+    }
 
     stroke_conversion = path->stroke;
     cur_list = stroke_conversion->cur_list;
@@ -4056,6 +4062,9 @@ vg_lite_error_t vg_lite_update_stroke(
         *(uint8_t*)path->stroke_path = VLC_OP_END;
         path->stroke_size = _commandSize_float[VLC_OP_END];
     }
+    
+    if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) 
+        path->path = path_path;
 
     return error;
 }
