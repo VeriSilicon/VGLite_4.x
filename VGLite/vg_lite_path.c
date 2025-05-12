@@ -490,6 +490,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
             path->uploaded.memory = buffer.memory;
             path->uploaded.bytes = bytes;
             path->path_changed = 0;
+            path->pdata_internal = 0;
         }
         else {
             path->path = (vg_lite_pointer)vg_lite_os_malloc(path->path_length);

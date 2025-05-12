@@ -6011,6 +6011,138 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
     return error;
 }
 
+/* Handle tiled & yuv map. Currently including NV12, ANV12, YV12, YV16, NV16, YV24, NV24. */
+static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, int32_t fd)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_kernel_map_t map;
+    uint32_t yplane_size = 0;
+
+    /* For NV12, there are 2 planes (Y, UV);
+    For ANV12, there are 3 planes (Y, UV, Alpha).
+    Each plane must be aligned by (4, 8).
+    Then Y plane must be aligned by (8, 8).
+    For YVxx, there are 3 planes (Y, U, V).
+    YV12 is similar to NV12, both YUV420 format.
+    YV16 and NV16 are YUV422 format.
+    YV24 is YUV444 format.
+    */
+    if (((buffer->width % 8) != 0) || ((buffer->height % 8) != 0) || ((buffer->stride % 64) != 0)) 
+        return VG_LITE_INVALID_ARGUMENT;
+    buffer->stride = VG_LITE_ALIGN(buffer->width, 64);
+    switch (buffer->format) {
+    case VG_LITE_NV12:
+    case VG_LITE_ANV12:
+    case VG_LITE_NV12_TILED:
+    case VG_LITE_ANV12_TILED:
+        buffer->yuv.uv_stride = buffer->stride;
+        buffer->yuv.alpha_stride = buffer->stride;
+        buffer->yuv.uv_height = buffer->height / 2;
+        break;
+
+    case VG_LITE_NV16:
+        buffer->yuv.uv_stride = buffer->stride;
+        buffer->yuv.uv_height = buffer->height;
+        break;
+
+    case VG_LITE_NV24:
+    case VG_LITE_NV24_TILED:
+        buffer->yuv.uv_stride = buffer->stride * 2;
+        buffer->yuv.uv_height = buffer->height;
+        break;
+
+    case VG_LITE_YV12:
+        buffer->yuv.uv_stride =
+            buffer->yuv.v_stride = buffer->stride / 2;
+        buffer->yuv.uv_height =
+            buffer->yuv.v_height = buffer->height / 2;
+        break;
+
+    case VG_LITE_YV16:
+        buffer->yuv.uv_stride =
+            buffer->yuv.v_stride = buffer->stride;
+        buffer->yuv.uv_height =
+            buffer->yuv.v_height = buffer->height / 2;
+        break;
+
+    case VG_LITE_YV24:
+        buffer->yuv.uv_stride =
+            buffer->yuv.v_stride = buffer->stride;
+        buffer->yuv.uv_height =
+            buffer->yuv.v_height = buffer->height;
+        break;
+
+    default:
+        return error;
+    }
+
+    yplane_size = buffer->stride * buffer->height;
+    /* Map the buffer. */
+    map.bytes = yplane_size;
+    map.logical = buffer->memory;
+    map.physical = buffer->address;
+
+    if (flag == VG_LITE_MAP_USER_MEMORY) {
+        map.flags = VG_LITE_HAL_MAP_USER_MEMORY;
+    }
+    else if (flag == VG_LITE_MAP_DMABUF) {
+        map.flags = VG_LITE_HAL_MAP_DMABUF;
+    }
+    else {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    map.dma_buf_fd = fd;
+    VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+    /* Save the buffer allocation. */
+    buffer->handle = map.memory_handle;
+    buffer->address = map.memory_gpu;
+
+    if ((buffer->format == VG_LITE_NV12) || (buffer->format == VG_LITE_ANV12)
+        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24)
+        || (buffer->format == VG_LITE_NV12_TILED) || (buffer->format == VG_LITE_ANV12_TILED)) {
+        /* Map buffer memory: UV. */
+        map.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
+        map.logical = buffer->yuv.uv_memory;
+        map.physical = buffer->yuv.uv_planar;
+        map.memory_gpu = map.memory_handle = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+        buffer->yuv.uv_handle = map.memory_handle;
+        buffer->yuv.uv_planar = map.memory_gpu;
+
+        if ((buffer->format == VG_LITE_ANV12) || (buffer->format == VG_LITE_ANV12_TILED)) {
+            map.bytes = yplane_size / 2;
+            map.logical = buffer->yuv.alpha_memory;
+            map.physical = buffer->yuv.alpha_handle;
+            map.memory_gpu = 0;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+            buffer->yuv.alpha_handle = map.memory_handle;
+            buffer->yuv.alpha_planar = map.memory_gpu;
+        }
+    }
+    else {
+        /* Map buffer memory: U, V. */
+        map.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
+        map.logical = buffer->yuv.uv_memory;
+        map.physical = buffer->yuv.uv_handle;
+        map.memory_gpu = map.memory_handle = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+        buffer->yuv.uv_handle = map.memory_handle;
+        buffer->yuv.uv_planar = map.memory_gpu;
+
+        map.bytes = buffer->yuv.v_stride * buffer->yuv.v_height;
+        map.logical = buffer->yuv.v_memory;
+        map.physical = buffer->yuv.v_handle;
+        map.memory_gpu = map.memory_handle = 0;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+        buffer->yuv.v_handle = map.memory_handle;
+        buffer->yuv.v_planar = map.memory_gpu;
+    }
+
+    return error;
+   
+}
+
 vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 {
 #if DUMP_API
@@ -6297,7 +6429,7 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
 #endif
 
     vg_lite_error_t error;
-    vg_lite_kernel_map_t map;
+    vg_lite_kernel_map_t map, map1;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_map %p\n", buffer);
@@ -6308,34 +6440,98 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
         return VG_LITE_INVALID_ARGUMENT;
     }
 
-    /* Compute the stride. Align if necessary. */
-    if (buffer->stride == 0){
-        uint32_t mul, div, align;
-        get_format_bytes(buffer->format, &mul, &div, &align);
-        buffer->stride = buffer->width * mul / div;
+    if ((buffer->format >= VG_LITE_YUY2 && buffer->format <= VG_LITE_NV16) || buffer->format == VG_LITE_NV24) {
+        if ((buffer->height % 4) != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
+    }
+    if ((buffer->format >= VG_LITE_YUY2_TILED && buffer->format <= VG_LITE_AYUY2_TILED) || buffer->format == VG_LITE_NV24_TILED) {
+        if ((buffer->height % 4) != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        buffer->tiled = VG_LITE_TILED;
+        buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
     }
 
-    /* Map the buffer. */
-    map.bytes = buffer->stride * buffer->height;
-    map.logical = buffer->memory;
-    map.physical = buffer->address;
+    if ((buffer->format >= VG_LITE_NV12 && buffer->format <= VG_LITE_ANV12_TILED
+        && buffer->format != VG_LITE_AYUY2 && buffer->format != VG_LITE_YUY2_TILED)
+        || (buffer->format >= VG_LITE_NV24 && buffer->format <= VG_LITE_NV24_TILED)) {
 
-    if (flag == VG_LITE_MAP_USER_MEMORY) {
-        map.flags = VG_LITE_HAL_MAP_USER_MEMORY;
-    }
-    else if (flag == VG_LITE_MAP_DMABUF) {
-        map.flags = VG_LITE_HAL_MAP_DMABUF;
-    }
-    else {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
+        if (buffer->yuv.uv_memory == NULL && buffer->yuv.uv_planar == 0 && buffer->yuv.v_memory == NULL && buffer->yuv.v_planar == 0
+            && buffer->yuv.alpha_memory == NULL && buffer->yuv.alpha_planar == 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+        _map_yuv_planar(buffer, flag, fd);
 
-    map.dma_buf_fd = fd;
-    VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+    }
+    else
+    {
+        /* Compute the stride. Align if necessary. */
+        if (buffer->stride == 0) {
+            uint32_t mul, div, align;
+            get_format_bytes(buffer->format, &mul, &div, &align);
+            buffer->stride = buffer->width * mul / div;
+        }
+        /* Map the buffer. */
+        map.bytes = buffer->stride * buffer->height;
+        map.logical = buffer->memory;
+        map.physical = buffer->address;
 
-    /* Save the buffer allocation. */
-    buffer->handle  = map.memory_handle;
-    buffer->address = map.memory_gpu;
+        if (flag == VG_LITE_MAP_USER_MEMORY) {
+            map.flags = VG_LITE_HAL_MAP_USER_MEMORY;
+        }
+        else if (flag == VG_LITE_MAP_DMABUF) {
+            map.flags = VG_LITE_HAL_MAP_DMABUF;
+        }
+        else {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+
+        map.dma_buf_fd = fd;
+
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
+
+        /* Save the buffer allocation. */
+        buffer->handle = map.memory_handle;
+        buffer->address = map.memory_gpu;
+
+        /* Map the alpha plane. */
+        if ((buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_AYUY2_TILED) || ((buffer->format >= VG_LITE_ABGR8565_PLANAR)
+            && (buffer->format <= VG_LITE_RGBA5658_PLANAR))) {
+
+            if (buffer->yuv.alpha_memory == NULL && buffer->yuv.alpha_planar == 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+
+            /* Compute the stride.*/
+            if (buffer->yuv.alpha_stride == 0) {
+                buffer->yuv.alpha_stride = buffer->stride / 2;
+            }
+
+            map1.bytes = buffer->yuv.alpha_stride * buffer->height;
+            map1.logical = buffer->yuv.alpha_memory;
+            map1.physical = buffer->yuv.alpha_planar;
+
+            if (flag == VG_LITE_MAP_USER_MEMORY) {
+                map1.flags = VG_LITE_HAL_MAP_USER_MEMORY;
+            }
+            else if (flag == VG_LITE_MAP_DMABUF) {
+                map1.flags = VG_LITE_HAL_MAP_DMABUF;
+            }
+            else {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+
+            map1.dma_buf_fd = fd;
+
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map1));
+
+            /* Save the buffer allocation. */
+            buffer->yuv.alpha_handle = map1.memory_handle;
+            buffer->yuv.alpha_planar = map1.memory_gpu;
+        }
+    }
 
     return VG_LITE_SUCCESS;
 }
@@ -6349,7 +6545,7 @@ vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
 #endif
 
     vg_lite_error_t error;
-    vg_lite_kernel_unmap_t unmap;
+    vg_lite_kernel_unmap_t unmap, uv_unmap, v_unmap, alpha_unmap;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_unmap %p\n", buffer);
@@ -6366,7 +6562,30 @@ vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
     
     /* Mark the buffer as freed. */
     buffer->handle = NULL;
-    
+
+    /* Unmap the UV(U) planar buffer. */
+    if (buffer->yuv.uv_handle)
+    {
+        uv_unmap.memory_handle = buffer->yuv.uv_handle;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP, &uv_unmap));
+        buffer->yuv.uv_handle = NULL;
+    }
+    /* Unmap the V planar buffer. */
+    if (buffer->yuv.v_handle)
+    {
+        v_unmap.memory_handle = buffer->yuv.v_handle;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP, &v_unmap));
+        buffer->yuv.v_handle = NULL;
+    }
+
+    /* Unmap the alpha planar buffer. */
+    if (buffer->yuv.alpha_handle)
+    {
+        alpha_unmap.memory_handle = buffer->yuv.alpha_handle;
+        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP, &alpha_unmap));
+        buffer->yuv.alpha_handle = NULL;
+    }
+
     return VG_LITE_SUCCESS;
 }
 
