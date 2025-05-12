@@ -619,7 +619,7 @@ vg_lite_error_t vg_lite_create_masklayer(vg_lite_buffer_t* masklayer, vg_lite_ui
     masklayer->format = VG_LITE_A8;
     VG_LITE_RETURN_ERROR(vg_lite_allocate(masklayer));
 
-    VG_LITE_RETURN_ERROR(vg_lite_clear(masklayer, NULL, 0xFF << 24));
+    VG_LITE_RETURN_ERROR(vg_lite_clear(masklayer, NULL, (vg_lite_color_t)(0xFF << 24)));
 
     return error;
 #else
@@ -682,7 +682,7 @@ vg_lite_error_t vg_lite_blend_masklayer(
         VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, &area, 0x0));
         break;
     case VG_LITE_FILL_MASK:
-        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, &area, 0xFF << 24));
+        VG_LITE_RETURN_ERROR(vg_lite_clear(dst_masklayer, &area, (vg_lite_color_t)(0xFF << 24)));
         break;
     case VG_LITE_SET_MASK:
         area.x = 0;
@@ -771,7 +771,7 @@ vg_lite_error_t vg_lite_render_masklayer(
         VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, 0));
         break;
     case VG_LITE_FILL_MASK:
-        VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, 0xFF << 24));
+        VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, (vg_lite_color_t)(0xFF << 24)));
         break;
     case VG_LITE_SET_MASK:
         VG_LITE_RETURN_ERROR(vg_lite_draw(masklayer, path, fill_rule, matrix, VG_LITE_BLEND_NONE, color << 24));
@@ -1353,7 +1353,7 @@ typedef struct {
 
 int colorToInt(float c, int maxc)
 {
-    return MIN(MAX((int)floor(c * (float)maxc + 0.5f), 0), maxc);
+    return MIN(MAX((int)floor((double)(c * (float)maxc + 0.5f)), 0), maxc);
 }
 
 float intToColor(unsigned int i, unsigned int maxi)
@@ -1914,7 +1914,7 @@ void writePixel(vg_lite_buffer_t* temp, int x, int y, Color* c)
 
 vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* lvgl_buf, vg_lite_blend_t operation)
 {
-    Color c_src, c_dst, c_temp;
+    Color c_src = {0}, c_dst = {0}, c_temp = {0};
     /* copy source region to tmp dst */
     for (int j = 0; j < src->height; j++)
     {

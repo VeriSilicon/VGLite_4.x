@@ -1897,11 +1897,18 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t align, mul, div, bpp;
+    uint32_t align, mul, div;
+#if gcFEATURE_VG_TILED_LIMIT || gcFEATURE_VG_DST_BUF_ALIGNED
+    uint32_t bpp;
+#endif
+#if gcFEATURE_VG_TILED_LIMIT
     uint32_t tile_flag = 0;
     uint32_t tile_flag1 = 0;
+#endif
     get_format_bytes(target->format, &mul, &div, &align);
+#if gcFEATURE_VG_TILED_LIMIT || gcFEATURE_VG_DST_BUF_ALIGNED
     bpp = 8 * mul / div;
+#endif
 
 #if gcFEATURE_VG_FORMAT_SUPPORT_CHECK
     if (_check_format_support_1(target->format)) {
@@ -1969,7 +1976,7 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
             if ((uint32_t)(target->address) % 64 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
-}
+        }
 #endif
 
 #if gcFEATURE_VG_DST_ADDRESS_64BYTES_ALIGNED
@@ -2059,6 +2066,7 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
     }
 #endif
 
+#if gcFEATURE_VG_TILED_LIMIT
     if (target->tiled == VG_LITE_TILED) {
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
         tile_flag1 = 1;
@@ -2067,6 +2075,7 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 #endif
         tile_flag = 1;
     }
+#endif
 
 #if (gcFEATURE_VG_TILED_LIMIT == 1)
     if (tile_flag1 ^ tile_flag) {
@@ -3142,7 +3151,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 #endif
     }
 
-    s_context.frame_flag = 0;
+    s_context.frame_flag = VG_LITE_END_FLAG;
 
 #if DUMP_COMMAND
     if (strncmp(filename, "Commandbuffer", 13)) {
@@ -4287,7 +4296,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+#if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
+#endif
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* buffer_pointer;
     uint32_t buffer_address = 0, mul = 0, div = 0, required_align = 0;
@@ -5044,7 +5055,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+#if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
+#endif
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
     {
@@ -7359,7 +7372,7 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
     y1 = grad->matrix.m[1][0] * grad->linear_grad.X1 + grad->matrix.m[1][1] * grad->linear_grad.Y1 + grad->matrix.m[1][2];
     dx = x1 - x0;
     dy = y1 - y0;
-    length = (vg_lite_float_t)sqrt(dx * dx + dy * dy);
+    length = (vg_lite_float_t)sqrt((double)(dx * dx + dy * dy));
     width = ramp_length * 128;
 
     if (length <= 0)
@@ -7735,6 +7748,10 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
         }
         else
         {
+            /* Make sure stop stays within range */
+            if (stop < 1 || stop >= ramp_length)
+                return VG_LITE_INVALID_ARGUMENT;
+
             /* Compute weight. */
             weight = (colorRamp[stop].stop - gradient)
                     / (colorRamp[stop].stop - colorRamp[stop - 1].stop);
