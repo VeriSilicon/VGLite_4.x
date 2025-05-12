@@ -5540,7 +5540,7 @@ static vg_lite_error_t program_tessellation(vg_lite_context_t *context)
     VG_LITE_RETURN_ERROR(push_state(context, 0x0A38, context->tessbuf.tess_stride));
     VG_LITE_RETURN_ERROR(push_state(context, 0x0A3A, context->tessbuf.tess_w_h));
 
-#if (REVISION==0x1217 && CID==0x407)
+#if (REVISION==0x1217 && (CID==0x407 || CID==0x408))
      VG_LITE_RETURN_ERROR(push_state(context, 0x0AB1, context->tessbuf.tess_stride));
      VG_LITE_RETURN_ERROR(push_state(context, 0x0AB2, context->tessbuf.tess_stride));
 #endif
