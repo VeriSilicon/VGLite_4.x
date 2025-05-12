@@ -1248,6 +1248,7 @@ vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format)
     }
 }
 
+#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
 /* Convert 24BIT to 24BIT_PLANAR buffer to enable software support 24BIT_PLANAR fotmat.*/
 static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_buffer_t* target)
 {
@@ -1300,6 +1301,7 @@ static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_
     
     return VG_LITE_SUCCESS;
 }
+#endif
 
 #define FORMAT_ALIGNMENT(stride,align) \
     { \
@@ -4275,7 +4277,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     uint32_t imageMode = 0;
     uint32_t paintType = 0;
     uint32_t in_premult = 0;
@@ -4296,6 +4297,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
 #endif
@@ -5033,7 +5037,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     uint32_t imageMode = 0;
     uint32_t paintType = 0;
     uint32_t in_premult = 0;
@@ -5055,6 +5058,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint32_t prediv_flag = 0;
     int32_t  left, top, right, bottom;
     int32_t  stride;
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
 #endif
@@ -6654,7 +6660,9 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 
     vg_lite_error_t error;
     vg_lite_kernel_free_t free, uv_free, v_free;
+#if DUMP_CAPTURE
     vg_lite_float_t ratio = 1;
+#endif
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_free %p\n", buffer);
@@ -8022,8 +8030,8 @@ vg_lite_error_t vg_lite_dump_command_buffer()
         FUNC_DUMP(vg_lite_dump_command_buffer)();
     }
 #endif
-
     vg_lite_error_t error = VG_LITE_SUCCESS;
+#if DUMP_CAPTURE
     vg_lite_kernel_submit_t submit;
     vg_lite_context_t* context = &s_context;
 
@@ -8033,10 +8041,11 @@ vg_lite_error_t vg_lite_dump_command_buffer()
     submit.command_size = CMDBUF_OFFSET(*context);
     submit.command_id = CMDBUF_INDEX(*context);
 
-#if DUMP_CAPTURE
     vglitemDUMP_BUFFER("command", (size_t)CMDBUF_BUFFER(*context),
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
     vglitemDUMP("@[commit]");
+#else
+    printf("Please enable DUMP_CAPTURE to use vg_lite_dump_command_buffer().\n");
 #endif
 
     return error;
@@ -8139,7 +8148,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     uint32_t imageMode = 0;
     uint32_t in_premult = 0;
     int32_t stride;
@@ -8161,7 +8169,9 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
     vg_lite_color_t color = 0;
-
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_copy_image %p %p %d %d %d %d %d %d\n", target, source, sx, sy, dx, dy, width, height);
 #endif

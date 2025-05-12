@@ -1347,7 +1347,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     vg_lite_matrix_t matrix;
     uint32_t pattern_tile = 0;
     uint32_t transparency_mode = 0;
-    vg_lite_float_t ratio = 1;
     
     /* The following code is from "draw path" */
     uint32_t format, quality, tiling, fill;
@@ -1361,6 +1360,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
 #endif
@@ -3404,7 +3406,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     uint32_t imageMode = 0;
     uint32_t blend_mode;
     uint32_t filter_mode = 0;
@@ -3439,6 +3440,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     uint32_t paintType = 0;
     uint32_t premul_flag = 0;
     uint32_t prediv_flag = 0;
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
     uint8_t  lvgl_sw_blend = 0;
 #endif
@@ -4134,7 +4138,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     vg_lite_buffer_t* source = &grad->image;
     vg_lite_matrix_t* matrix = &grad->matrix;
     uint32_t linear_tile = 0;
@@ -4163,7 +4166,9 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     vg_lite_float_t dx, dy, dxdx_dydy;
     vg_lite_float_t lg_step_x_lin, lg_step_y_lin, lg_constant_lin;
-
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_PARALLEL_PATHS
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
@@ -4778,7 +4783,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    vg_lite_float_t ratio = 1;
     vg_lite_buffer_t* source = &grad->image;
     vg_lite_matrix_t* matrix = &grad->matrix;
     uint32_t rad_tile = 0;
@@ -4825,7 +4829,9 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     int y;
     int temp_height = 0;
-
+#if DUMP_CAPTURE
+    vg_lite_float_t ratio = 1;
+#endif
 #if !gcFEATURE_VG_PARALLEL_PATHS
     uint32_t parallel_workpaths1 = 2;
     uint32_t parallel_workpaths2 = 2;
