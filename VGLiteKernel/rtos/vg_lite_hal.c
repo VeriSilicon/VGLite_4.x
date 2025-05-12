@@ -365,7 +365,7 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
 
     /* Judge if it exceeds the range of pool */
     if (pool >= VG_SYSTEM_RESERVE_COUNT)
-        pool = VG_SYSTEM_RESERVE_COUNT - 1;
+        pool = (vg_lite_vidmem_pool_t)(VG_SYSTEM_RESERVE_COUNT - 1);
 
     /* Align the size to 64 bytes. */
     aligned_size = (size + 63) & ~63;
