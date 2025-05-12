@@ -4893,6 +4893,9 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     memset(&coords, 0, sizeof(vg_lite_control_coord_t));
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
+    
+    if (VLM_PATH_GET_UPLOAD_BIT(*path))
+        path->uploaded.property = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_init_arc_path %p %d %d %d %p %f %f %f %f\n", path, data_format, quality, path_length, path_data, min_x, min_y, max_x, max_y);

@@ -442,6 +442,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
     uint8_t arc_path = 0;
     uint8_t h_v_path = 0;
     uint8_t smooth_path = 0;
+    vg_lite_pointer path_path = NULL;
     float px = 0.0f, py = 0.0f, cx = 0.0f, cy = 0.0f;
     int rel = 0;
 
@@ -453,20 +454,68 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
             return VG_LITE_INVALID_ARGUMENT;
     }
 
-    /* Support NULL path->path case for OpenVG */
     if (!path->path) {
-        data_size = vg_lite_get_path_length(cmd, seg_count, path->format);
-        path->path = (vg_lite_pointer)vg_lite_os_malloc(data_size);
-        if (!path->path)
-        {
-            return VG_LITE_OUT_OF_RESOURCES;
-        }
-        path->pdata_internal = 1;
-        memset(path->path, 0, data_size);
-    }
+        path->path_length = vg_lite_get_path_length(cmd, seg_count, path->format);
 
-    data_size = get_data_size(path->format);
-    path->path_changed= 1;
+        if (path->path_length > 64)
+            path->uploaded.property = 1;
+
+        if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
+            vg_lite_error_t error = VG_LITE_SUCCESS;
+            uint32_t bytes;
+            vg_lite_buffer_t buffer;
+
+            /* Compute the number of bytes required for path + command buffer prefix/postfix. */
+            bytes = (8 + path->path_length + 7 + 8) & ~7;
+
+            /* Allocate GPU memory. */
+            buffer.width = bytes;
+            buffer.height = 1;
+            buffer.stride = 0;
+            buffer.format = VG_LITE_A8;
+
+            VG_LITE_RETURN_ERROR(vg_lite_allocate(&buffer));
+            memset(buffer.memory, 0, buffer.width);
+
+            /* Initialize command buffer prefix. */
+            ((uint32_t*)buffer.memory)[0] = VG_LITE_DATA((path->path_length + 7) / 8);
+            ((uint32_t*)buffer.memory)[1] = 0;
+
+            /* Mark path as uploaded. */
+            path_path = buffer.memory;
+            path->path = &((uint32_t*)buffer.memory)[2];
+
+            path->uploaded.handle = buffer.handle;
+            path->uploaded.address = buffer.address;
+            path->uploaded.memory = buffer.memory;
+            path->uploaded.bytes = bytes;
+            path->path_changed = 0;
+        }
+        else {
+            path->path = (vg_lite_pointer)vg_lite_os_malloc(path->path_length);
+            if (!path->path)
+                return VG_LITE_OUT_OF_RESOURCES;
+
+            path->pdata_internal = 1;
+            memset(path->path, 0, path->path_length);
+            path->path_changed = 1;
+        }
+    }
+    else {
+        if ((((uint32_t*)path->path)[0] == VG_LITE_DATA(0) || ((uint32_t*)path->path)[0] == VG_LITE_DATA((path->path_length + 7) / 8)) && ((uint32_t*)path->path)[1] == 0) {
+            if (path->uploaded.memory != path->path || !path->uploaded.handle || path->uploaded.bytes < ((8 + path->path_length + 7 + 8) & ~7) || path->path_changed)
+                return VG_LITE_INVALID_ARGUMENT;
+
+            ((uint32_t*)path->path)[0] = VG_LITE_DATA((path->path_length + 7) / 8);
+
+            path_path = path->path;
+            path->path = &((uint32_t*)path->path)[2];
+        }
+        else
+            path->path_changed = 1;
+    }
+    
+    data_size = get_data_size(path->format);    
     pathf = (float *)path->path;
     path_s32 = (int32_t *)path->path;
     path_s16 = (int16_t *)path->path;
@@ -833,6 +882,17 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
                     path->bounding_box[2], path->bounding_box[3]);
     }
 #endif
+
+    if (VLM_PATH_GET_UPLOAD_BIT(*path)) {
+        path->path = path_path;
+
+        uint32_t bytes = (8 + path->path_length + 7 + 8) & ~7;
+
+        /* Initialize command buffer postfix. */
+        ((uint32_t*)path_path)[(bytes >> 2) - 2] = VG_LITE_RETURN();
+        ((uint32_t*)path_path)[(bytes >> 2) - 1] = 0;
+    }
+
     s_context.path_lastX = cx;
     s_context.path_lastY = cy;
     return error;
