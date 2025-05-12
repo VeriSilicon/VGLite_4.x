@@ -179,7 +179,7 @@ void vg_lite_set_gpu_execute_state(vg_lite_gpu_execute_state_t state)
     device->gpu_execute_state = state;
 }
 
-vg_lite_error_t vg_lite_hal_allocate(unsigned long size, void **memory)
+vg_lite_error_t vg_lite_hal_allocate(uint32_t size, void **memory)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
@@ -236,6 +236,11 @@ void vg_lite_hal_deinitialize(void)
 {
     /* TODO: Remove clock. */
     vSemaphoreDelete(device->int_queue);
+#if !_BAREMETAL
+    if (device != NULL) 
+        /* Free up the device structure. */
+        vg_lite_hal_free(device);
+#endif
     /* TODO: Remove power. */
 }
 

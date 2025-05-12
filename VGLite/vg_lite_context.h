@@ -36,7 +36,6 @@
 #include "vg_lite_options.h"
 
 #define DUMP_CAPTURE                            0
-#define DUMP_COMMAND_CAPTURE                    0
 #define DUMP_INIT_COMMAND                       0
 #define DUMP_API                                0
 #define DUMP_LAST_CAPTURE                       0
@@ -55,7 +54,6 @@
      to overwrite the default command buffer size.
 ***/
 #define VG_LITE_COMMAND_BUFFER_SIZE (32 << 10)
-#define VG_LITE_SINGLE_COMMAND_BUFFER_SIZE (64 << 10) /* For only using one command buffer. */
 
 #define CMDBUF_BUFFER(context)      (context).command_buffer[(context).command_buffer_current]
 #define CMDBUF_INDEX(context)       (context).command_buffer_current
@@ -118,6 +116,16 @@
 #define VG_SW_BLIT_PRECISION_OPT 1
 #else 
 #define VG_SW_BLIT_PRECISION_OPT 0
+#endif
+
+#if (!gcFEATURE_VG_SPLIT_PATH || !gcFEATURE_VG_PARALLEL_PATHS || !gcFEATURE_VG_512_PARALLEL_PATHS || !gcFEATURE_VG_512_HALF_SPLIT)
+#define VG_SW_SPLIT_PATH_SUPPORT   1
+#else
+#define VG_SW_SPLIT_PATH_SUPPORT   0
+#endif
+
+#ifndef gcFEATURE_VG_24BIT_PLANAR_SW
+#define gcFEATURE_VG_24BIT_PLANAR_SW 0
 #endif
 
 /* Driver implementation internal structures.
@@ -214,6 +222,14 @@ typedef struct vg_lite_context {
     uint32_t                    last_command_size;
     vg_lite_frame_flag_t        frame_flag;
 
+    uint32_t                    backup_fb_command_flag;
+    uint8_t                    *fb_command_buffer;
+    uint32_t                    fb_command_buffer_physical;
+    uint32_t                    fb_command_buffer_size;
+    uint32_t                    fb_command_offset;
+    uint32_t                    fb_finish_flag;
+
+    uint32_t                    split_path;
 } vg_lite_context_t;
 
 typedef struct vg_lite_ftable {
@@ -222,6 +238,7 @@ typedef struct vg_lite_ftable {
 
 extern vg_lite_context_t        s_context;
 extern vg_lite_ftable_t         s_ftable;
+extern vg_lite_char             dump_api_flag;
 
 extern vg_lite_error_t set_render_target(vg_lite_buffer_t* target);
 extern vg_lite_error_t push_state(vg_lite_context_t* context, uint32_t address, uint32_t data);
@@ -239,6 +256,11 @@ extern vg_lite_void save_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buf
 extern vg_lite_void get_st_gamma_src_dest(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
 
 extern vg_lite_void setup_lvgl_image(vg_lite_buffer_t* dst, vg_lite_buffer_t* src, vg_lite_buffer_t* temp, vg_lite_blend_t operation);
+
+extern vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix_t* inverse_matrix, vg_lite_int32_t width, vg_lite_int32_t height,
+                                         vg_lite_float_t x_step[3], vg_lite_float_t y_step[3], vg_lite_float_t c_step[3]);
+
+extern vg_lite_float_t _calc_decnano_compress_ratio(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode);
 
 #if defined(__ZEPHYR__)
 extern void * vg_lite_os_fopen(const char *__restrict path, const char *__restrict mode);
@@ -288,8 +310,8 @@ char filename[30];
 #if DUMP_LAST_CAPTURE
 void _SetDumpFileInfo();
 vg_lite_error_t vglitefDumpBuffer_single(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes);
-#define vglitemDUMP_single                             vglitefDump
-#define vglitemDUMP_BUFFER_single                     vglitefDumpBuffer_single
+#define vglitemDUMP_single                      vglitefDump
+#define vglitemDUMP_BUFFER_single               vglitefDumpBuffer_single
 #endif 
 #if DUMP_CAPTURE
 void _SetDumpFileInfo();
@@ -297,11 +319,6 @@ vg_lite_error_t vglitefDump(char* String, ...);
 vg_lite_error_t vglitefDumpBuffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes);
 #define vglitemDUMP                             vglitefDump
 #define vglitemDUMP_BUFFER                      vglitefDumpBuffer
-#else
-static inline void __dummy_dump(char* Message, ...) {}
-static inline void __dummy_dump_buffer(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes) {}
-#define vglitemDUMP                             __dummy_dump
-#define vglitemDUMP_BUFFER                      __dummy_dump_buffer
 #endif
 
 /**********************************************************************************************/

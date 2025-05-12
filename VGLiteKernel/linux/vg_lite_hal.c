@@ -45,7 +45,7 @@
 #endif
 #include <asm/cacheflush.h>
 
-MODULE_LICENSE("MIT");
+MODULE_LICENSE("Dual MIT/GPL");
 
 /*#define GPU_REG_START   0x02204000
 #define GPU_REG_SIZE    0x00004000

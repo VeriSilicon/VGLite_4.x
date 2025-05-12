@@ -149,13 +149,11 @@ vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matri
     /* Multiply with current matrix. */
     multiply(matrix, &r);
 
-#if VG_SW_BLIT_PRECISION_OPT
     matrix->angle = matrix->angle + degrees;
     if (matrix->angle >= 360) {
         vg_lite_uint32_t count = (vg_lite_uint32_t)matrix->angle / 360;
         matrix->angle = matrix->angle - count * 360;
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
 
     return VG_LITE_SUCCESS;
 }

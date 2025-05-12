@@ -3742,23 +3742,22 @@ static vg_lite_error_t _copy_stroke_path(
 
         path->stroke_size += (int32_t)totalsize;
 
-        {
-            path->stroke_path = (void*)vg_lite_os_malloc(path->stroke_size);
-            if (!path->stroke_path) {
-                error = VG_LITE_OUT_OF_RESOURCES;
-                goto ErrorHandler;
-            }
-
-            memset(path->stroke_path, 0, path->stroke_size);
-
-            if (temp_stroke_data) {
-                memcpy(path->stroke_path, temp_stroke_data, temp_stroke_size);
-                vg_lite_os_free(temp_stroke_data);
-                temp_stroke_data = NULL;
-            }
-
-            pfloat = (vg_lite_float_t*)((char*)path->stroke_path + temp_stroke_size);
+        path->stroke_path = (void*)vg_lite_os_malloc(path->stroke_size);
+        if (!path->stroke_path) {
+            error = VG_LITE_OUT_OF_RESOURCES;
+            goto ErrorHandler;
         }
+
+        memset(path->stroke_path, 0, path->stroke_size);
+
+        if (temp_stroke_data) {
+            memcpy(path->stroke_path, temp_stroke_data, temp_stroke_size);
+            vg_lite_os_free(temp_stroke_data);
+            temp_stroke_data = NULL;
+        }
+
+        pfloat = (vg_lite_float_t*)((char*)path->stroke_path + temp_stroke_size);
+
 #if (CHIPID==0x355 || CHIPID==0x255)
         if (last_opcode == VLC_OP_CLOSE) {
             cpath = (char*)(pfloat - 1) + 1;

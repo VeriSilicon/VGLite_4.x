@@ -50,30 +50,30 @@
 
 #if DUMP_API
 
-DumpVGLHandler handler;
+DumpVGLHandler dump_vgl_handler;
 
 static int createVgl = 1;
 static int lgradEX_count = 0;
 
 static void dump_vgl_serialize(const void* ptr, size_t bytes, size_t alignto) {
-    FILE* file = handler.file;
+    FILE* file = dump_vgl_handler.file;
     const uint8_t dummy = 0;
 
-    for (size_t i = handler.offset; i < ALIGN(handler.offset, alignto); ++i)
+    for (size_t i = dump_vgl_handler.offset; i < ALIGN(dump_vgl_handler.offset, alignto); ++i)
         fwrite(&dummy, 1, 1, file);
-    ALIGN_TO(handler.offset, alignto);
+    ALIGN_TO(dump_vgl_handler.offset, alignto);
     fwrite(ptr, 1, bytes, file);
-    handler.offset += bytes;
+    dump_vgl_handler.offset += bytes;
 }
 
 static int dump_vgl_flush() {
-    return fflush(handler.file);
+    return fflush(dump_vgl_handler.file);
 }
 
 static void dump_vgl_allocate_buffer(vg_lite_buffer_t* buf) {
     vg_lite_buffer_t srb;
     
-    handler.buffer[handler.bufferNum++] = buf;
+    dump_vgl_handler.buffer[dump_vgl_handler.bufferNum++] = buf;
 
     memcpy(&srb, buf, sizeof(vg_lite_buffer_t));
     srb.handle = srb.memory =srb.lvgl_buffer=
@@ -93,8 +93,8 @@ static void dump_vgl_allocate_buffer(vg_lite_buffer_t* buf) {
 }
 
 static int dump_vgl_refer_to_buffer(vg_lite_buffer_t* buf) {
-    for (int i = 0; i < handler.bufferNum; ++i) {
-        if (handler.buffer[i] == buf) return i;
+    for (int i = 0; i < dump_vgl_handler.bufferNum; ++i) {
+        if (dump_vgl_handler.buffer[i] == buf) return i;
     }
     /* Error: not found buffer. */
     return -1;
@@ -106,7 +106,7 @@ static int dump_vgl_free_buffer(vg_lite_buffer_t* buf) {
     if (i == -1)
         return -1;
     else {
-        handler.buffer[i] = NULL;
+        dump_vgl_handler.buffer[i] = NULL;
     }
     return i;
 }
@@ -114,7 +114,7 @@ static int dump_vgl_free_buffer(vg_lite_buffer_t* buf) {
 static void dump_vgl_allocate_lgradEX(vg_lite_ext_linear_gradient_t* lgradEX) {
     vg_lite_ext_linear_gradient_t srlg;
     
-    handler.lgradEX[handler.lgradEXNum++] = lgradEX;
+    dump_vgl_handler.lgradEX[dump_vgl_handler.lgradEXNum++] = lgradEX;
 
     memcpy(&srlg, lgradEX, sizeof(vg_lite_ext_linear_gradient_t));
     srlg.image.handle = srlg.image.memory =
@@ -136,7 +136,7 @@ static void dump_vgl_allocate_lgradEX(vg_lite_ext_linear_gradient_t* lgradEX) {
 static void dump_vgl_allocate_lgrad(vg_lite_linear_gradient_t* lgrad) {
     vg_lite_linear_gradient_t srlg;
     
-    handler.lgrad[handler.lgradNum++] = lgrad;
+    dump_vgl_handler.lgrad[dump_vgl_handler.lgradNum++] = lgrad;
 
     memcpy(&srlg, lgrad, sizeof(vg_lite_linear_gradient_t));
     srlg.image.handle = srlg.image.memory =
@@ -158,7 +158,7 @@ static void dump_vgl_allocate_lgrad(vg_lite_linear_gradient_t* lgrad) {
 static void dump_vgl_allocate_rgrad(vg_lite_radial_gradient_t* rgrad) {
     vg_lite_radial_gradient_t srrg;
 
-    handler.rgrad[handler.rgradNum++] = rgrad;
+    dump_vgl_handler.rgrad[dump_vgl_handler.rgradNum++] = rgrad;
 
     memcpy(&srrg, rgrad, sizeof(vg_lite_radial_gradient_t));
     srrg.image.handle = srrg.image.memory =
@@ -178,8 +178,8 @@ static void dump_vgl_allocate_rgrad(vg_lite_radial_gradient_t* rgrad) {
 }
 
 static int dump_vgl_refer_to_rgrad(vg_lite_radial_gradient_t* rgrad) {
-    for (int i = 0; i < handler.rgradNum; ++i) {
-        if (handler.rgrad[i] == rgrad) return i;
+    for (int i = 0; i < dump_vgl_handler.rgradNum; ++i) {
+        if (dump_vgl_handler.rgrad[i] == rgrad) return i;
     }
     /* Error: not found rgrad. */
     return -1;
@@ -301,8 +301,8 @@ DLLEXPORT void FUNC_DUMP(vg_lite_init)(
     vg_lite_int32_t tess_height) {
     if (createVgl) {
         const char fp_vgl[] = "./dump.vgl";
-        memset(&handler, 0, sizeof(DumpVGLHandler));
-        handler.file = fopen(fp_vgl, "wb");
+        memset(&dump_vgl_handler, 0, sizeof(DumpVGLHandler));
+        dump_vgl_handler.file = fopen(fp_vgl, "wb");
         createVgl = 0;
     }
 
@@ -319,8 +319,8 @@ DLLEXPORT void FUNC_DUMP(vg_lite_set_memory_pool)(
     vg_lite_memory_pool_t pool) {
     if (createVgl) {
         const char fp_vgl[] = "./dump.vgl";
-        memset(&handler, 0, sizeof(DumpVGLHandler));
-        handler.file = fopen(fp_vgl, "wb");
+        memset(&dump_vgl_handler, 0, sizeof(DumpVGLHandler));
+        dump_vgl_handler.file = fopen(fp_vgl, "wb");
         createVgl = 0;
     }
 
@@ -333,7 +333,7 @@ DLLEXPORT void FUNC_DUMP(vg_lite_set_memory_pool)(
 
 DLLEXPORT void FUNC_DUMP(vg_lite_close)(void) {
     DUMP_FUNCTION(vg_lite_close);
-    fclose(handler.file);
+    fclose(dump_vgl_handler.file);
 
     return;
 }
@@ -1270,8 +1270,8 @@ DLLEXPORT void FUNC_DUMP(vg_lite_set_command_buffer_size)(
     vg_lite_uint32_t size) {
     if (createVgl) {
         const char fp_vgl[] = "./dump.vgl";
-        memset(&handler, 0, sizeof(DumpVGLHandler));
-        handler.file = fopen(fp_vgl, "wb");
+        memset(&dump_vgl_handler, 0, sizeof(DumpVGLHandler));
+        dump_vgl_handler.file = fopen(fp_vgl, "wb");
         createVgl = 0;
     }
 

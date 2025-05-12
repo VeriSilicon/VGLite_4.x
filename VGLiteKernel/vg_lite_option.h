@@ -47,6 +47,13 @@ extern "C" {
 #endif
 
 /*
+ * Backup command buffer by user
+*/
+#ifndef gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+    #define gcdVG_ENABLE_COMMAND_BUFFER_CACHE            0
+#endif
+
+/*
  * Power management, only support Linux and RTOS
 */
 #ifndef gcdVG_ENABLE_POWER_MANAGEMENT
