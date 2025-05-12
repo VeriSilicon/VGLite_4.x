@@ -195,7 +195,7 @@ typedef struct vg_lite_context {
     uint32_t                    scissor_dirty;
     int32_t                     scissor[4];                 /* Scissor area: x, y, right, bottom. */
     vg_lite_buffer_t            *scissor_layer;
-
+    uint32_t                    scissor_layer_range[4];
     uint32_t                    src_alpha_mode;
     uint32_t                    src_alpha_value;
     uint32_t                    dst_alpha_mode;
@@ -216,6 +216,7 @@ typedef struct vg_lite_context {
     uint8_t                     custom_cmdbuf;
     uint8_t                     custom_tessbuf;
     uint32_t                    enable_mask;
+    vg_lite_buffer_t            *mask_layer;
     uint32_t                    matrix_enable;
     uint32_t                    tess_width;
     uint32_t                    tess_height;

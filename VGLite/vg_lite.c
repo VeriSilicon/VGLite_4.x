@@ -4313,7 +4313,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* buffer_pointer;
-    uint32_t buffer_address = 0, mul = 0, div = 0, required_align = 0;
+    uint32_t buffer_address = 0,  buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
     vg_lite_point_t image_display_top_left = { 0 };
     vg_lite_point_t image_display_range = { 0 };
@@ -4575,17 +4575,23 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif
 
     /* Clip to target. */
+    left = 0;
+    top = 0;
+    right = target->width;
+    bottom = target->height;
+
     if (s_context.scissor_set && !target->scissor_buffer) {
-        left   = MAX(s_context.scissor[0], 0);
-        top    = MAX(s_context.scissor[1], 0);
-        right  = MIN(s_context.scissor[2], target->width);
-        bottom = MIN(s_context.scissor[3], target->height);
+        left = MAX(s_context.scissor[0], left);
+        top = MAX(s_context.scissor[1], top);
+        right = MIN(s_context.scissor[2], right);
+        bottom = MIN(s_context.scissor[3], bottom);
     }
-    else {
-        left   = 0;
-        top    = 0;
-        right  = target->width;
-        bottom = target->height;
+
+    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+        left = MAX(s_context.scissor_layer_range[0], left);
+        top = MAX(s_context.scissor_layer_range[1], top);
+        right = MIN(s_context.scissor_layer_range[2], right);
+        bottom = MIN(s_context.scissor_layer_range[3], bottom);
     }
 
     point_min.x = MAX(point_min.x, left);
@@ -4684,8 +4690,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         get_format_bytes(target->format, &mul, &div, &required_align);
 
         uint32_t temp_buffer_address = target->address;
-
+        
+        uint32_t temp_buffer_address1 = 0;
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) 
+            temp_buffer_address1 = s_context.scissor_layer->address;
+        
+        uint32_t temp_buffer_address2 = 0;
+        if (s_context.enable_mask && s_context.mask_layer)
+            temp_buffer_address2 = s_context.mask_layer->address;
+        
         int32_t align_require = 4;
+        int32_t align_require_temp = 4;
         int align_flag = 0;
 
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
@@ -4698,11 +4713,42 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         {
             for (; dx > 0; dx--)
             {
+                if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+                    dx = dx & (~7); // dx need 8 align
+
                 buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
-                if ((buffer_address & (align_require - 1)) == 0)
-                {
-                    align_flag = 1;
-                    break;
+                if ((buffer_address & (align_require - 1)) == 0) {
+                    if (s_context.scissor_enable && s_context.enable_mask) {
+                        if (s_context.scissor_layer->scissor_buffer && s_context.mask_layer) {
+                            buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx / 8;
+                            buffer_mask_address = temp_buffer_address2 + dy * s_context.mask_layer->stride + dx;
+                            
+                            if (((buffer_scissor_address & (align_require_temp - 1)) == 0) && ((buffer_mask_address & (align_require_temp - 1)) == 0)) {
+                                align_flag = 1;
+                                break;
+                            }
+                        }
+                    }
+                    else if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
+                        buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx /8;
+                        
+                        if ((buffer_scissor_address & (align_require_temp - 1)) == 0) {
+                            align_flag = 1;
+                            break;
+                        }
+                    }
+                    else if (s_context.enable_mask && s_context.mask_layer) {
+                        buffer_mask_address = temp_buffer_address2 + dy * s_context.mask_layer->stride + dx;
+
+                        if ((buffer_mask_address & (align_require_temp - 1)) == 0) {
+                            align_flag = 1;
+                            break;
+                        }
+                    }
+                    else {
+                        align_flag = 1;
+                        break;
+                    }
                 }
             }
             if (align_flag)
@@ -4710,8 +4756,26 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             dx = image_display_top_left.x;
         }
 
-        if (!align_flag)
+        if (!align_flag) {
             dx = dy = 0;
+
+            if (s_context.scissor_enable)
+                buffer_scissor_address = temp_buffer_address1;
+            if (s_context.enable_mask)
+                buffer_mask_address = temp_buffer_address2;
+        }
+            
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, buffer_scissor_address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+        }
+
+        if (s_context.enable_mask && s_context.mask_layer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, buffer_mask_address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+        }
 
         //update new target coordinate
         new_target_top_left.x = dx;
@@ -5002,8 +5066,21 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
      s_context.filter = 0;
 
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enable_sw_pre_opt)
+    if (enable_sw_pre_opt) {
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+        }
+
+        if (s_context.enable_mask && s_context.mask_layer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+        }
+
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
+    }        
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
@@ -5091,7 +5168,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* buffer_pointer;
-    uint32_t buffer_address = 0, mul = 0, div = 0, required_align = 0;
+    uint32_t buffer_address = 0, buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
     vg_lite_float_point_t top_right_point, bottom_right_point, top_left_point, bottom_left_point;
     vg_lite_point_t image_display_top_left = { 0 };
@@ -5381,17 +5458,23 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 
     /* Clip to target. */
+    left = 0;
+    top = 0;
+    right = target->width;
+    bottom = target->height;
+
     if (s_context.scissor_set && !target->scissor_buffer) {
-        left   = MAX(s_context.scissor[0], 0);
-        top    = MAX(s_context.scissor[1], 0);
-        right  = MIN(s_context.scissor[2], target->width);
-        bottom = MIN(s_context.scissor[3], target->height);
+        left = MAX(s_context.scissor[0], left);
+        top = MAX(s_context.scissor[1], top);
+        right = MIN(s_context.scissor[2], right);
+        bottom = MIN(s_context.scissor[3], bottom);
     }
-    else {
-        left   = 0;
-        top    = 0;
-        right  = target->width;
-        bottom = target->height;
+
+    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+        left = MAX(s_context.scissor_layer_range[0], left);
+        top = MAX(s_context.scissor_layer_range[1], top);
+        right = MIN(s_context.scissor_layer_range[2], right);
+        bottom = MIN(s_context.scissor_layer_range[3], bottom);
     }
 
     point_min.x = MAX(point_min.x, left);
@@ -5490,7 +5573,16 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
         uint32_t temp_buffer_address = target->address;
 
+        uint32_t temp_buffer_address1 = 0;
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+            temp_buffer_address1 = s_context.scissor_layer->address;
+
+        uint32_t temp_buffer_address2 = 0;
+        if (s_context.enable_mask && s_context.mask_layer)
+            temp_buffer_address2 = s_context.mask_layer->address;
+
         int32_t align_require = 4;
+        int32_t align_require_temp = 4;
         int align_flag = 0;
 
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
@@ -5503,10 +5595,42 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         {
             for (; dx > 0; dx--)
             {
+                if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+                    dx = dx & (~7); // dx need 8 align
+
                 buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
                 if ((buffer_address & (align_require - 1)) == 0) {
-                    align_flag = 1;
-                    break;
+                    if (s_context.scissor_enable && s_context.enable_mask) {
+                        if (s_context.scissor_layer->scissor_buffer && s_context.mask_layer) {
+                            buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx / 8;
+                            buffer_mask_address = temp_buffer_address2 + dy * s_context.mask_layer->stride + dx;
+
+                            if (((buffer_scissor_address & (align_require_temp - 1)) == 0) && ((buffer_mask_address & (align_require_temp - 1)) == 0)) {
+                                align_flag = 1;
+                                break;
+                            }
+                        }
+                    }
+                    else if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
+                        buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx / 8;
+
+                        if ((buffer_scissor_address & (align_require_temp - 1)) == 0) {
+                            align_flag = 1;
+                            break;
+                        }
+                    }
+                    else if (s_context.enable_mask && s_context.mask_layer) {
+                        buffer_mask_address = temp_buffer_address2 + dy * s_context.mask_layer->stride + dx;
+
+                        if ((buffer_mask_address & (align_require_temp - 1)) == 0) {
+                            align_flag = 1;
+                            break;
+                        }
+                    }
+                    else {
+                        align_flag = 1;
+                        break;
+                    }
                 }                    
             }
             if (align_flag)
@@ -5514,8 +5638,26 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             dx = image_display_top_left.x;
         }
 
-        if (!align_flag) 
+        if (!align_flag) {
             dx = dy = 0;
+
+            if (s_context.scissor_enable)
+                buffer_scissor_address = temp_buffer_address1;
+            if (s_context.enable_mask)
+                buffer_mask_address = temp_buffer_address2;
+        }
+
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, buffer_scissor_address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+        }
+
+        if (s_context.enable_mask && s_context.mask_layer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, buffer_mask_address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+        }
 
         //update new target coordinate
         new_target_top_left.x = dx;
@@ -5561,7 +5703,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* Compute inverse matrix. */
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
-
 
 #if (CHIPID==0x255)
     vg_lite_float_t* steps[3];
@@ -5824,8 +5965,21 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
      s_context.filter = 0;
 
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enable_sw_pre_opt)
+    if (enable_sw_pre_opt) {
+        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
+        }
+
+        if (s_context.enable_mask && s_context.mask_layer) {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+        }
+
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
+    }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
