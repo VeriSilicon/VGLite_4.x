@@ -1176,11 +1176,14 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     width = s_context.tessbuf.tess_w_h & 0xFFFF;
@@ -1484,11 +1487,14 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
@@ -1873,11 +1879,14 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
@@ -2350,11 +2359,14 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
@@ -4282,11 +4294,14 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
@@ -4942,11 +4957,14 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
-        return error;
-    } else if (error == VG_LITE_NO_CONTEXT) {
-        /* If scissoring is enabled and no valid scissoring rectangles
-           are present, no drawing occurs */
-        return VG_LITE_SUCCESS;
+        if (error == VG_LITE_NO_CONTEXT) {
+            /* If scissoring is enabled and no valid scissoring rectangles
+               are present, no drawing occurs */
+            return VG_LITE_SUCCESS;
+        }
+        else {
+            return error;
+        }
     }
 
     if ((target->format == VG_LITE_YUYV || target->format == VG_LITE_YUY2 || target->format == VG_LITE_YUY2_TILED
