@@ -262,6 +262,8 @@ extern vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix
 
 extern vg_lite_float_t _calc_decnano_compress_ratio(vg_lite_buffer_format_t format, vg_lite_compress_mode_t compress_mode);
 
+extern vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format);
+
 #if defined(__ZEPHYR__)
 extern void * vg_lite_os_fopen(const char *__restrict path, const char *__restrict mode);
 extern int vg_lite_os_fclose(void * fp);

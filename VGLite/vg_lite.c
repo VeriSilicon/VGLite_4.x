@@ -1189,7 +1189,7 @@ static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_ca
     }
 }
 
-static vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format)
+vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format)
 {
     switch (format) {
         case VG_LITE_ABGR8565_PLANAR:
@@ -1219,11 +1219,13 @@ static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_
     int8_t* data_source = source->memory;
     int8_t* data_rgb = target->memory;
     int8_t* data_alpha = target->yuv.alpha_memory;
+    if ((source->stride * source->height % 3) != 0)
+        return VG_LITE_INVALID_ARGUMENT;
     uint32_t pixel_size = source->stride * source->height / 3;
-    switch (target->format)
+    switch (source->format)
     {
-    case VG_LITE_ABGR8565_PLANAR:
-    case VG_LITE_ARGB8565_PLANAR:
+    case VG_LITE_ABGR8565:
+    case VG_LITE_ARGB8565:
         for (i = 0; i < pixel_size; i++)
         {
             *data_alpha = *data_source;
@@ -1238,8 +1240,8 @@ static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_
             data_source++;
         }
         break;
-    case VG_LITE_BGRA5658_PLANAR:
-    case VG_LITE_RGBA5658_PLANAR:
+    case VG_LITE_BGRA5658:
+    case VG_LITE_RGBA5658:
         for (i = 0; i < pixel_size; i++)
         {
             *data_rgb = *data_source;
@@ -3618,7 +3620,10 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     uint32_t in_premult = 0;
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
 #endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
@@ -4163,7 +4168,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 {
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
     if (source->sw24bit_buffer)
         source = source->sw24bit_buffer;
 #endif
@@ -4858,7 +4866,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint8_t  lvgl_sw_blend = 0;
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
     if (source->sw24bit_buffer)
         source = source->sw24bit_buffer;
 #endif
