@@ -3302,6 +3302,40 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
     return 1;
 }
 
+#if VG_SW_BLIT_PRECISION_OPT
+/* Transform a 2D float point by a given matrix. */
+uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t* matrix)
+{
+    vg_lite_float_t pt_x;
+    vg_lite_float_t pt_y;
+    vg_lite_float_t pt_w;
+
+    /* Test for identity matrix. */
+    if (matrix == NULL) {
+        result->x = (int)x;
+        result->y = (int)y;
+
+        /* Success. */
+        return 1;
+    }
+
+    /* Transform x, y, and w. */
+    pt_x = (x * matrix->m[0][0]) + (y * matrix->m[0][1]) + matrix->m[0][2];
+    pt_y = (x * matrix->m[1][0]) + (y * matrix->m[1][1]) + matrix->m[1][2];
+    pt_w = (x * matrix->m[2][0]) + (y * matrix->m[2][1]) + matrix->m[2][2];
+
+    if (pt_w <= 0.0f)
+        return 0;
+
+    /* Compute projected x and y. */
+    result->x = (pt_x / pt_w);
+    result->y = (pt_y / pt_w);
+
+    /* Success. */
+    return 1;
+}
+#endif
+
 /* Flush specific VG module. */
 static vg_lite_error_t flush_target(void)
 {
@@ -4211,26 +4245,25 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     int32_t  stride;
     uint8_t  lvgl_sw_blend = 0;
 #if VG_SW_BLIT_PRECISION_OPT
-    uint8_t* bufferPointer;
-    uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
+    uint8_t* buffer_pointer;
+    uint32_t buffer_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
-    vg_lite_point_t point0_0_afterTransform = { 0 };
-    uint8_t enableSwPreOpt = 0;
-    int32_t matrixOffsetX = 0;
+    vg_lite_point_t image_display_top_left = { 0 };
+    vg_lite_point_t image_display_range = { 0 };
+    uint8_t enable_sw_pre_opt = 0;
+    vg_lite_float_point_t top_right_point, bottom_right_point, top_left_point, bottom_left_point;
+    vg_lite_point_t new_target_top_left = { 0 };
+    vg_lite_float_point4_t image_position_on_new_target = { 0 };
+    vg_lite_float_point4_t image_display_position_on_new_target = { 0 };
+    vg_lite_point_t image_display_top_left_on_new_target = { 0 };
+    vg_lite_point_t image_display_range_on_new_target = { 0 };
+    vg_lite_matrix_t matrix2_temp = { 0 };
     vg_lite_matrix_t temp_matrix;
-    
-    /* Only accept interger move */
-    if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
-        matrix->m[0][2] = (vg_lite_float_t)(matrix->m[0][2] >= 0 ? (int32_t)(matrix->m[0][2] + 0.5) : (int32_t)(matrix->m[0][2] - 0.5));
-        matrix->m[1][2] = (vg_lite_float_t)(matrix->m[1][2] >= 0 ? (int32_t)(matrix->m[1][2] + 0.5) : (int32_t)(matrix->m[1][2] - 0.5));
-        /* Only nonperspective transform with scale or rotation could enable optimization */
-        if ((matrix->m[2][0] == 0.0f && matrix->m[2][1] == 0.0f && matrix->m[2][2] == 1.0f) &&
-            (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
-            if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
-                enableSwPreOpt = 1;
-                memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
-            }
-        }
+
+    if (matrix != NULL && target->tiled != VG_LITE_TILED && target->compress_mode == VG_LITE_DEC_DISABLE && ((target->format >= VG_LITE_RGBA8888 && target->format <= VG_LITE_BGRA5551) || target->format == VG_LITE_A8
+        || target->format == VG_LITE_L8 || (target->format >= VG_LITE_RGBA2222 && target->format <= VG_LITE_XRGB8888) || (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR))) {
+        enable_sw_pre_opt = 1;
+        memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
@@ -4416,9 +4449,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-#if VG_SW_BLIT_PRECISION_OPT
-    point0_0_afterTransform = temp;
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#if VG_SW_BLIT_PRECISION_OPT    
+    if(enable_sw_pre_opt) {
+        if (!transform_float(&top_left_point, 0.0f, 0.0f, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
 
     /* Transform image (0,height) to screen. */
     if (!transform(&temp, 0.0f, (vg_lite_float_t)source->height, matrix))
@@ -4429,7 +4465,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
-    
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if(enable_sw_pre_opt) {
+        if (!transform_float(&bottom_left_point, 0.0f, (vg_lite_float_t)source->height, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
     /* Transform image (width,height) to screen. */
     if (!transform(&temp, (vg_lite_float_t)source->width, (vg_lite_float_t)source->height, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -4439,7 +4482,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
-    
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if(enable_sw_pre_opt) {
+        if (!transform_float(&bottom_right_point, (vg_lite_float_t)source->width, (vg_lite_float_t)source->height, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
     /* Transform image (width,0) to screen. */
     if (!transform(&temp, (vg_lite_float_t)source->width, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -4449,6 +4499,13 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if(enable_sw_pre_opt) {
+        if (!transform_float(&top_right_point, (vg_lite_float_t)source->width, 0.0f, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
 
     /* Clip to target. */
     if (s_context.scissor_set && !target->scissor_buffer) {
@@ -4473,6 +4530,16 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
         return VG_LITE_SUCCESS;
     }
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if(enable_sw_pre_opt) {
+        image_display_top_left.x = point_min.x;
+        image_display_top_left.y = point_min.y;
+        image_display_range.x = point_max.x - point_min.x;
+        image_display_range.y = point_max.y - point_min.y;
+        image_display_range_on_new_target = image_display_range;
+    }
+#endif
 
 #if gcFEATURE_VG_GAMMA
     get_st_gamma_src_dest(source, target);
@@ -4545,40 +4612,75 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt) {
-        get_format_bytes(target->format, &mul, &div, &required_align);
+    if (enable_sw_pre_opt) {
         //update target memory address
-        bufferAddress = target->address;
-        bufferAddress = bufferAddress + point_min.y * target->stride + point_min.x * (mul / div);
-        //base address need align
-        bufferAlignAddress = bufferAddress & ~(required_align - 1);
+        get_format_bytes(target->format, &mul, &div, &required_align);
 
-        //update buffer pointer address
-        bufferPointer = (uint8_t*)target->memory;
-        bufferPointer = bufferPointer + (bufferAlignAddress - target->address);
+        uint32_t temp_buffer_address = target->address;
 
-        //update offset
-        addressOffset = bufferAddress - bufferAlignAddress;
-        //we need give some offset to match actual translate
-        matrixOffsetX = addressOffset * div / mul;
+        int32_t align_require = 4;
+        int align_flag = 0;
 
-        //update new_target and set  it as target
-        memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
-        new_target.address = bufferAlignAddress;
-        new_target.memory = bufferPointer;
-        new_target.width = point_max.x - point_min.x + matrixOffsetX;
-        new_target.height = point_max.y - point_min.y;
-        target = &new_target;
+        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
+            align_require = 64;
 
-        //update matrix
-        matrix->m[0][2] = (vg_lite_float_t)(point0_0_afterTransform.x - point_min.x + matrixOffsetX);
-        matrix->m[1][2] = (vg_lite_float_t)(point0_0_afterTransform.y - point_min.y);
+        int dy = image_display_top_left.y;
+        int dx = image_display_top_left.x;
 
-        //modify point_min and point_max to let them start from (0, 0)
-        point_max.x = point_max.x - point_min.x;
-        point_max.y = point_max.y - point_min.y;
-        point_min.x = 0;
-        point_min.y = 0;
+        for (; dy > 0; dy--)
+        {
+            for (; dx > 0; dx--)
+            {
+                buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
+                if ((buffer_address & (align_require - 1)) == 0)
+                {
+                    align_flag = 1;
+                    break;
+                }
+            }
+            if (align_flag)
+                break;
+            dx = image_display_top_left.x;
+        }
+
+        if (!align_flag)
+            dx = dy = 0;
+
+        //update new target coordinate
+        new_target_top_left.x = dx;
+        new_target_top_left.y = dy;
+        image_display_top_left_on_new_target.x = image_display_top_left.x - new_target_top_left.x; image_display_top_left_on_new_target.y = image_display_top_left.y - new_target_top_left.y;
+
+        if (align_flag) {
+            //update buffer pointer address
+            buffer_pointer = (uint8_t*)target->memory;
+            buffer_pointer = buffer_pointer + (buffer_address - target->address);
+
+            /* Calculate the transformation matrix */
+            image_position_on_new_target[0].x = 0;              image_position_on_new_target[0].y = 0;
+            image_position_on_new_target[1].x = 0;              image_position_on_new_target[1].y = source->height;
+            image_position_on_new_target[2].x = source->width;  image_position_on_new_target[2].y = source->height;
+            image_position_on_new_target[3].x = source->width;  image_position_on_new_target[3].y = 0;
+
+            image_display_position_on_new_target[0].x = top_left_point.x - new_target_top_left.x;      image_display_position_on_new_target[0].y = top_left_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[1].x = bottom_left_point.x - new_target_top_left.x;   image_display_position_on_new_target[1].y = bottom_left_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[2].x = bottom_right_point.x - new_target_top_left.x;  image_display_position_on_new_target[2].y = bottom_right_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[3].x = top_right_point.x - new_target_top_left.x;     image_display_position_on_new_target[3].y = top_right_point.y - new_target_top_left.y;
+
+            vg_lite_get_transform_matrix(image_position_on_new_target, image_display_position_on_new_target, &matrix2_temp);
+            matrix2_temp.scaleX = matrix->scaleX;
+            matrix2_temp.scaleY = matrix->scaleY;
+            matrix2_temp.angle = matrix->angle;
+
+            //update new_target and set  it as target
+            memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
+            new_target.address = buffer_address;
+            new_target.memory = buffer_pointer;
+            target = &new_target;
+
+            //update matrix
+            memcpy(matrix, &matrix2_temp, sizeof(vg_lite_matrix_t));
+        }
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
@@ -4594,9 +4696,41 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Compute step values. */
     calculate_step_value(filter, &inverse_matrix, source->width, source->height, x_step, y_step, c_step);
 
+#if VG_SW_BLIT_PRECISION_OPT && gcFEATURE_VG_BOUNDARY_FILTER_BYPASS
+    if(enable_sw_pre_opt){
+        if (matrix->scaleX > 0.5 || matrix->scaleY > 0.5) {
+            if (filter == VG_LITE_FILTER_POINT) {
+                /* Compute interpolation steps. */
+                x_step[0] = inverse_matrix.m[0][0] / source->width;
+                x_step[1] = inverse_matrix.m[1][0] / source->height;
+                x_step[2] = inverse_matrix.m[2][0];
+                y_step[0] = inverse_matrix.m[0][1] / source->width;
+                y_step[1] = inverse_matrix.m[1][1] / source->height;
+                y_step[2] = inverse_matrix.m[2][1];
+                c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / source->width;
+                c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
+                c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+            }
+            else
+            {
+                /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
+                x_step[0] = inverse_matrix.m[0][0] / source->width;
+                x_step[1] = inverse_matrix.m[1][0] / source->height;
+                x_step[2] = inverse_matrix.m[2][0];
+                y_step[0] = inverse_matrix.m[0][1] / source->width;
+                y_step[1] = inverse_matrix.m[1][1] / source->height;
+                y_step[2] = inverse_matrix.m[2][1];
+                c_step[0] = inverse_matrix.m[0][2] / source->width;
+                c_step[1] = inverse_matrix.m[1][2] / source->height;
+                c_step[2] = inverse_matrix.m[2][2];
+            }
+        }
+    }
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+
 #if VG_SW_BLIT_PRECISION_OPT
     /* Update C offset */
-    if (enableSwPreOpt) {
+    if (enable_sw_pre_opt && filter == VG_LITE_FILTER_POINT) {
         uint8_t indexC0 = 0;
         uint8_t indexC1 = 0;
         uint32_t temp0 = (uint32_t)(matrix->angle / 45);
@@ -4607,10 +4741,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         c_step[0] = c_step[0] + offsetTable[indexC0];
         c_step[1] = c_step[1] + offsetTable[indexC1];
     }
-#else
+    else
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+    {
         c_step[0] = c_step[0] + offsetTable[0];
         c_step[1] = c_step[1] + offsetTable[0];
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+    }
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -4765,9 +4901,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
 
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt) {
-        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
-    } else
+    if (enable_sw_pre_opt) {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, image_display_top_left_on_new_target.x, image_display_top_left_on_new_target.y, image_display_range_on_new_target.x, image_display_range_on_new_target.y));
+    }
+    else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
     {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
@@ -4790,7 +4927,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
      s_context.filter = 0;
 
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt)
+    if (enable_sw_pre_opt)
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
@@ -4874,26 +5011,25 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         source = source->sw24bit_buffer;
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
-    uint8_t* bufferPointer;
-    uint32_t bufferAddress = 0, bufferAlignAddress = 0, addressOffset = 0, mul = 0, div = 0, required_align = 0;
+    uint8_t* buffer_pointer;
+    uint32_t buffer_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
-    vg_lite_point_t point0_0_afterTransform = { 0 };
-    uint8_t enableSwPreOpt = 0;
-    int32_t matrixOffsetX = 0;
+    vg_lite_float_point_t top_right_point, bottom_right_point, top_left_point, bottom_left_point;
+    vg_lite_point_t image_display_top_left = { 0 };
+    vg_lite_point_t image_display_range = { 0 };
+    uint8_t enable_sw_pre_opt = 0;
+    vg_lite_point_t new_target_top_left = { 0 };
+    vg_lite_float_point4_t image_position_on_new_target = { 0 };
+    vg_lite_float_point4_t image_display_position_on_new_target = { 0 };
+    vg_lite_point_t image_display_top_left_on_new_target = { 0 };
+    vg_lite_point_t image_display_range_on_new_target = { 0 };
+    vg_lite_matrix_t matrix2_temp = { 0 };
     vg_lite_matrix_t temp_matrix;
 
-    /* Only accept interger move */
-    if (matrix != NULL && filter == VG_LITE_FILTER_POINT) {
-        matrix->m[0][2] = (vg_lite_float_t)(matrix->m[0][2] >= 0 ? (int32_t)(matrix->m[0][2] + 0.5) : (int32_t)(matrix->m[0][2] - 0.5));
-        matrix->m[1][2] = (vg_lite_float_t)(matrix->m[1][2] >= 0 ? (int32_t)(matrix->m[1][2] + 0.5) : (int32_t)(matrix->m[1][2] - 0.5));
-        /* Only nonperspective transform with scale or rotation could enable optimization */
-        if ((matrix->m[2][0] == 0.0f && matrix->m[2][1] == 0.0f && matrix->m[2][2] == 1.0f) &&
-            (matrix->m[0][0] != 1.0f || matrix->m[1][1] != 1.0f || matrix->m[0][1] != 0.0f)) {
-            if (target->tiled != VG_LITE_TILED && (target->format < VG_LITE_RGB888 || target->format > VG_LITE_RGBA5658_PLANAR)) {
-                enableSwPreOpt = 1;
-                memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
-            }
-        }
+    if (matrix != NULL && target->tiled != VG_LITE_TILED && target->compress_mode == VG_LITE_DEC_DISABLE && ((target->format >= VG_LITE_RGBA8888 && target->format <= VG_LITE_BGRA5551) || target->format == VG_LITE_A8
+        || target->format == VG_LITE_L8 || (target->format >= VG_LITE_RGBA2222 && target->format <= VG_LITE_XRGB8888) || (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR))) {
+        enable_sw_pre_opt = 1;
+        memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
@@ -5108,8 +5244,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     point_min = temp;
     point_max = temp;
 #if VG_SW_BLIT_PRECISION_OPT
-    point0_0_afterTransform = temp;
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+    if (enable_sw_pre_opt) {
+        if (!transform_float(&top_left_point, 0.0f, 0.0f, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
 
     /* Transform image (0,height) to screen. */
     if (!transform(&temp, 0.0f, (vg_lite_float_t)rect_h, matrix))
@@ -5120,7 +5259,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
-    
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enable_sw_pre_opt) {
+        if (!transform_float(&bottom_left_point, 0.0f, (vg_lite_float_t)rect_h, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
     /* Transform image (width,height) to screen. */
     if (!transform(&temp, (vg_lite_float_t)rect_w, (vg_lite_float_t)rect_h, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -5130,7 +5276,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
-    
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enable_sw_pre_opt) {
+        if (!transform_float(&bottom_right_point, (vg_lite_float_t)rect_w, (vg_lite_float_t)rect_h, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
+
     /* Transform image (width,0) to screen. */
     if (!transform(&temp, (vg_lite_float_t)rect_w, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -5140,6 +5293,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.y < point_min.y) point_min.y = temp.y;
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
+
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enable_sw_pre_opt) {
+        if (!transform_float(&top_right_point, (vg_lite_float_t)rect_w, 0.0f, matrix))
+            return VG_LITE_INVALID_ARGUMENT;
+    }
+#endif
 
     /* Clip to target. */
     if (s_context.scissor_set && !target->scissor_buffer) {
@@ -5159,6 +5319,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     point_min.y = MAX(point_min.y, top);
     point_max.x = MIN(point_max.x, right);
     point_max.y = MIN(point_max.y, bottom);
+#if VG_SW_BLIT_PRECISION_OPT
+    if (enable_sw_pre_opt) {
+        image_display_top_left.x = point_min.x;
+        image_display_top_left.y = point_min.y;
+        image_display_range.x = point_max.x - point_min.x;
+        image_display_range.y = point_max.y - point_min.y;
+        image_display_range_on_new_target = image_display_range;
+    }
+#endif
 
     /* No need to draw. */
     if ((point_max.x <= point_min.x) || (point_max.y <= point_min.y)) {
@@ -5236,40 +5405,73 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         in_premult = 0x00000000;
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt) {
-        get_format_bytes(target->format, &mul, &div, &required_align);
+    if (enable_sw_pre_opt) {
         //update target memory address
-        bufferAddress = target->address;
-        bufferAddress = bufferAddress + point_min.y * target->stride + point_min.x * (mul / div);
-        //base address need align
-        bufferAlignAddress = bufferAddress & ~(required_align - 1);
+        get_format_bytes(target->format, &mul, &div, &required_align);
 
-        //update buffer pointer address
-        bufferPointer = (uint8_t*)target->memory;
-        bufferPointer = bufferPointer + (bufferAlignAddress - target->address);
+        uint32_t temp_buffer_address = target->address;
 
-        //update offset
-        addressOffset = bufferAddress - bufferAlignAddress;
-        //we need give some offset to match actual translate
-        matrixOffsetX = addressOffset * div / mul;
+        int32_t align_require = 4;
+        int align_flag = 0;
 
-        //update new_target and set  it as target
-        memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
-        new_target.address = bufferAlignAddress;
-        new_target.memory = bufferPointer;
-        new_target.width = point_max.x - point_min.x + matrixOffsetX;
-        new_target.height = point_max.y - point_min.y;
-        target = &new_target;
+        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
+            align_require = 64;
 
-        //update matrix
-        matrix->m[0][2] = (vg_lite_float_t)(point0_0_afterTransform.x - point_min.x + matrixOffsetX);
-        matrix->m[1][2] = (vg_lite_float_t)(point0_0_afterTransform.y - point_min.y);
+        int dy = image_display_top_left.y;
+        int dx = image_display_top_left.x;
 
-        //modify point_min and point_max to let them start from (0, 0)
-        point_max.x = point_max.x - point_min.x;
-        point_max.y = point_max.y - point_min.y;
-        point_min.x = 0;
-        point_min.y = 0;
+        for (; dy > 0; dy--)
+        {
+            for (; dx > 0; dx--)
+            {
+                buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
+                if ((buffer_address & (align_require - 1)) == 0) {
+                    align_flag = 1;
+                    break;
+                }                    
+            }
+            if (align_flag)
+                break;
+            dx = image_display_top_left.x;
+        }
+
+        if (!align_flag) 
+            dx = dy = 0;
+
+        //update new target coordinate
+        new_target_top_left.x = dx;
+        new_target_top_left.y = dy;
+        image_display_top_left_on_new_target.x = image_display_top_left.x - new_target_top_left.x; image_display_top_left_on_new_target.y = image_display_top_left.y - new_target_top_left.y;
+
+        if (align_flag) {
+            //update buffer pointer address
+            buffer_pointer = (uint8_t*)target->memory;
+            buffer_pointer = buffer_pointer + (buffer_address - target->address);
+
+            /* Calculate the transformation matrix */
+            image_position_on_new_target[0].x = 0;       image_position_on_new_target[0].y = 0;
+            image_position_on_new_target[1].x = 0;       image_position_on_new_target[1].y = rect_h;
+            image_position_on_new_target[2].x = rect_w;  image_position_on_new_target[2].y = rect_h;
+            image_position_on_new_target[3].x = rect_w;  image_position_on_new_target[3].y = 0;
+
+            image_display_position_on_new_target[0].x = top_left_point.x - new_target_top_left.x;      image_display_position_on_new_target[0].y = top_left_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[1].x = bottom_left_point.x - new_target_top_left.x;   image_display_position_on_new_target[1].y = bottom_left_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[2].x = bottom_right_point.x - new_target_top_left.x;  image_display_position_on_new_target[2].y = bottom_right_point.y - new_target_top_left.y;
+            image_display_position_on_new_target[3].x = top_right_point.x - new_target_top_left.x;     image_display_position_on_new_target[3].y = top_right_point.y - new_target_top_left.y;
+            vg_lite_get_transform_matrix(image_position_on_new_target, image_display_position_on_new_target, &matrix2_temp);
+            matrix2_temp.scaleX = matrix->scaleX;
+            matrix2_temp.scaleY = matrix->scaleY;
+            matrix2_temp.angle = matrix->angle;
+
+            //update new_target and set  it as target
+            memcpy(&new_target, target, sizeof(vg_lite_buffer_t));
+            new_target.address = buffer_address;
+            new_target.memory = buffer_pointer;
+            target = &new_target;
+
+            //update matrix
+            memcpy(matrix, &matrix2_temp, sizeof(vg_lite_matrix_t));
+        }
     }
 #endif /* VG_SW_BLIT_PRECISION_OPT */
     error = set_render_target(target);
@@ -5282,11 +5484,54 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
 
     /* Compute step values. */
+#if VG_SW_BLIT_PRECISION_OPT
+    vg_lite_int32_t tem_rect_w = rect_w;
+
+#if gcFEATURE_VG_BOUNDARY_FILTER_BYPASS && gcFEATURE_VG_16PIXELS_ALIGNED
+    if (rect_x == 0 && rect_y == 0) {
+        tem_rect_w = (rect_w + 15) & ~15;
+    }
+#endif
+    calculate_step_value(filter, &inverse_matrix, tem_rect_w, rect_h, x_step, y_step, c_step);
+#else
     calculate_step_value(filter, &inverse_matrix, rect_w, rect_h, x_step, y_step, c_step);
+#endif
+
+#if VG_SW_BLIT_PRECISION_OPT  && gcFEATURE_VG_BOUNDARY_FILTER_BYPASS
+    if (enable_sw_pre_opt) {
+        if (matrix->scaleX > 0.5 || matrix->scaleY > 0.5) {
+            if (filter == VG_LITE_FILTER_POINT) {
+                /* Compute interpolation steps. */
+                x_step[0] = inverse_matrix.m[0][0] / tem_rect_w;
+                x_step[1] = inverse_matrix.m[1][0] / rect_h;
+                x_step[2] = inverse_matrix.m[2][0];
+                y_step[0] = inverse_matrix.m[0][1] / tem_rect_w;
+                y_step[1] = inverse_matrix.m[1][1] / rect_h;
+                y_step[2] = inverse_matrix.m[2][1];
+                c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / tem_rect_w;
+                c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / rect_h;
+                c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
+            }
+            else
+            {
+                /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
+                x_step[0] = inverse_matrix.m[0][0] / tem_rect_w;
+                x_step[1] = inverse_matrix.m[1][0] / rect_h;
+                x_step[2] = inverse_matrix.m[2][0];
+                y_step[0] = inverse_matrix.m[0][1] / tem_rect_w;
+                y_step[1] = inverse_matrix.m[1][1] / rect_h;
+                y_step[2] = inverse_matrix.m[2][1];
+                c_step[0] = inverse_matrix.m[0][2] / tem_rect_w;
+                c_step[1] = inverse_matrix.m[1][2] / rect_h;
+                c_step[2] = inverse_matrix.m[2][2];
+            }
+        }
+    }
+#endif
 
 #if VG_SW_BLIT_PRECISION_OPT
     /* Update C offset */
-    if (enableSwPreOpt) {
+    if (enable_sw_pre_opt && filter == VG_LITE_FILTER_POINT) {
         uint8_t indexC0 = 0;
         uint8_t indexC1 = 0;
         uint32_t temp0 = (uint32_t)(matrix->angle / 45);
@@ -5297,10 +5542,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         c_step[0] = c_step[0] + offsetTable[indexC0];
         c_step[1] = c_step[1] + offsetTable[indexC1];
     }
-#else
+    else
+#endif /* VG_SW_BLIT_PRECISION_OPT */
+    {
         c_step[0] = c_step[0] + offsetTable[0];
         c_step[1] = c_step[1] + offsetTable[0];
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+    }
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -5452,12 +5699,21 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
+    
+#if gcFEATURE_VG_BOUNDARY_FILTER_BYPASS && gcFEATURE_VG_16PIXELS_ALIGNED
+    if (rect_x == 0 && rect_y == 0) {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, ((rect_w + 15) & ~15) | (rect_h << 16)));
+    }else
+#endif  
+    {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
+    }
     
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt) {
-        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x + matrixOffsetX, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
-    } else
+    if (enable_sw_pre_opt) {
+        VG_LITE_RETURN_ERROR(push_rectangle(&s_context, image_display_top_left_on_new_target.x, image_display_top_left_on_new_target.y, image_display_range_on_new_target.x, image_display_range_on_new_target.y));
+    }
+    else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
     {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
@@ -5480,7 +5736,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
      s_context.filter = 0;
 
 #if VG_SW_BLIT_PRECISION_OPT
-    if (enableSwPreOpt)
+    if (enable_sw_pre_opt)
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
