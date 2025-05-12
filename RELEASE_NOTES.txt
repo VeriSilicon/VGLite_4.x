@@ -26,6 +26,16 @@ LIMITATION
 CHANGES
 =======
 
+May 2025: vglite_4_0_112
+-------------------------
+
+    1. Update the calculation method of bounding box when rendering strokes.
+    2. Fix the issue that peclear_align_check returns error abnormally .
+    3. Add software support for 24-bit planar format.
+    4. Add support for yuv format memory map.
+    5. Fix memory leaks in vector related apis.
+    6. Set tiled mode by default for ETC2 format in vg_lite_allocate.
+
 December 2024: vglite_4_0_106
 -------------------------
 
