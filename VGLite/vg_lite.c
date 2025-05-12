@@ -27,6 +27,14 @@
 
 #include "vg_lite_context.h"
 
+#if (CHIPID==0x255)
+extern vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
+                                               vg_lite_int32_t s_height,
+                                               vg_lite_matrix_t *matrix,
+                                               vg_lite_uint8_t push_states,
+                                               vg_lite_float_t **steps);
+#endif /* (CHIPID==0x255) */
+
 static float offsetTable[7] = {0, 0.000575f, -0.000575f, 0.0001f, -0.0001f, 0.0000375f, -0.0000375f};
 
 #if VG_SW_BLIT_PRECISION_OPT
@@ -4752,6 +4760,13 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
 
+#if (CHIPID==0x255)
+    vg_lite_float_t* steps[3];
+    steps[0] = x_step;
+    steps[1] = y_step;
+    steps[2] = c_step;
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 0, steps));
+#else
     /* Compute step values. */
     calculate_step_value(filter, &inverse_matrix, source->width, source->height, x_step, y_step, c_step);
 
@@ -4802,6 +4817,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
     else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif
     {
         c_step[0] = c_step[0] + offsetTable[0];
         c_step[1] = c_step[1] + offsetTable[0];
@@ -5546,6 +5562,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
 
+
+#if (CHIPID==0x255)
+    vg_lite_float_t* steps[3];
+    steps[0] = x_step;
+    steps[1] = y_step;
+    steps[2] = c_step;
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 0, steps));
+#else
     /* Compute step values. */
 #if VG_SW_BLIT_PRECISION_OPT
     vg_lite_int32_t tem_rect_w = rect_w;
@@ -5607,6 +5631,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     }
     else
 #endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif
     {
         c_step[0] = c_step[0] + offsetTable[0];
         c_step[1] = c_step[1] + offsetTable[0];
