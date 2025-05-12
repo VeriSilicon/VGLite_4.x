@@ -128,6 +128,12 @@
 #define gcFEATURE_VG_24BIT_PLANAR_SW 0
 #endif
 
+#if (CHIPID == 0X555) || (CHIPID == 0X355)
+#define VG_PRE_UPLOAD_PATH_SUPPORT 0
+#else
+#define VG_PRE_UPLOAD_PATH_SUPPORT 1
+#endif
+
 /* Driver implementation internal structures.
 */
 typedef struct vg_lite_states {

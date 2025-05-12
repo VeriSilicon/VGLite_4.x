@@ -457,8 +457,12 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
     if (!path->path) {
         path->path_length = vg_lite_get_path_length(cmd, seg_count, path->format);
 
+#if VG_PRE_UPLOAD_PATH_SUPPORT
         if (path->path_length > 64)
             path->uploaded.property = 1;
+#else
+        path->uploaded.property = 0;
+#endif
 
         if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
             vg_lite_error_t error = VG_LITE_SUCCESS;
