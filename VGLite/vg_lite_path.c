@@ -2992,7 +2992,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
 #endif
 
 #if gcFEATURE_VG_TRACE_API
@@ -3443,7 +3446,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
     if (source->sw24bit_buffer)
         source = source->sw24bit_buffer;
 #endif
@@ -4169,7 +4175,10 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     int temp_height = 0;
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
 #endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_linear_grad %p %p %d %p %p 0x%08X %d %d\n",
@@ -4821,7 +4830,10 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #endif
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
     if (target->sw24bit_buffer)
+    {
+        target->sw24bit_buffer->format = convert_24bit_format(target->format);
         target = target->sw24bit_buffer;
+    }
 #endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_radial_grad %p %p %d %p %p 0x%08X %d %d\n",
