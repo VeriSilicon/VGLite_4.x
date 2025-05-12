@@ -5568,7 +5568,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     steps[0] = x_step;
     steps[1] = y_step;
     steps[2] = c_step;
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 0, steps));
+    VG_LITE_RETURN_ERROR(set_interpolation_steps(rect_w, rect_h, matrix, 0, steps));
 #else
     /* Compute step values. */
 #if VG_SW_BLIT_PRECISION_OPT
