@@ -32,19 +32,35 @@ include(middleware_vglite_MIMXRT1176_cm7)
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
     "$<BUILD_INTERFACE:${VgliteDir}/vendor/nxp/rt1170>"
     "$<BUILD_INTERFACE:${VgliteDir}/VGLite>"
+    "$<BUILD_INTERFACE:${VgliteDir}/VGLiteKernel>"
     ${SdkTopDir}/rtos/freertos/freertos-kernel/include
     ${SdkTopDir}/rtos/freertos/freertos-kernel/portable/GCC/ARM_CM4F
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} INTERFACE
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/inc>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/VGLite>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/VGLiteKernel>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/VGLiteKernel/rtos>"
 )
 
 install(
-    FILES
-    ${SrcTopDir}/inc/vg_lite.h
-    ${SrcTopDir}/VGLiteKernel/rtos/vg_lite_platform.h
+    DIRECTORY ${SrcTopDir}/inc
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(
+    DIRECTORY ${SrcTopDir}/VGLite
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(
+    DIRECTORY ${SrcTopDir}/VGLiteKernel
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
 )
 
 install(
