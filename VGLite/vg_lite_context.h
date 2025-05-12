@@ -157,6 +157,15 @@ typedef struct vg_lite_tess_buffer
     vg_lite_uint32_t            tess_stride;           /*! Stride for tessellation buffer */
 } vg_lite_tess_buffer_t;
 
+typedef struct vg_lite_cache_cmd_info
+{
+    uint32_t                           fb_command_offset_start;
+    uint32_t                           fb_command_offset_end;
+    uint32_t                           special_register_offset_start;
+    uint32_t                           special_register_address;
+    struct vg_lite_cache_cmd_info     *next;
+} vg_lite_cache_cmd_info;
+
 typedef struct vg_lite_context {
     vg_lite_kernel_context_t    context;
     vg_lite_hardware_t          hw;
@@ -227,7 +236,10 @@ typedef struct vg_lite_context {
     uint32_t                    fb_command_buffer_physical;
     uint32_t                    fb_command_buffer_size;
     uint32_t                    fb_command_offset;
+    uint32_t                    fb_command_buffer_index;    
     uint32_t                    fb_finish_flag;
+    vg_lite_cache_cmd_info     *fb_command_buffer_start;
+    vg_lite_cache_cmd_info     *fb_command_buffer_end;
 
     uint32_t                    split_path;
 } vg_lite_context_t;
