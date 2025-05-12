@@ -652,8 +652,8 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_GPU_IDLE_STATE,                 /*! count must be 1 for GPU idle state TRUE or FALSE */
         VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
         VG_LITE_HARDWARE_RUNNING_TIME,          /*! count must be 1 */
-        VG_LITE_SRC_BUF_ALIGNED_CHECK,
-        VG_LITE_DST_BUF_ALIGNED_CHECK,
+        VG_LITE_SRC_BUF_ALIGNED_CHECK,          /*! count must be 1 for src buffer*/
+        VG_LITE_DST_BUF_ALIGNED_CHECK,          /*! count must be 1 for dst buffer*/
     } vg_lite_param_type_t;
 
     /* Vg lite buffer type */
