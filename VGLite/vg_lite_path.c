@@ -3004,6 +3004,9 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+    if (!path || !path->path) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -3019,9 +3022,6 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-    if (!path || !path->path) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!path->path_length) {
@@ -3459,6 +3459,9 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+    if (!path || !path->path) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -3524,9 +3527,6 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
-    if (!path || !path->path) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
 
     VG_LITE_RETURN_ERROR(srcbuf_align_check(source));
     VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
@@ -4186,6 +4186,9 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+    if (!path || !path->path) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -4219,9 +4222,6 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #endif
     if (source->format == VG_LITE_A4 || source->format == VG_LITE_A8) {
         return VG_LITE_NOT_SUPPORT;
-    }
-    if (!path || !path->path) {
-        return VG_LITE_INVALID_ARGUMENT;
     }
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
@@ -4841,6 +4841,9 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #endif
 
 #if gcFEATURE_VG_ERROR_CHECK
+    if (!path || !path->path) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
 #if !gcFEATURE_VG_QUALITY_8X
     if (path->quality == VG_LITE_UPPER) {
         return VG_LITE_NOT_SUPPORT;
@@ -4874,9 +4877,6 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #endif
     if (source->format == VG_LITE_A4 || source->format == VG_LITE_A8) {
         return VG_LITE_NOT_SUPPORT;
-    }
-    if (!path || !path->path) {
-        return VG_LITE_INVALID_ARGUMENT;
     }
     radius = grad->radial_grad.r;
     if (radius < 0) {
