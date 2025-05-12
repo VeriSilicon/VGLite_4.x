@@ -22,6 +22,34 @@
 *    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 *    DEALINGS IN THE SOFTWARE.
 *
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2022 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
+*
 *****************************************************************************/
 
 #ifndef _vg_lite_kernel_h_
@@ -29,6 +57,10 @@
 
 #include "../VGLite/vg_lite_options.h"
 #include "vg_lite_option.h"
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+#define CACHE_COMMAND_BUFFER_SIZE            1 << 20 
+#endif
 
 /* Interrupt IDs from GPU. */
 #define EVENT_UNEXPECTED_MESH  0x80000000
@@ -200,6 +232,8 @@ typedef enum vg_lite_kernel_command
     /* Set GPU clock state */
     VG_LITE_SET_GPU_CLOCK_STATE,
 
+    /* Excute command backed up by user */
+    VG_LITE_EXECUTE_BACKUP_COMMAND,
 }
 vg_lite_kernel_command_t;
 
@@ -246,6 +280,16 @@ typedef struct vg_lite_kernel_context {
     uint32_t                  power_context_capacity;
 }
 vg_lite_kernel_context_t;
+
+typedef struct frame_buffer_command {
+    void                     *handle;
+    void                     *command_buffer_logical;
+    void                     *command_buffer_klogical;
+    uint32_t                  command_buffer_physical;
+    uint32_t                  command_buffer_size;
+    uint32_t                  offset;
+}
+frame_buffer_command_t;
 
 typedef struct capabilities
 {
@@ -308,6 +352,15 @@ typedef struct vg_lite_kernel_initialize
 
     /* Width and height of tessellation buffer. */
     uint32_t tess_w_h;
+
+    /* Logical address of fb command buffer. */
+    void* fb_command_buffer;
+
+    /* Fb command buffer size. */
+    uint32_t fb_command_buffer_size;
+
+    /* GPU address of fb command buffer. */
+    uint32_t fb_command_buffer_gpu;
 }
 vg_lite_kernel_initialize_t;
 
@@ -515,6 +568,13 @@ typedef struct vg_lite_kernel_mem
     vg_lite_vidmem_pool_t pool;
 }
 vg_lite_kernel_mem_t;
+
+typedef struct vg_lite_kernel_cmdcache
+{
+    uint32_t physical;
+    uint32_t size;
+}
+vg_lite_kernel_cmdcache_t;
 
 typedef struct vg_lite_kernel_map_memory
 {

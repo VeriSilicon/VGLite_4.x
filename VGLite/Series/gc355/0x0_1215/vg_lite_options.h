@@ -78,14 +78,19 @@
 #define gcFEATURE_VG_YUV_TILED_INPUT            0
 #define gcFEATURE_VG_AYUV_INPUT                 0
 #define gcFEATURE_VG_16PIXELS_ALIGNED           1
+#define gcFEATURE_VG_PE_PREFETCH                1
 #define gcFEATURE_VG_DEC_COMPRESS_2_0           0
+#define gcFEATURE_VG_DEC_COMPRESS_2_1           0
 #define gcFEATURE_VG_NV24_INPUT                 0
 #define gcFEATURE_VG_TILED_LIMIT                0
 #define gcFEATURE_VG_SRC_ADDRESS_16BYTES_ALIGNED 0
 #define gcFEATURE_VG_SRC_ADDRESS_64BYTES_ALIGNED 0
+#define gcFEATURE_VG_SRC_ADDRESS_DETAIL_ALIGNED  0
+#define gcFEATURE_VG_SRC_ADDRESS_DETAIL_ALIGNED_1 0
 #define gcFEATURE_VG_SRC_TILE_4PIXELS_ALIGNED    0
 #define gcFEATURE_VG_SRC_BUF_ALINGED             0
 #define gcFEATURE_VG_DST_ADDRESS_64BYTES_ALIGNED 0
+#define gcFEATURE_VG_DST_ADDRESS_DETAIL_ALIGNED  0
 #define gcFEATURE_VG_DST_TILE_4PIXELS_ALIGNED    0
 #define gcFEATURE_VG_DST_BUF_ALIGNED             0
 #define gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED    0
@@ -95,6 +100,8 @@
 #define gcFEATURE_VG_512_PARALLEL_PATHS          1
 #define gcFEATURE_VG_CLOCK_GATING_TS_MODULE      1
 #define gcFEATURE_VG_CLOCK_GATING_VG_MODULE      1
+#define gcFEATURE_VG_512_HALF_SPLIT              1
+#define gcFEATURE_VG_SCREEN_COPY_FIX             1
 
 /* SW Features */
 #define gcFEATURE_VG_STROKE_PATH                1
@@ -104,6 +111,7 @@
 #define gcFEATURE_VG_POWER_MANAGEMENT           0
 #define gcFEATURE_VG_TILED_MODE                 1
 #define gcFEATURE_VG_SINGLE_COMMAND_BUFFER      0
+#define gcFEATURE_VG_COMMAND_BUFFER_CACHE       0
 
 /***
 #define gcFEATURE_VG_RESOLUTION_8K              1

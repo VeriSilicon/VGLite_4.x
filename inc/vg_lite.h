@@ -231,9 +231,12 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_TILED_MODE,
         gcFEATURE_BIT_VG_SRC_ADDRESS_16BYTES_ALIGNED,
         gcFEATURE_BIT_VG_SRC_ADDRESS_64BYTES_ALIGNED,
+        gcFEATURE_BIT_VG_SRC_ADDRESS_DETAIL_ALIGNED,
+        gcFEATURE_BIT_VG_SRC_ADDRESS_DETAIL_ALIGNED_1,
         gcFEATURE_BIT_VG_SRC_TILE_4PIXELS_ALIGNED,
         gcFEATURE_BIT_VG_SRC_BUF_ALINGED,
         gcFEATURE_BIT_VG_DST_ADDRESS_64BYTES_ALIGNED,
+        gcFEATURE_BIT_VG_DST_ADDRESS_DETAIL_ALIGNED,
         gcFEATURE_BIT_VG_DST_TILE_4PIXELS_ALIGNED,
         gcFEATURE_BIT_VG_DST_BUF_ALIGNED,
         gcFEATURE_BIT_VG_DST_24BIT_PLANAR_ALIGNED,
@@ -241,6 +244,8 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_FORMAT_SUPPORT_CHECK,
         gcFEATURE_BIT_VG_YUV_ALIGNED_CHECK,
         gcFEATURE_BIT_VG_512_PARALLEL_PATHS,
+        gcFEATURE_BIT_VG_DEC_COMPRESS_2_1,
+        gcFEATURE_BIT_24BIT_PLANAR_SW,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 
@@ -461,7 +466,7 @@ typedef unsigned int        vg_lite_color_t;
                                                             /*!  A:   Sa*Da                                      !*/
         VG_LITE_BLEND_DST_IN                    = 4,        /*!  RGB: D*Sa                                       !*/
                                                             /*!  A:   Da*Sa                                      !*/
-        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  RGB: S*(1 - Da) + D*(1 - Sa) + S*D              !*/
+        VG_LITE_BLEND_MULTIPLY                  = 5,        /*!  RGB: S*(1 - Da + D) + D*(1 - Sa)                !*/
                                                             /*!  A:   Sa*(1 - Da) + Da*(1 - Sa) + Sa*Da          !*/
         VG_LITE_BLEND_SCREEN                    = 6,        /*!  RGB: S + D - S*D                                !*/
                                                             /*!  A:   Sa + Da - Sa*Da                            !*/
@@ -477,7 +482,7 @@ typedef unsigned int        vg_lite_color_t;
                                                             /*!  A:   0xFF                                       !*/
         VG_LITE_BLEND_ADDITIVE_LVGL             = 12,       /*!  RGB: (S + D)*Sa + D*(1 - Sa)                    !*/
                                                             /*!  A:   0xFF                                       !*/
-        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  RGB: (S - D)*Sa + D*(1 - Sa)                    !*/
+        VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  RGB: (D - S)*Sa + D*(1 - Sa)                    !*/
                                                             /*!  A:   0xFF                                       !*/
         VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  RGB: (S*D)*Sa + D*(1 - Sa)                      !*/
                                                             /*!  A:   0xFF                                       !*/
@@ -647,6 +652,8 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_GPU_IDLE_STATE,                 /*! count must be 1 for GPU idle state TRUE or FALSE */
         VG_LITE_SCISSOR_RECT,                   /*! count must be 4n for x, y, right, bottom */
         VG_LITE_HARDWARE_RUNNING_TIME,          /*! count must be 1 */
+        VG_LITE_SRC_BUF_ALIGNED_CHECK,
+        VG_LITE_DST_BUF_ALIGNED_CHECK,
     } vg_lite_param_type_t;
 
     /* Vg lite buffer type */
@@ -668,6 +675,14 @@ typedef unsigned int        vg_lite_color_t;
     {
         VG_LITE_FRAME_END_FLAG = 1,
     } vg_lite_frame_flag_t;
+
+    typedef enum vg_lite_cmdcache_operation
+    {
+        VG_LITE_CMDCACHE_START   = 0,
+        VG_LITE_CMDCACHE_END     = 1,
+        VG_LITE_CMDCACHE_CLEAR   = 3,
+        VG_LITE_CMDCACHE_EXECUTE = 4,
+    } vg_lite_cmdcache_operation_t;
 
 /* VGLite API Structures ******************************************************************************************************************/
 
@@ -724,10 +739,13 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint32_t alpha_stride;          /*! Alpha stride. */
         vg_lite_uint32_t uv_height;             /*! UV(U) height. */
         vg_lite_uint32_t v_height;              /*! V height. */
+        vg_lite_uint32_t alpha_height;          /*! Alpha height. */
         vg_lite_pointer uv_memory;              /*! The logical pointer to the UV(U) planar memory. */
         vg_lite_pointer v_memory;               /*! The logical pointer to the V planar memory. */
+        vg_lite_pointer alpha_memory;           /*! The logical pointer to the Alpha planar memory. */
         vg_lite_pointer uv_handle;              /*! The memory handle of the UV(U) planar. */
         vg_lite_pointer v_handle;               /*! The memory handle of the V planar. */
+        vg_lite_pointer alpha_handle;           /*! The memory handle of the Alpha planar. */
     } vg_lite_yuvinfo_t;
 
     typedef struct vg_lite_path_point* vg_lite_path_point_ptr;
@@ -892,28 +910,31 @@ typedef unsigned int        vg_lite_color_t;
     /* Structure for any image or render target. */
     typedef struct vg_lite_buffer
     {
-        vg_lite_int32_t width;                  /*! Width of the buffer in pixels. */
-        vg_lite_int32_t height;                 /*! Height of the buffer in pixels. */
-        vg_lite_int32_t stride;                 /*! The number of bytes to move from one line in the buffer to the next line. */
-        vg_lite_buffer_layout_t tiled;          /*! Indicating the buffer memory layout is linear or tiled. */
-        vg_lite_buffer_format_t format;         /*! The pixel format of the buffer. */
-        vg_lite_pointer handle;                 /*! The memory handle of the buffer's memory as allocated by the VGLite kernel. */
-        vg_lite_pointer memory;                 /*! The logical pointer to the buffer's memory for the CPU. */
-        vg_lite_uint32_t address;               /*! The address to the buffer's memory for the hardware. */
-        vg_lite_memory_pool_t pool;             /*! The buffer's memory pool. */
-        vg_lite_yuvinfo_t yuv;                  /*! The yuv format details. */
-        vg_lite_image_mode_t image_mode;        /*! The blit image mode. */
-        vg_lite_transparency_t transparency_mode; /*! image transparency mode. */
-        vg_lite_fc_buffer_t fc_buffer[3];       /*! 3 fastclear buffers,reserved YUV format. */
-        vg_lite_compress_mode_t compress_mode;  /*! Refer to the definition by vg_lite_compress_mode_t. */
-        vg_lite_index_endian_t index_endian;    /*! Refer to the definition by vg_lite_index_endian_t. */
-        vg_lite_paint_type_t paintType;         /*! Get paintcolor from different paint types. */
-        vg_lite_uint8_t fc_enable;              /*! enable im fastclear. */
-        vg_lite_uint8_t scissor_buffer;         /*! The buffer is scissor mask buffer. */
-        vg_lite_uint8_t premultiplied;          /*! The RGB pixel values are alpha-premultipled */
-        vg_lite_uint8_t apply_premult;          /*! Need to apply alpha-premultiply */
-        struct vg_lite_buffer *lvgl_buffer;     /*! Buffer for SW LVGL blending support */
-        vg_lite_color_t bg_color;               /*! Background for edge filter */
+        vg_lite_int32_t width;                          /*! Width of the buffer in pixels. */
+        vg_lite_int32_t height;                         /*! Height of the buffer in pixels. */
+        vg_lite_int32_t stride;                         /*! The number of bytes to move from one line in the buffer to the next line. */
+        vg_lite_buffer_layout_t tiled;                  /*! Indicating the buffer memory layout is linear or tiled. */
+        vg_lite_buffer_format_t format;                 /*! The pixel format of the buffer. */
+        vg_lite_pointer handle;                         /*! The memory handle of the buffer's memory as allocated by the VGLite kernel. */
+        vg_lite_pointer memory;                         /*! The logical pointer to the buffer's memory for the CPU. */
+        vg_lite_uint32_t address;                       /*! The address to the buffer's memory for the hardware. */
+        vg_lite_memory_pool_t pool;                     /*! The buffer's memory pool. */
+        vg_lite_yuvinfo_t yuv;                          /*! The yuv format details. */
+        vg_lite_image_mode_t image_mode;                /*! The blit image mode. */
+        vg_lite_transparency_t transparency_mode;       /*! image transparency mode. */
+        vg_lite_fc_buffer_t fc_buffer[3];               /*! 3 fastclear buffers,reserved YUV format. */
+        vg_lite_compress_mode_t compress_mode;          /*! Refer to the definition by vg_lite_compress_mode_t. */
+        vg_lite_index_endian_t index_endian;            /*! Refer to the definition by vg_lite_index_endian_t. */
+        vg_lite_paint_type_t paintType;                 /*! Get paintcolor from different paint types. */
+        vg_lite_uint8_t fc_enable;                      /*! enable im fastclear. */
+        vg_lite_uint8_t scissor_buffer;                 /*! The buffer is scissor mask buffer. */
+        vg_lite_uint8_t premultiplied;                  /*! The RGB pixel values are alpha-premultipled */
+        vg_lite_uint8_t apply_premult;                  /*! Need to apply alpha-premultiply */
+        struct vg_lite_buffer *lvgl_buffer;             /*! Buffer for SW LVGL blending support */
+        struct vg_lite_buffer *sw24bit_buffer;          /*! Buffer cache for SW 24bit-planar support */
+        struct vg_lite_buffer *sw24bit_planar_buffer;   /*! sw24bit-planar_buffer is the original buffer of sw24bit_buffer */
+        vg_lite_color_t bg_color;                       /*! Background for edge filter */
+        vg_lite_uint8_t screen_copy;                    /*! Flag to optimize bandwidth when enable dec and copy image to full dst buffer without blending */
     } vg_lite_buffer_t;
 
     /* Path info for drawing command. */
@@ -1016,9 +1037,9 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint8_t low_g;                  /*! The G chanel of low_rgb. */
         vg_lite_uint8_t low_b;                  /*! The B chanel of low_rgb. */
         vg_lite_uint8_t alpha;                  /*! The alpha channel to replace destination pixel alpha channel.*/
-        vg_lite_uint8_t hign_r;                 /*! The R chanel of hign_rgb. */
-        vg_lite_uint8_t hign_g;                 /*! The G chanel of hign_rgb. */
-        vg_lite_uint8_t hign_b;                 /*! The B chanel of hign_rgb. */
+        vg_lite_uint8_t high_r;                 /*! The R chanel of high_rgb. */
+        vg_lite_uint8_t high_g;                 /*! The G chanel of high_rgb. */
+        vg_lite_uint8_t high_b;                 /*! The B chanel of high_rgb. */
     } vg_lite_color_key_t;
 
     /* Four colorkey definition.
@@ -1313,7 +1334,7 @@ typedef unsigned int        vg_lite_color_t;
     /* Rotate a matrix. */
     vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t *matrix);
 
-    /* Set and enable a scissor rectangle for render target. */
+    /* Set and enable a scissor rectangle for render target. Call vg_lite_set_scissor(-1,-1,-1,-1)to disable scissor. */
     vg_lite_error_t vg_lite_set_scissor(vg_lite_int32_t x, vg_lite_int32_t y, vg_lite_int32_t right, vg_lite_int32_t bottom);
 
     /* Set scissor rectangles on mask layer. Scissor rects are enabled/disabled by following APIs. */
@@ -1479,6 +1500,21 @@ typedef unsigned int        vg_lite_color_t;
      * An interrupt will be received to indicate that GPU is idle.
      */
     vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag);
+
+    /* Using this API should set gcFEATURE_VG_COMMAND_BUFFER_CACHE to 1 in VGLite\vg_lite_options.h,
+     * and set gcdVG_ENABLE_COMMAND_BUFFER_CACHE to 1 in VGLiteKernel\vg_lite_option.h.
+     * VGLite command buffers can be saved and re-executed by application.
+     */
+    vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation);
+
+    /* This optional API is for enabling/disabling the path-spliting workaround for specific VG cores.
+     */
+    vg_lite_error_t vg_lite_split_path(vg_lite_uint32_t endis);
+    
+    /* Using this API should set DUMP_API to 1 in VGLite\vg_lite_context.h.
+     * This API can control whether function 'dump api' is enabled or disabled.
+     */
+    vg_lite_error_t vg_lite_set_dump_api(vg_lite_char flag);
 
 #endif /* VGLITE_VERSION_3_0 */
 

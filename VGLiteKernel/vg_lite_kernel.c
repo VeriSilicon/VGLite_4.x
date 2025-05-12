@@ -22,6 +22,34 @@
 *    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 *    DEALINGS IN THE SOFTWARE.
 *
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2022 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
+*
 *****************************************************************************/
 
 #include "vg_lite_platform.h"
@@ -72,6 +100,10 @@ static uint32_t backup_command_buffer_size;
 uint32_t init_buffer[12];
 uint32_t is_init;
 size_t physical_address;
+#endif
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+static frame_buffer_command_t fb_command_backup = { 0 }; 
 #endif
 
 static int s_reference = 0;
@@ -300,6 +332,11 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_context_t * context;
     vg_lite_uint32_t flags = 0, i;
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+    vg_lite_kernel_terminate_t fb_terminate;
+#endif
+
 #if gcdVG_ENABLE_BACKUP_COMMAND
     vg_lite_uint32_t index;
 #endif
@@ -345,6 +382,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
     context->tess_buffer            = NULL;
     context->tessbuf_logical    = NULL;
     context->tessbuf_physical   = 0;
+
 #if gcdVG_ENABLE_BACKUP_COMMAND
     global_power_context.power_context_logical = NULL;
     global_power_context.power_context_klogical = NULL;
@@ -353,6 +391,15 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
     global_power_context.power_context_capacity = 32 << 10;
     global_power_context.power_context_size = 0;
 #endif
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+    fb_command_backup.handle = NULL;
+    fb_command_backup.command_buffer_logical = NULL;
+    fb_command_backup.command_buffer_klogical = NULL;
+    fb_command_backup.command_buffer_physical = 0;
+    fb_command_backup.command_buffer_size = CACHE_COMMAND_BUFFER_SIZE;
+#endif
+
     /* Increment reference counter. */
     if (s_reference++ == 0) {
         /* Initialize the SOC. */
@@ -452,6 +499,35 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         global_power_context.power_context_size = index * 4;
     }
 #endif
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+    if (fb_command_backup.command_buffer_size) {
+        error = vg_lite_kernel_vidmem_allocate(&fb_command_backup.command_buffer_size,
+                                               flags,
+                                               VG_LITE_POOL_RESERVED_MEMORY1,
+                                               &fb_command_backup.command_buffer_logical,
+                                               &fb_command_backup.command_buffer_klogical,
+                                               &fb_command_backup.command_buffer_physical,
+                                               &fb_command_backup.handle);
+        if (error != VG_LITE_SUCCESS) {
+            vg_lite_kernel_context_t fb_context;
+            fb_context.command_buffer[0] = fb_command_backup.handle;
+            fb_context.command_buffer_logical[0] = fb_command_backup.command_buffer_logical;
+            fb_context.command_buffer_klogical[0] = fb_command_backup.command_buffer_klogical;
+            fb_context.command_buffer_physical[0] = fb_command_backup.command_buffer_physical;
+
+            /* Free any allocated memory. */
+            fb_terminate.context = &fb_context;
+            do_terminate(&fb_terminate);
+            ONERROR(error);
+        }
+
+        data->fb_command_buffer = fb_command_backup.command_buffer_logical;
+        data->fb_command_buffer_gpu = fb_command_backup.command_buffer_physical;
+        data->fb_command_buffer_size = fb_command_backup.command_buffer_size;
+    }
+#endif
+
     /* Allocate the tessellation buffer. */
     if ((data->tess_width > 0) && (data->tess_height > 0)) 
     {
@@ -611,6 +687,15 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
         global_power_context.power_context = NULL;
     }
 #endif
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+    if (fb_command_backup.handle) {
+        /* Free the backup command buffer. */
+        vg_lite_kernel_vidmem_free(fb_command_backup.handle);
+        fb_command_backup.handle = NULL;
+    }
+#endif
+
     if (context->tess_buffer) {
         /* Free the tessellation buffer. */
         vg_lite_kernel_vidmem_free(context->tess_buffer);
@@ -1135,6 +1220,27 @@ static vg_lite_error_t do_query_mem(vg_lite_kernel_mem_t * data)
     return error;
 }
 
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+static vg_lite_error_t do_execute_backup_command(vg_lite_kernel_cmdcache_t* data)
+{
+    vg_lite_kernel_wait_t wait;
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    vg_lite_set_gpu_execute_state(VG_LITE_GPU_RUN);
+    wait.timeout_ms = 5000;
+    wait.event_mask = (uint32_t)~0;
+    wait.reset_type = RESTORE_ALL_COMMAND;
+
+    /* submit command to GPU. */
+    vg_lite_hal_barrier();
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_ADDRESS, data->physical);
+    vg_lite_hal_poke(VG_LITE_HW_CMDBUF_SIZE, (data->size + 7) / 8);
+
+    error = do_wait(&wait);
+    return error;
+}
+#endif
+
 #if gcdVG_ENABLE_DELAY_RESUME
 static vg_lite_error_t set_delay_resume(vg_lite_kernel_delay_resume_t* data)
 {
@@ -1354,6 +1460,12 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         case VG_LITE_SET_GPU_CLOCK_STATE:
             return set_gpu_clock_state(data);
 #endif
+
+#if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
+        case VG_LITE_EXECUTE_BACKUP_COMMAND:
+            return do_execute_backup_command(data);
+#endif
+
         default:
             break;
     }
