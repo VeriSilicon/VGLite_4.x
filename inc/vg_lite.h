@@ -1505,7 +1505,7 @@ typedef unsigned int        vg_lite_color_t;
      * and set gcdVG_ENABLE_COMMAND_BUFFER_CACHE to 1 in VGLiteKernel\vg_lite_option.h.
      * VGLite command buffers can be saved and re-executed by application.
      */
-    vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation);
+    vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, int *buf_index, vg_lite_matrix_t *matrix);
 
     /* This optional API is for enabling/disabling the path-spliting workaround for specific VG cores.
      */

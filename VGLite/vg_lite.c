@@ -610,6 +610,44 @@ static inline int32_t has_valid_command_buffer(vg_lite_context_t *context)
     return 1;
 }
 
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+void ptr_modify_cache_command(vg_lite_context_t *context, uint32_t offset, void *data_ptr)
+{
+    uint32_t data = *(uint32_t*)data_ptr;
+    ((uint32_t*)(context->fb_command_buffer + offset))[1] = data;
+}
+
+vg_lite_error_t modify_matrix_cache_command(vg_lite_cache_cmd_info *execute_buf, vg_lite_matrix_t *value)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+ 
+    if (value == NULL)
+        return VG_LITE_SUCCESS;
+    else
+    {
+        vg_lite_matrix_t* matrix = value;
+        float new_matrix[6];
+        new_matrix[0] = matrix->m[0][0];
+        new_matrix[1] = matrix->m[0][1];
+        new_matrix[2] = matrix->m[0][2];
+        new_matrix[3] = matrix->m[1][0];
+        new_matrix[4] = matrix->m[1][1];
+        new_matrix[5] = matrix->m[1][2];
+
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start, (void*)&new_matrix[0]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 8, (void*)&new_matrix[1]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 16, (void*)&new_matrix[2]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 24, (void*)&new_matrix[3]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 32, (void*)&new_matrix[4]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 40, (void*)&new_matrix[5]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 48, (void*)&matrix->m[0][2]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 56, (void*)&matrix->m[1][2]);
+    }
+
+    return error;
+}
+#endif
+
 typedef vg_lite_float_t  FLOATVECTOR4[4];
 
 static void ClampColor(FLOATVECTOR4 Source, FLOATVECTOR4 Target, uint8_t Premultiplied)
@@ -2641,6 +2679,9 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
             ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
             ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
 
+            if (s_context.fb_command_buffer_end->special_register_address && address == s_context.fb_command_buffer_end->special_register_address)
+                s_context.fb_command_buffer_end->special_register_offset_start = context->fb_command_offset;
+
             context->fb_command_offset += 8;
         }
 #endif
@@ -2701,6 +2742,9 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
         if (context->backup_fb_command_flag) {
             ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
             ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
+
+            if (s_context.fb_command_buffer_end->special_register_address && address == s_context.fb_command_buffer_end->special_register_address)
+                s_context.fb_command_buffer_end->special_register_offset_start = context->fb_command_offset;
 
             context->fb_command_offset += 8;
         }
@@ -5895,6 +5939,7 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
     s_context.fb_command_buffer = (uint8_t*)initialize.fb_command_buffer;
     s_context.fb_command_buffer_size = initialize.fb_command_buffer_size;
     s_context.fb_command_buffer_physical = initialize.fb_command_buffer_gpu;
+    s_context.fb_command_buffer_index = 0;
 #endif
 
     if ((tess_width  > 0) && (tess_height > 0))
@@ -5985,6 +6030,21 @@ vg_lite_error_t vg_lite_close(void)
         unmap.bytes = s_context.tessbuf.tessbuf_size + s_context.tessbuf.countbuf_size;
         unmap.logical = s_context.tessbuf.logical_addr;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_UNMAP_MEMORY, &unmap));
+    }
+    
+    if (s_context.fb_command_buffer_start)
+    {
+        vg_lite_cache_cmd_info* buf_start = s_context.fb_command_buffer_start;
+        vg_lite_cache_cmd_info* buf_next = NULL;
+
+        while (buf_start != NULL)
+        {
+            buf_next = buf_start->next;
+            vg_lite_os_free(buf_start);
+            buf_start = buf_next;
+        }
+
+        s_context.fb_command_buffer_start = NULL;
     }
 
     /* Termnate the draw context. */
@@ -8493,7 +8553,7 @@ vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag)
     return error;
 }
 
-vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation)
+vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, int *buf_index, vg_lite_matrix_t *matrix)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
@@ -8502,22 +8562,79 @@ vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation)
 
     switch (operation) {
     case VG_LITE_CMDCACHE_START:
+    {
         s_context.backup_fb_command_flag = 1;
+        vg_lite_cache_cmd_info* current_buf = (vg_lite_cache_cmd_info*)vg_lite_os_malloc(sizeof(vg_lite_cache_cmd_info));
+        memset(current_buf, 0, sizeof(vg_lite_cache_cmd_info));
+
+        if (!s_context.fb_command_buffer_start)
+            s_context.fb_command_buffer_start = s_context.fb_command_buffer_end = current_buf;
+        else
+        {
+            s_context.fb_command_buffer_end->next = current_buf;
+            s_context.fb_command_buffer_end = current_buf;
+        }
+
+        while ((s_context.fb_command_offset & (64-1)) != 0)
+            s_context.fb_command_offset += 8;
+
+        if (matrix)
+            current_buf->special_register_address = 0x0A40;
+
+        current_buf->fb_command_offset_start = s_context.fb_command_offset;
+        current_buf->next = NULL;
+        
+        *buf_index = s_context.fb_command_buffer_index;
+
         break;
+    }
 
     case VG_LITE_CMDCACHE_END:
+    {
         s_context.backup_fb_command_flag = 0;
+        s_context.fb_command_buffer_end->fb_command_offset_end = s_context.fb_command_offset;
+        s_context.fb_command_buffer_index++;
+
         break;
+    }
 
     case VG_LITE_CMDCACHE_CLEAR:
+    {
         s_context.fb_command_offset = 0;
+        s_context.fb_command_buffer_index = 0;
+        vg_lite_cache_cmd_info* buf_start = s_context.fb_command_buffer_start;
+        vg_lite_cache_cmd_info* buf_next = NULL;
+
+        while (buf_start != NULL)
+        {
+            buf_next = buf_start->next;
+            vg_lite_os_free(buf_start);
+            buf_start = buf_next;
+        }
+        
+        s_context.fb_command_buffer_start = NULL;
+
         break;
+    }                
 
     case VG_LITE_CMDCACHE_EXECUTE:
-        data.physical = s_context.fb_command_buffer_physical;
-        data.size = s_context.fb_command_offset;
+    {
+        int temp_index = *buf_index;
+        vg_lite_cache_cmd_info* execute_buf = s_context.fb_command_buffer_start;
+
+        for (int i = 0; i < temp_index; i++) {
+            execute_buf = execute_buf->next;
+        }
+
+        if (matrix && execute_buf->special_register_address)
+            modify_matrix_cache_command(execute_buf, matrix);
+
+        data.physical = s_context.fb_command_buffer_physical + execute_buf->fb_command_offset_start;
+        data.size = execute_buf->fb_command_offset_end - execute_buf->fb_command_offset_start;
         vg_lite_kernel(VG_LITE_EXECUTE_BACKUP_COMMAND, &data);
+
         break;
+    }
 
     default:
         error = VG_LITE_INVALID_ARGUMENT;
