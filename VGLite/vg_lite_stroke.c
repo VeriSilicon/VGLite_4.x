@@ -4891,7 +4891,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     float* pfloat, * fpath;
     char* cpath, * pathdata;
     vg_lite_control_coord_t coords;
-    char add_end = path->add_end;
+    char add_end;
     vg_lite_int32_t bytes;
     vg_lite_pointer path_data_fp32 = path_data;
     int8_t cmd, * path_data_s8_ptr;
@@ -4903,15 +4903,17 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     coords.lastX = s_context.path_lastX;
     coords.lastY = s_context.path_lastY;
     
+    if (path == NULL || path_data == NULL)
+        return VG_LITE_INVALID_ARGUMENT;
+
+    add_end = path->add_end;
+
     if (VLM_PATH_GET_UPLOAD_BIT(*path))
         path->uploaded.property = 0;
 
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_init_arc_path %p %d %d %d %p %f %f %f %f\n", path, data_format, quality, path_length, path_data, min_x, min_y, max_x, max_y);
 #endif
-
-    if (path == NULL || path_data == NULL)
-        return VG_LITE_INVALID_ARGUMENT;
 
     /* Path data cannot end with a CLOSE op. Replace CLOSE with END for path_data */
     data_size = get_data_size(data_format);
@@ -5066,6 +5068,9 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
         path->uploaded.bytes = 0;
         path->uploaded.handle = NULL;
         path->uploaded.memory = NULL;
+
+        if (path_data_fp32 != NULL)
+            vg_lite_os_free(path_data_fp32);
         return VG_LITE_SUCCESS;
     }
     path->add_end = add_end;
@@ -5075,7 +5080,7 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     path->bounding_box[3] = max_y;
     pathdata = (char*)vg_lite_os_malloc(path_length);
     if (pathdata == NULL)
-        return VG_LITE_OUT_OF_RESOURCES;
+        VG_LITE_ERROR_HANDLER(VG_LITE_OUT_OF_RESOURCES);
 #if(CHIPID == 0x355)
     memset(pathdata, 0, path_length);
 #endif
@@ -5599,8 +5604,14 @@ vg_lite_error_t vg_lite_init_arc_path(vg_lite_path_t* path,
     return VG_LITE_SUCCESS;
 
 ErrorHandler:
-    vg_lite_os_free(pathdata);
-    pathdata = NULL;
+    if (pathdata != NULL) {
+        vg_lite_os_free(pathdata);
+        pathdata = NULL;
+    }
+    if (path_data_fp32 != NULL) {
+        vg_lite_os_free(path_data_fp32);
+        path_data_fp32 = NULL;
+    }
     return error;
 }
 
