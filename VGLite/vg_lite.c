@@ -6116,7 +6116,8 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
         map.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
         map.logical = buffer->yuv.uv_memory;
         map.physical = buffer->yuv.uv_planar;
-        map.memory_gpu = map.memory_handle = 0;
+        map.memory_gpu = 0;
+        map.memory_handle = NULL;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
         buffer->yuv.uv_handle = map.memory_handle;
         buffer->yuv.uv_planar = map.memory_gpu;
@@ -6124,7 +6125,7 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
         if ((buffer->format == VG_LITE_ANV12) || (buffer->format == VG_LITE_ANV12_TILED)) {
             map.bytes = yplane_size / 2;
             map.logical = buffer->yuv.alpha_memory;
-            map.physical = buffer->yuv.alpha_handle;
+            map.physical = 0;
             map.memory_gpu = 0;
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
             buffer->yuv.alpha_handle = map.memory_handle;
@@ -6135,16 +6136,18 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
         /* Map buffer memory: U, V. */
         map.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
         map.logical = buffer->yuv.uv_memory;
-        map.physical = buffer->yuv.uv_handle;
-        map.memory_gpu = map.memory_handle = 0;
+        map.physical = 0;
+        map.memory_gpu = 0;
+        map.memory_handle = NULL;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
         buffer->yuv.uv_handle = map.memory_handle;
         buffer->yuv.uv_planar = map.memory_gpu;
 
         map.bytes = buffer->yuv.v_stride * buffer->yuv.v_height;
         map.logical = buffer->yuv.v_memory;
-        map.physical = buffer->yuv.v_handle;
-        map.memory_gpu = map.memory_handle = 0;
+        map.physical = 0;
+        map.memory_gpu = 0;
+        map.memory_handle = NULL;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_MAP, &map));
         buffer->yuv.v_handle = map.memory_handle;
         buffer->yuv.v_planar = map.memory_gpu;
