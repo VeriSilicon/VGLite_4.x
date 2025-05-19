@@ -1,6 +1,8 @@
 /****************************************************************************
 *
-*    Copyright (c) 2014 - 2022 Vivante Corporation
+*    The MIT License (MIT)
+*
+*    Copyright (c) 2014 - 2025 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -93,13 +95,13 @@ static ulong contiguousBases[VG_SYSTEM_RESERVE_COUNT] = {
 module_param_array(contiguousBases, ulong, NULL, 0644);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
-# if gcdIRQ_SHARED
+#if gcdIRQ_SHARED
 #  define gcdIRQF_FLAG    (IRQF_SHARED)
 # else
 #  define gcdIRQF_FLAG    0
 # endif
 #else
-# if gcdIRQ_SHARED
+#if gcdIRQ_SHARED
 #  define gcdIRQF_FLAG    (IRQF_DISABLED | IRQF_SHARED | IRQF_TRIGGER_HIGH)
 # else
 #  define gcdIRQF_FLAG    (IRQF_DISABLED | IRQF_TRIGGER_HIGH)
@@ -500,7 +502,7 @@ map_to_user(vg_lite_uint64_t physical, vg_lite_pointer klogical,
 #if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64
             if (dma_mmap_coherent(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
 #else
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
             if (dma_mmap_wc(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
 # else
             if (dma_mmap_writecombine(dev, vma, klogical, physical, num_pages << PAGE_SHIFT) < 0)
@@ -545,7 +547,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logi
 #if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !gcdVG_ENABLE_WRITEBUFFER
     _klogical = dma_alloc_coherent(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
 #else
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
     _klogical = dma_alloc_wc(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
 # else
     _klogical = dma_alloc_writecombine(dev, num_pages * PAGE_SIZE, &dma_addr, gfp);
@@ -556,7 +558,7 @@ vg_lite_error_t vg_lite_hal_dma_alloc(uint32_t *size, uint32_t flag, void **logi
         ONERROR(VG_LITE_OUT_OF_MEMORY);
 
 #if defined(CONFIG_X86)
-# if gcdVG_ENABLE_WRITEBUFFER
+#if gcdVG_ENABLE_WRITEBUFFER
     ret = set_memory_wc((vg_lite_long_t)_klogical, num_pages);
     if (ret != 0)
         vg_lite_kernel_error("%s(%d): failed to set_memory_wc, ret = %d\n", __func__, __LINE__, ret);
@@ -594,7 +596,7 @@ vg_lite_error_t vg_lite_hal_dma_free(uint32_t size, void *logical, void *klogica
     defined CONFIG_PPC || defined CONFIG_ARM64
     dma_free_coherent(dev, num_pages * PAGE_SIZE, kvaddr, physical);
 #else
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
     dma_free_wc(dev, num_pages * PAGE_SIZE, klogical, physical);
 # else
     dma_free_writecombine(dev, num_pages * PAGE_SIZE, klogical, physical);
@@ -1321,7 +1323,7 @@ on_error:
 }
 
 /* called by dma_buf_attach() */
-# if LINUX_VERSION_CODE > KERNEL_VERSION(4, 18, 20)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 18, 20)
 static vg_lite_int32_t dmabuf_attach(struct dma_buf *dmabuf, struct dma_buf_attachment *attachment)
 # else
 static vg_lite_int32_t dmabuf_attach(struct dma_buf *dmabuf, struct device *dev, struct dma_buf_attachment *attachment)
@@ -1343,7 +1345,7 @@ static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attachment
     struct sg_table *sgt = NULL;
     struct dma_buf *dmabuf = attachment->dmabuf;
     vg_lite_kernel_allocate_t *_memory_node = dmabuf->priv;
-# if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
     DEFINE_DMA_ATTRS(attrs);
 # else
     vg_lite_long_t attrs = 0;
@@ -1356,7 +1358,7 @@ static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attachment
         return NULL;
     }
 
-# if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
     if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, &attrs) == 0) {
 # else
     if (dma_map_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, attrs) == 0) {
@@ -1375,13 +1377,13 @@ static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attachment
 static void dmabuf_unmap_dma_buf(struct dma_buf_attachment *attachment,
                                  struct sg_table *sgt, enum dma_data_direction direction)
 {
-# if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
     DEFINE_DMA_ATTRS(attrs);
 # else
     vg_lite_long_t attrs = 0;
 # endif
 
-# if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
     dma_unmap_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, &attrs);
 # else
     dma_unmap_sg_attrs(attachment->dev, sgt->sgl, sgt->nents, direction, attrs);
@@ -1475,7 +1477,7 @@ vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
         ONERROR(VG_LITE_NOT_SUPPORT);
     }
 
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
     exp_info.ops = &dmabuf_ops;
     exp_info.size = memory_node->bytes;
     exp_info.flags = O_CLOEXEC;
@@ -1751,7 +1753,7 @@ static void *map_contiguous_memory_to_kernel(vg_lite_uintptr_t physical, vg_lite
     }
 #endif
 
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
     contiguous_klogical = ioremap(physical, size);
 # else
     contiguous_klogical = ioremap_nocache(physical, size);
@@ -2002,7 +2004,7 @@ static struct file_operations file_operations =
     .read           = drv_read,
     .unlocked_ioctl = drv_ioctl,
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 8, 18)
-# ifdef HAVE_COMPAT_IOCTL
+#ifdef HAVE_COMPAT_IOCTL
     .compat_ioctl   = drv_ioctl,
 # endif
 #else
@@ -2145,7 +2147,7 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
 #if defined CONFIG_MIPS || defined CONFIG_CPU_CSKYV2 || defined CONFIG_PPC || defined CONFIG_ARM64 || !gcdVG_ENABLE_WRITEBUFFER
     _klogical = dma_alloc_coherent(dev, heap_size, &dma_addr, gfp);
 #else
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
     _klogical = dma_alloc_wc(dev, heap_size, &dma_addr, gfp);
 # else
     _klogical = dma_alloc_writecombine(dev, heap_size, &dma_addr, gfp);
@@ -2410,8 +2412,8 @@ static vg_lite_int32_t gpu_resume(struct platform_device *dev)
     return 0;
 }
 
-# if defined(CONFIG_PM) && LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
-#  ifdef CONFIG_PM_SLEEP
+#if defined(CONFIG_PM) && LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+#ifdef CONFIG_PM_SLEEP
 static vg_lite_int32_t gpu_system_suspend(struct device *dev)
 {
     pm_message_t state = { 0 };

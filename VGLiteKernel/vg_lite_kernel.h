@@ -1,6 +1,8 @@
 /****************************************************************************
 *
-*    Copyright (c) 2014 - 2022 Vivante Corporation
+*    The MIT License (MIT)
+*
+*    Copyright (c) 2014 - 2025 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -54,7 +56,7 @@
 #define VG_LITE_ALIGN(number, alignment)    \
         (((number) + ((alignment) - 1)) & ~((alignment) - 1))
 
-#ifndef  BIT
+#ifndef BIT
 #define  BIT(x)                 (1 << x)
 #endif
 
