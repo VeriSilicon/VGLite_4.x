@@ -234,6 +234,7 @@ void vg_lite_hal_initialize(void)
     /* TODO: Turn on the clock. */
 }
 
+static void vg_lite_exit(void);
 void vg_lite_hal_deinitialize(void)
 {
     /* TODO: Remove clock. */
@@ -244,6 +245,7 @@ void vg_lite_hal_deinitialize(void)
         vg_lite_hal_free(device);
 #endif
     /* TODO: Remove power. */
+    vg_lite_exit();
 }
 
 static int split_node(heap_node_t *node, unsigned long size)
