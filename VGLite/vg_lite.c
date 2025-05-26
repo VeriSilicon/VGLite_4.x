@@ -6363,8 +6363,6 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
         vg_lite_float_t color2[4];
         vg_lite_float_t weight;
 
-        if (i == 241)
-            i = 241;
         /* Compute gradient for current color array entry. */
         gradient = (vg_lite_float_t) i / (vg_lite_float_t) (width - 1);
 
