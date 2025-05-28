@@ -1260,8 +1260,10 @@ vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format)
 /* Convert 24BIT to 24BIT_PLANAR buffer to enable software support 24BIT_PLANAR fotmat.*/
 static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_buffer_t* target)
 {
-    if (!target->sw24bit_buffer)
-        return VG_LITE_SUCCESS;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (!target->sw24bit_buffer)
+            return VG_LITE_SUCCESS;
+    }
     uint32_t i;
     int8_t* data_source = source->memory;
     int8_t* data_rgb = target->memory;
@@ -3471,14 +3473,16 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
     vg_lite_finish();
 #else
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (s_context.rtbuffer->sw24bit_planar_buffer)
-    {
-        vg_lite_finish();
-        vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
-    }
-    else
-    {
-        vg_lite_flush();
+    if ((s_context.rtbuffer->format >= VG_LITE_ABGR8565_PLANAR) && (s_context.rtbuffer->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (s_context.rtbuffer->sw24bit_planar_buffer)
+        {
+            vg_lite_finish();
+            vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
+        }
+        else
+        {
+            vg_lite_flush();
+        }
     }
 #else
     vg_lite_flush();
@@ -3716,10 +3720,12 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     uint32_t stripe_mode = 0;
     uint32_t in_premult = 0;
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
 #endif
 #if gcFEATURE_VG_TRACE_API
@@ -3839,8 +3845,11 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
     }
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+            target = target->sw24bit_planar_buffer;
+    }
+
 #endif
 
     /* Success. */
@@ -4264,13 +4273,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
                             vg_lite_filter_t filter)
 {
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
-    if (source->sw24bit_buffer)
-        source = source->sw24bit_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_buffer)
+            source = source->sw24bit_buffer;
+    }
 #endif
 #if DUMP_API
     if (dump_api_flag) {
@@ -5084,13 +5097,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-    {
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+        {
+            target = target->sw24bit_planar_buffer;
+        }
     }
-    if (source->sw24bit_planar_buffer)
-    {
-        source = source->sw24bit_planar_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_planar_buffer)
+        {
+            source = source->sw24bit_planar_buffer;
+        }
     }
 #endif
 
@@ -5158,13 +5175,17 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     uint8_t  lvgl_sw_blend = 0;
 #endif
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
-    if (source->sw24bit_buffer)
-        source = source->sw24bit_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_buffer)
+            source = source->sw24bit_buffer;
+    }
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* buffer_pointer;
@@ -5983,13 +6004,17 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif /* VG_SW_BLIT_PRECISION_OPT */
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-    {
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+        {
+            target = target->sw24bit_planar_buffer;
+        }
     }
-    if (source->sw24bit_planar_buffer)
-    {
-        source = source->sw24bit_planar_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_planar_buffer)
+        {
+            source = source->sw24bit_planar_buffer;
+        }
     }
 #endif
 #if DUMP_CAPTURE
@@ -6882,11 +6907,13 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (buffer->sw24bit_buffer != NULL) {
-        free.memory_handle = buffer->sw24bit_buffer->handle;
-        VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
-        vg_lite_os_free(buffer->sw24bit_buffer);
-        buffer->sw24bit_buffer = NULL;
+    if ((buffer->format >= VG_LITE_ABGR8565_PLANAR) && (buffer->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (buffer->sw24bit_buffer != NULL) {
+            free.memory_handle = buffer->sw24bit_buffer->handle;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FREE, &free));
+            vg_lite_os_free(buffer->sw24bit_buffer);
+            buffer->sw24bit_buffer = NULL;
+        }
     }
 #endif
 
@@ -7292,9 +7319,11 @@ vg_lite_error_t vg_lite_finish()
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (s_context.rtbuffer->sw24bit_planar_buffer)
-    {
-        vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
+    if ((s_context.rtbuffer->format >= VG_LITE_ABGR8565_PLANAR) && (s_context.rtbuffer->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (s_context.rtbuffer->sw24bit_planar_buffer)
+        {
+            vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
+        }
     }
 #endif
 

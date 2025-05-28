@@ -3003,10 +3003,12 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     uint32_t premul_flag = 0;
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
 #endif
 
@@ -3387,8 +3389,10 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+            target = target->sw24bit_planar_buffer;
+    }
 #endif
     return error;
 }
@@ -3461,13 +3465,17 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
-    if (source->sw24bit_buffer)
-        source = source->sw24bit_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_buffer)
+            source = source->sw24bit_buffer;
+    }
 #endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
@@ -3989,13 +3997,17 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
 
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-    {
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+        {
+            target = target->sw24bit_planar_buffer;
+        }
     }
-    if (source->sw24bit_planar_buffer)
-    {
-        source = source->sw24bit_planar_buffer;
+    if ((source->format >= VG_LITE_ABGR8565_PLANAR) && (source->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (source->sw24bit_planar_buffer)
+        {
+            source = source->sw24bit_planar_buffer;
+        }
     }
 #endif
 
@@ -4191,10 +4203,12 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
     int y;
     int temp_height = 0;
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
 #endif
 #if gcFEATURE_VG_TRACE_API
@@ -4750,8 +4764,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+            target = target->sw24bit_planar_buffer;
+    }
+
 #endif
 #if DUMP_CAPTURE
     if (source->compress_mode)
@@ -4850,10 +4867,12 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     uint32_t parallel_workpaths2 = 2;
 #endif
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_buffer)
-    {
-        target->sw24bit_buffer->format = convert_24bit_format(target->format);
-        target = target->sw24bit_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_buffer)
+        {
+            target->sw24bit_buffer->format = convert_24bit_format(target->format);
+            target = target->sw24bit_buffer;
+        }
     }
 #endif
 #if gcFEATURE_VG_TRACE_API
@@ -5650,8 +5669,10 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
 #endif
 
 #if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if (target->sw24bit_planar_buffer)
-        target = target->sw24bit_planar_buffer;
+    if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR)) {
+        if (target->sw24bit_planar_buffer)
+            target = target->sw24bit_planar_buffer;
+    }
 #endif
 #if DUMP_CAPTURE
     if (source->compress_mode)
