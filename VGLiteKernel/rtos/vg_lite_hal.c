@@ -239,11 +239,6 @@ void vg_lite_hal_deinitialize(void)
 {
     /* TODO: Remove clock. */
     vSemaphoreDelete(device->int_queue);
-#if !_BAREMETAL
-    if (device != NULL) 
-        /* Free up the device structure. */
-        vg_lite_hal_free(device);
-#endif
     /* TODO: Remove power. */
     vg_lite_exit();
 }
@@ -635,8 +630,11 @@ static void vg_lite_exit(void)
             }
         }
 
-        /* Free up the device structure. */
-        vg_lite_hal_free(device);
+#if !_BAREMETAL
+        if (device != NULL)
+            /* Free up the device structure. */
+            vg_lite_hal_free(device);
+#endif
     }
 }
 
