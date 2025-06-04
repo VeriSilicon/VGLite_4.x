@@ -210,16 +210,13 @@ static void gpu(int enable)
         value.data = vg_lite_hal_peek(VG_LITE_HW_CLOCK_CONTROL);
         value.control.clock_gate = 0;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(1);
 
         /* Set clock speed. */
         value.control.scale = 64;
         value.control.scale_load = 1;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(1);
         value.control.scale_load = 0;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(5);
 
 #if gcdVG_DUMP_DEBUG_REGISTER
         value.control.debug_registers = 0;
@@ -238,20 +235,17 @@ static void gpu(int enable)
         data = vg_lite_hal_peek(VG_LITE_POWER_CONTROL);
         data |= 0x1;
         vg_lite_hal_poke(VG_LITE_POWER_CONTROL, data);
-        vg_lite_hal_delay(1);
 
 #if !gcFEATURE_VG_CLOCK_GATING_TS_MODULE
         data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
         data |= 0x800;
         vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);
-        vg_lite_hal_delay(1);
 #endif
 
 #if !gcFEATURE_VG_CLOCK_GATING_VG_MODULE
         data = vg_lite_hal_peek(VG_LITE_POWER_MODULE_CONTROL);
         data |= 0x100;
         vg_lite_hal_poke(VG_LITE_POWER_MODULE_CONTROL, data);
-        vg_lite_hal_delay(1);
 #endif
 
 #endif
@@ -270,15 +264,12 @@ static void gpu(int enable)
         value.control.scale = 1;
         value.control.scale_load = 1;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(1);
         value.control.scale_load = 0;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(5);
 
         /* Disable clock gating. */
         value.control.clock_gate = 1;
         vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-        vg_lite_hal_delay(1);
     }
 }
 
@@ -1246,7 +1237,6 @@ static void soft_reset(void)
     vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
     value.control.soft_reset = 1;
     vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
-    vg_lite_hal_delay(5);
     value.control.soft_reset = 0;
     vg_lite_hal_poke(VG_LITE_HW_CLOCK_CONTROL, value.data);
     value.control.isolate = 0;
