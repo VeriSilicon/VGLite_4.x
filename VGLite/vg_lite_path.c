@@ -3538,6 +3538,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if !gcFEATURE_VG_NEW_BLEND_MODE
     if (blend == VG_LITE_BLEND_DARKEN || blend == VG_LITE_BLEND_LIGHTEN) {
         return VG_LITE_NOT_SUPPORT;
