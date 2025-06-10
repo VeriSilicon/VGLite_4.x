@@ -895,11 +895,11 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
     }
 #endif
     //initial range
-    s_context.scissor_layer_range[0] = 0;
-    s_context.scissor_layer_range[1] = 0;
-    s_context.scissor_layer_range[2] = 0;
-    s_context.scissor_layer_range[3] = 0;
-    
+    s_context.scissor_layer_range[0] = rect[0].x;
+    s_context.scissor_layer_range[1] = rect[0].y;
+    s_context.scissor_layer_range[2] = rect[0].x + rect[0].width;
+    s_context.scissor_layer_range[3] = rect[0].y + rect[0].height;
+
 #if gcFEATURE_VG_MASK
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_rectangle_t rect_clamp, rect_draw;
@@ -1027,11 +1027,13 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         }
         
         //update scissor_layer_range
-        s_context.scissor_layer_range[0] = MIN(rect[i].x, s_context.scissor_layer_range[0]);
-        s_context.scissor_layer_range[1] = MIN(rect[i].y, s_context.scissor_layer_range[1]);
-        s_context.scissor_layer_range[2] = MAX(rect[i].x + rect[i].width, s_context.scissor_layer_range[2]);
-        s_context.scissor_layer_range[3] = MAX(rect[i].y + rect[i].height, s_context.scissor_layer_range[3]);
-   
+        if (i != 0) {
+            s_context.scissor_layer_range[0] = MIN(rect[i].x, s_context.scissor_layer_range[0]);
+            s_context.scissor_layer_range[1] = MIN(rect[i].y, s_context.scissor_layer_range[1]);
+            s_context.scissor_layer_range[2] = MAX(rect[i].x + rect[i].width, s_context.scissor_layer_range[2]);
+            s_context.scissor_layer_range[3] = MAX(rect[i].y + rect[i].height, s_context.scissor_layer_range[3]);
+        }
+
     }
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
