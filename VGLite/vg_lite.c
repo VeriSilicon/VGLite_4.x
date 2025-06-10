@@ -3770,17 +3770,23 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
 
     /* Clip to target. */
+    left = 0;
+    top = 0;
+    right = target->width;
+    bottom = target->height;
+
     if (s_context.scissor_set && !target->scissor_buffer) {
-        left   = s_context.scissor[0];
-        top    = s_context.scissor[1];
-        right  = s_context.scissor[2];
-        bottom = s_context.scissor[3];
+        left = MAX(s_context.scissor[0], left);
+        top = MAX(s_context.scissor[1], top);
+        right = MIN(s_context.scissor[2], right);
+        bottom = MIN(s_context.scissor[3], bottom);
     }
-    else {
-        left   = 0;
-        top    = 0;
-        right  = target->width;
-        bottom = target->height;
+
+    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+        left = MAX(s_context.scissor_layer_range[0], left);
+        top = MAX(s_context.scissor_layer_range[1], top);
+        right = MIN(s_context.scissor_layer_range[2], right);
+        bottom = MIN(s_context.scissor_layer_range[3], bottom);
     }
 
     point_min.x = MAX(point_min.x, left);
