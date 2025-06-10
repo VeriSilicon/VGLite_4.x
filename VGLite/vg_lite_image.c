@@ -909,7 +909,13 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
 #endif
 
     //initial range
-    if (nums > 0 && rect != NULL) {
+    if (nums == 0 && rect != NULL) {
+        s_context.scissor_layer_range[0] = 0;
+        s_context.scissor_layer_range[1] = 0;
+        s_context.scissor_layer_range[2] = 0;
+        s_context.scissor_layer_range[3] = 0;        
+    }
+    else if (nums > 0 && rect != NULL) {
         s_context.scissor_layer_range[0] = rect[0].x;
         s_context.scissor_layer_range[1] = rect[0].y;
         s_context.scissor_layer_range[2] = rect[0].x + rect[0].width;
