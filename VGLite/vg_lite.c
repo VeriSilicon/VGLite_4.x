@@ -3922,6 +3922,11 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!matrix0) {
@@ -4421,6 +4426,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         || target->format == VG_LITE_AYUY2 || target->format == VG_LITE_AYUY2_TILED)) {
         return VG_LITE_NOT_SUPPORT;
     }
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
 #if (CHIPID == 0x355)
     if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
         target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
@@ -5271,6 +5281,11 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 #if !gcFEATURE_VG_NEW_BLEND_MODE
     if (blend == VG_LITE_BLEND_DARKEN || blend == VG_LITE_BLEND_LIGHTEN) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
@@ -8417,6 +8432,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 #endif
 #if !gcFEATURE_VG_STENCIL
     if (source->image_mode == VG_LITE_STENCIL_MODE) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+#endif
+#if !gcFEATURE_VG_LVGL_SUPPORT
+    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
         return VG_LITE_NOT_SUPPORT;
     }
 #endif
