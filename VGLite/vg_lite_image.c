@@ -894,11 +894,6 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         FUNC_DUMP(vg_lite_scissor_rects)(target, nums, rect);
     }
 #endif
-    //initial range
-    s_context.scissor_layer_range[0] = rect[0].x;
-    s_context.scissor_layer_range[1] = rect[0].y;
-    s_context.scissor_layer_range[2] = rect[0].x + rect[0].width;
-    s_context.scissor_layer_range[3] = rect[0].y + rect[0].height;
 
 #if gcFEATURE_VG_MASK
     vg_lite_error_t error = VG_LITE_SUCCESS;
@@ -912,6 +907,16 @@ vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t
         VGLITE_LOG("    Rect(%d, %d, %d, %d)\n", rect[i].x, rect[i].y, rect[i].width, rect[i].height);
     }
 #endif
+
+    //initial range
+    if (nums > 0 && rect != NULL) {
+        s_context.scissor_layer_range[0] = rect[0].x;
+        s_context.scissor_layer_range[1] = rect[0].y;
+        s_context.scissor_layer_range[2] = rect[0].x + rect[0].width;
+        s_context.scissor_layer_range[3] = rect[0].y + rect[0].height;
+    }
+    else
+        return VG_LITE_INVALID_ARGUMENT;
 
     /* Record scissor enable flag and disable scissor. */
     vg_lite_uint8_t enable = s_context.scissor_enable;
