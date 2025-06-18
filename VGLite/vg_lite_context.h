@@ -283,6 +283,8 @@ extern vg_lite_float_t _calc_decnano_compress_ratio(vg_lite_buffer_format_t form
 
 extern vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format);
 
+extern vg_lite_error_t vg_lite_convert_24bitplanar_to_24bit(vg_lite_buffer_t* source, vg_lite_buffer_t* target);
+
 #if defined(__ZEPHYR__)
 extern void * vg_lite_os_fopen(const char *__restrict path, const char *__restrict mode);
 extern int vg_lite_os_fclose(void * fp);

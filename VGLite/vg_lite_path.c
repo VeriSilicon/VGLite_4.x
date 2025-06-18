@@ -3467,7 +3467,10 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         target = target->sw24bit_buffer;
     }
     if (source->sw24bit_buffer)
+    {
+        vg_lite_convert_24bitplanar_to_24bit(source, source->sw24bit_buffer);
         source = source->sw24bit_buffer;
+    }
 #endif
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_draw_pattern %p %p %d %p %p %p %d %d 0x%08X %d\n",
