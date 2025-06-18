@@ -6229,6 +6229,9 @@ vg_lite_error_t vg_lite_close(void)
     VGLITE_LOG("vg_lite_close\n");
 #endif
 
+    /* Ensure the GPU finishes potential pending tasks. */
+    VG_LITE_RETURN_ERROR(vg_lite_finish());
+
     if (s_context.scissor_layer)
     {
         vg_lite_free(s_context.scissor_layer);
