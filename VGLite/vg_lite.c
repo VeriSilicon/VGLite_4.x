@@ -1309,6 +1309,60 @@ static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_
     
     return VG_LITE_SUCCESS;
 }
+
+vg_lite_error_t vg_lite_convert_24bitplanar_to_24bit(vg_lite_buffer_t* source, vg_lite_buffer_t* target)
+{
+    if (!source->sw24bit_buffer)
+        return VG_LITE_SUCCESS;
+    uint32_t i;
+    int8_t* data_target = target->memory;
+    int8_t* data_rgb = source->memory;
+    int8_t* data_alpha = source->yuv.alpha_memory;
+    if ((target->stride * target->height % 3) != 0)
+        return VG_LITE_INVALID_ARGUMENT;
+    uint32_t pixel_size = target->stride * target->height / 3;
+    switch (source->format)
+    {
+    case VG_LITE_ABGR8565_PLANAR:
+    case VG_LITE_ARGB8565_PLANAR:
+        for (i = 0; i < pixel_size; i++)
+        {
+            *data_target = *data_alpha;
+            data_target++;
+            data_alpha++;
+
+            *data_target = *data_rgb;
+            data_target++;
+            data_rgb++;
+
+            *data_target = *data_rgb;
+            data_target++;
+            data_rgb++;
+        }
+        break;
+    case VG_LITE_BGRA5658_PLANAR:
+    case VG_LITE_RGBA5658_PLANAR:
+        for (i = 0; i < pixel_size; i++)
+        {
+            *data_target = *data_rgb;
+            data_target++;
+            data_rgb++;
+
+            *data_target = *data_rgb;
+            data_target++;
+            data_rgb++;
+
+            *data_target = *data_alpha;
+            data_target++;
+            data_alpha++;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return VG_LITE_SUCCESS;
+}
 #endif
 
 #define FORMAT_ALIGNMENT(stride,align) \
@@ -4281,7 +4335,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         target = target->sw24bit_buffer;
     }
     if (source->sw24bit_buffer)
+    {
+        vg_lite_convert_24bitplanar_to_24bit(source, source->sw24bit_buffer);
         source = source->sw24bit_buffer;
+    }
 #endif
 #if DUMP_API
     if (dump_api_flag) {
@@ -5180,7 +5237,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         target = target->sw24bit_buffer;
     }
     if (source->sw24bit_buffer)
+    {
+        vg_lite_convert_24bitplanar_to_24bit(source, source->sw24bit_buffer);
         source = source->sw24bit_buffer;
+    }
 #endif
 #if VG_SW_BLIT_PRECISION_OPT
     uint8_t* buffer_pointer;
