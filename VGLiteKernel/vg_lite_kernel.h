@@ -43,7 +43,10 @@
 #define EVENT_END              0
 #define EVENT_FRAME_END        1
 
+/* MAX_CONTIGUOUS_SIZE may be overwritten in some environment. Add #ifndef to avoid the warning  */
+#ifndef MAX_CONTIGUOUS_SIZE
 #define MAX_CONTIGUOUS_SIZE 0x04000000
+#endif
 
 #define VG_LITE_INFINITE    0xFFFFFFFF
 
