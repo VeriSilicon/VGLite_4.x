@@ -4324,7 +4324,7 @@ vg_lite_error_t vg_rec_tile_set(char support, vg_lite_buffer_t* target, vg_lite_
     }
     else
     {
-        if ((target->tiled == VG_LITE_TILED)) {
+        if (target->tiled == VG_LITE_TILED) {
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
             *tile_setting = 0x40;
             *stripe_mode = 0x20000000;
