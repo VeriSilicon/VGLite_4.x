@@ -3140,7 +3140,7 @@ vg_lite_error_t vg_tes_tile_set(char support, vg_lite_buffer_t* target, uint32_t
     }
     else
     {
-        if ((target->tiled == VG_LITE_TILED)) {
+        if (target->tiled == VG_LITE_TILED) {
 #if gcFEATURE_VG_TESSELLATION_TILED_OUT
             * tile_setting = 0x40;
 #else
