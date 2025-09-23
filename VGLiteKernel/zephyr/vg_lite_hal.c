@@ -502,7 +502,6 @@ static int vg_lite_dev_pm_control(const struct device *dev, enum pm_device_actio
 
     switch (action) {
     case PM_DEVICE_ACTION_SUSPEND:
-    case PM_DEVICE_ACTION_FORCE_SUSPEND:
         ret = vg_lite_dev_suspend(dev);
         break;
     case PM_DEVICE_ACTION_RESUME:
