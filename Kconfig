@@ -1,0 +1,35 @@
+config VGLITE
+    bool "VG Lite GPU driver"
+    depends on DISPLAY
+    help
+      Enable support for the NXP VG Lite GPU/display driver.
+
+config GPU_DEV
+    bool "Enable VGLite GPU device"
+    default y
+    depends on DISPLAY
+
+config GPU_DEV_NAME
+    string "VGLite GPU device name"
+    default "GPU"
+
+config PM_DEVICE
+    bool "Enable Device Power Management"
+    depends on PM
+    default y
+    help
+      Enable power management support for individual devices. 
+      Each device can implement suspend/resume callbacks
+      to reduce power consumption when idle.
+      
+config VG_LITE_K_MEM_POOL_SIZE
+    hex "VG-Lite heap size"
+    depends on VGLITE
+    help
+      Size (in bytes) of the memory pool used by VG-Lite.
+
+config GPU_CLOCK_KHZ
+    int "GPU clock frequency (kHz)"
+    depends on VGLITE
+    help
+      Clock frequency for the VGLite 2D GPU (in kHz).
