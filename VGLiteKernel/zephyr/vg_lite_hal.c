@@ -16,10 +16,12 @@
 #include <board_cfg.h>
 #include <sys/sys_heap.h>
 #if defined(CONFIG_CPU_CORTEX_M)
-#  include <arch/arm/aarch32/cortex_m/cmsis.h>
+#  include <cmsis_core.h>
 #endif
 
+#include <irq.h>
 #include <logging/log.h>
+#include <pm/device.h>
 LOG_MODULE_REGISTER(GPU, LOG_LEVEL_INF);
 
 /* For GPU only, 64 bytes is enough except that Verisilicon DC avaiable */

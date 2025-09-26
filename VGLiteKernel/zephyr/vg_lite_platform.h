@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <zephyr.h>
+#include <kernel.h>
 
 #include "../vg_lite_debug.h"
 #include "../vg_lite_type.h"
