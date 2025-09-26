@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <zephyr.h>
+#include <kernel.h>
 #include <fs/fs.h>
 
 extern void * vg_lite_os_malloc(size_t size);
