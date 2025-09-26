@@ -1205,7 +1205,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     dst_align_width = target->stride * div / mul;
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
-    if ((dst_align_width <= width) && (target->height <= height))
+    if ((dst_align_width <= width) && (target->height <= height) && !s_context.scissor_set)
     {
         ts_is_fullscreen = 1;
         point_min.x = 0;
@@ -1260,6 +1260,11 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
         }
     }
 
+    if (point_min.x < 0) point_min.x = 0;
+    if (point_min.y < 0) point_min.y = 0;
+    if (point_max.x > target->width) point_max.x = target->width;
+    if (point_max.y > target->height) point_max.x = target->height;
+
     /* Convert states into hardware values. */
     blend_mode = convert_blend(blend);
     format = convert_path_format(path->format);
@@ -1286,6 +1291,8 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix->m[1][2]));
 
     /* Setup tessellation loop. */
+    int tem_width = point_max.x - point_min.x;
+    int tem_height = point_max.y - point_min.y;    
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH)
     {
         for (y = point_min.y; y < point_max.y; y += height) {
@@ -1297,16 +1304,34 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, x | (y << 16)));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } 
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
     /* Setup tessellation loop. */
+    tem_width = point_max.x - point_min.x;
+    tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -1320,13 +1345,29 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t *target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
                 } 
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
     /* Finialize command buffer. */
@@ -1519,7 +1560,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     dst_align_width = target->stride * div / mul;
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
-    if ((dst_align_width <= width) && (target->height <= height))
+    if ((dst_align_width <= width) && (target->height <= height) && !s_context.scissor_set)
     {
         ts_is_fullscreen = 1;
         point_min.x = 0;
@@ -1669,6 +1710,11 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
         }
     }
 
+    if (point_min.x < 0) point_min.x = 0;
+    if (point_min.y < 0) point_min.y = 0;
+    if (point_max.x > target->width) point_max.x = target->width;
+    if (point_max.y > target->height) point_max.x = target->height;
+
     /* Convert states into hardware values. */
     blend_mode = convert_blend(blend);
     format = convert_path_format(path->format);
@@ -1697,6 +1743,8 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A45, (void *) &matrix.m[1][2]));
 
     /* Setup tessellation loop. */
+    int tem_width = point_max.x - point_min.x;
+    int tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH)
     {
         for (y = point_min.y; y < point_max.y; y += height) {
@@ -1708,16 +1756,34 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, x | (y << 16)));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 }
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
     /* Setup tessellation loop. */
+    tem_width = point_max.x - point_min.x;
+    tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -1731,13 +1797,29 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
                 } 
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
 
@@ -1911,7 +1993,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     dst_align_width = target->stride * div / mul;
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
-    if ((dst_align_width <= width) && (target->height <= height))
+    if ((dst_align_width <= width) && (target->height <= height) && !s_context.scissor_set)
     {
         ts_is_fullscreen = 1;
         point_min.x = 0;
@@ -2106,6 +2188,11 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
         }
     }
 
+    if (point_min.x < 0) point_min.x = 0;
+    if (point_min.y < 0) point_min.y = 0;
+    if (point_max.x > target->width) point_max.x = target->width;
+    if (point_max.y > target->height) point_max.x = target->height;
+
     /* Convert states into hardware values. */
     blend_mode = convert_blend(blend);
     format = convert_path_format(path->format);
@@ -2162,6 +2249,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
     }
 
     /* Setup tessellation loop. */
+    int tem_width = point_max.x - point_min.x;
+    int tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -2172,16 +2261,34 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, x | (y << 16)));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 } 
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
     /* Setup tessellation loop. */
+    tem_width = point_max.x - point_min.x;
+    tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -2195,12 +2302,28 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t * target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
                 } else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
 
@@ -2391,7 +2514,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     dst_align_width = target->stride * div / mul;
     if (width == 0 || height == 0)
         return VG_LITE_NO_CONTEXT;
-    if ((dst_align_width <= width) && (target->height <= height))
+    if ((dst_align_width <= width) && (target->height <= height) && !s_context.scissor_set)
     {
         ts_is_fullscreen = 1;
         point_min.x = 0;
@@ -2807,6 +2930,11 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
         }
     }
 
+    if (point_min.x < 0) point_min.x = 0;
+    if (point_min.y < 0) point_min.y = 0;
+    if (point_max.x > target->width) point_max.x = target->width;
+    if (point_max.y > target->height) point_max.x = target->height;
+
     /* Convert states into hardware values. */
     blend_mode = convert_blend(blend);
     format = convert_path_format(path->format);
@@ -2863,6 +2991,8 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
     }
 
     /* Setup tessellation loop. */
+    int tem_width = point_max.x - point_min.x;
+    int tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_FILL_PATH || path->path_type == VG_LITE_DRAW_ZERO || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -2873,16 +3003,34 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, x | (y << 16)));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3D, tessellation_size / 64));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->uploaded.address, path->uploaded.bytes));
                 }
                 else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->path_length, path->path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
     /* Setup tessellation loop. */
+    tem_width = point_max.x - point_min.x;
+    tem_height = point_max.y - point_min.y;
     if (path->path_type == VG_LITE_DRAW_STROKE_PATH || path->path_type == VG_LITE_DRAW_FILL_STROKE_PATH) {
         for (y = point_min.y; y < point_max.y; y += height) {
             for (x = point_min.x; x < point_max.x; x += width) {
@@ -2896,12 +3044,28 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t * target,
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0x01000200 | format | quality | tiling | 0x0));
                 VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, path->stroke_color));
 
+                if (tem_height < height && tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (tem_height << 16)));
+                }
+                else if (tem_width < width) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, tem_width | (height << 16)));
+                }
+                else if (tem_height < height) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (tem_height << 16)));
+                }
+                else {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, width | (height << 16)));
+                }
+
                 if (VLM_PATH_STROKE_GET_UPLOAD_BIT(*path) == 1) {
                     VG_LITE_RETURN_ERROR(push_call(&s_context, path->stroke->uploaded.address, path->stroke->uploaded.bytes));
                 } else {
                     VG_LITE_RETURN_ERROR(push_data(&s_context, path->stroke_size, path->stroke_path));
                 }
+                tem_width -= width;
             }
+            tem_width = point_max.x - point_min.x;
+            tem_height -= height;
         }
     }
 
