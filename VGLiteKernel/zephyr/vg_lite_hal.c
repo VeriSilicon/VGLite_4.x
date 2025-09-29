@@ -12,8 +12,7 @@
 #include <assert.h>
 #include <soc.h>
 #include <device.h>
-#include <spicache.h>
-#include <board_cfg.h>
+#include "nxp_gpu_interface.h"
 #include <sys/sys_heap.h>
 #if defined(CONFIG_CPU_CORTEX_M)
 #  include <cmsis_core.h>
@@ -51,6 +50,25 @@ __in_section_unique(vglite.noinit.mem_pool)
 uint8_t vg_lite_heap_mem[VG_LITE_K_MEM_POOL_SIZE];
 
 static struct vg_lite_dev_data * gp_dev_data = NULL;
+
+void *vg_lite_os_malloc(size_t size)
+{
+    if (!gp_dev_data)
+        return NULL;
+
+    void *ptr = sys_heap_alloc(&gp_dev_data->heap, size);
+    if (!ptr) {
+        printk("VG Lite heap out of memory! Requested %zu bytes\n", size);
+    }
+    return ptr;
+}
+
+void vg_lite_os_free(void *memory)
+{
+    if (gp_dev_data && memory) {
+        sys_heap_free(&gp_dev_data->heap, memory);
+    }
+}
 
 #if gcdVG_ENABLE_DEBUG
 static char g_log_buffer[128];
