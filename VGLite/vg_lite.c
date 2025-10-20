@@ -7559,8 +7559,55 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
     grad->pre_multiplied = pre_multiplied;
     grad->spread_mode = spread_mode;
 
-    if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
+    if (count > 0 && count <= VLC_MAX_COLOR_RAMP_STOPS && color_ramp != NULL)
+    {
+        if (count > grad->m_count)
+        {
+            if (grad->color_ramp != NULL)
+            {
+                vg_lite_os_free(grad->color_ramp);
+                grad->color_ramp = NULL;
+            }
+            grad->color_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * count);
+            if (grad->color_ramp == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+            if (grad->converted_ramp != NULL)
+            {
+                vg_lite_os_free(grad->converted_ramp);
+                grad->converted_ramp = NULL;
+            }
+            grad->converted_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * (count + 2));
+            if (grad->converted_ramp == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+            grad->m_count = count;
+        }
+        else
+        {
+            if (grad->color_ramp != NULL)
+                memset(grad->color_ramp, 0, sizeof(vg_lite_color_ramp_t) * grad->m_count);
+            if (grad->converted_ramp != NULL)
+                memset(grad->converted_ramp, 0, sizeof(vg_lite_color_ramp_t) * (grad->m_count + 2));
+        }
+    }
+    else if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
+    {
+
+        if (grad->converted_ramp != NULL)
+        {
+            vg_lite_os_free(grad->converted_ramp);
+            grad->converted_ramp = NULL;
+        }
+        grad->converted_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * 2);
+        if (grad->converted_ramp == NULL)
+        {
+            return VG_LITE_OUT_OF_MEMORY;
+        }
         goto Empty_sequence_handler;
+    }
 
     for(i = 0; i < count;i++)
         grad->color_ramp[i] = color_ramp[i];
@@ -7580,7 +7627,7 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
     /* Walk through the source ramp. */
     for (
         src_ramp = grad->color_ramp, trg_ramp = grad->converted_ramp;
-        (src_ramp < src_ramp_last) && (trg_count < VLC_MAX_COLOR_RAMP_STOPS + 2);
+        (src_ramp < src_ramp_last) && (trg_count < count + 2);
         src_ramp += 1
         )
     {
@@ -7856,8 +7903,53 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     grad->pre_multiplied = pre_multiplied;
     grad->spread_mode = spread_mode;
 
-    if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
+    if (count > 0 && count <= VLC_MAX_COLOR_RAMP_STOPS && color_ramp != NULL)
+    {
+        if (count > grad->m_count)
+        {
+            if (grad->color_ramp != NULL)
+            {
+                vg_lite_os_free(grad->color_ramp);
+                grad->color_ramp = NULL;
+            }
+            grad->color_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * count);
+            if (grad->color_ramp == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+            if (grad->converted_ramp != NULL)
+            {
+                vg_lite_os_free(grad->converted_ramp);
+                grad->converted_ramp = NULL;
+            }
+            grad->converted_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * (count + 2));
+            if (grad->converted_ramp == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+        }
+        else
+        {
+            if (grad->color_ramp != NULL)
+                memset(grad->color_ramp, 0, sizeof(vg_lite_color_ramp_t) * grad->m_count);
+            if (grad->converted_ramp != NULL)
+                memset(grad->converted_ramp, 0, sizeof(vg_lite_color_ramp_t) * (grad->m_count + 2));
+        }
+    }
+    else if (!count || count > VLC_MAX_COLOR_RAMP_STOPS || color_ramp == NULL)
+    {
+        if (grad->converted_ramp != NULL)
+        {
+            vg_lite_os_free(grad->converted_ramp);
+            grad->converted_ramp = NULL;
+        }
+        grad->converted_ramp = vg_lite_os_malloc(sizeof(vg_lite_color_ramp_t) * 2);
+        if (grad->converted_ramp == NULL)
+        {
+            return VG_LITE_OUT_OF_MEMORY;
+        }
         goto Empty_sequence_handler;
+    }
 
     for(i = 0; i < count;i++)
         grad->color_ramp[i] = color_ramp[i];
@@ -7877,7 +7969,7 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     /* Walk through the source ramp. */
     for (
         srcRamp = grad->color_ramp, trgRamp = grad->converted_ramp;
-        (srcRamp < srcRampLast) && (trgCount < VLC_MAX_COLOR_RAMP_STOPS + 2);
+        (srcRamp < srcRampLast) && (trgCount < count + 2);
         srcRamp += 1
         )
     {
@@ -8129,8 +8221,58 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 #endif
 
     grad->count = 0;    /* Opaque B&W gradient */
-    if (!count || count > VLC_MAX_GRADIENT_STOPS || colors == NULL || stops == NULL)
+    if (count > 0 && count <= VLC_MAX_COLOR_RAMP_STOPS && colors != NULL && stops != NULL)
+    {
+        if (count > grad->m_count)
+        {
+            if (grad->colors != NULL)
+            {
+                vg_lite_os_free(grad->colors);
+                grad->colors = NULL;
+            }
+            grad->colors = vg_lite_os_malloc(sizeof(vg_lite_uint32_t) * count);
+            if (grad->colors == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+            if (grad->stops != NULL)
+            {
+                vg_lite_os_free(grad->stops);
+                grad->stops = NULL;
+            }
+            grad->stops = vg_lite_os_malloc(sizeof(vg_lite_uint32_t) * count);
+            if (grad->stops == NULL)
+            {
+                return VG_LITE_OUT_OF_MEMORY;
+            }
+            memset(grad->stops, 0, sizeof(vg_lite_uint32_t) * count);
+            grad->m_count = count;
+        }
+        else
+        {
+            if (grad->colors != NULL)
+                memset(grad->colors, 0, sizeof(vg_lite_uint32_t) * grad->m_count);
+
+            if (grad->stops != NULL)
+                memset(grad->stops, 0, sizeof(vg_lite_uint32_t) * grad->m_count);
+        }
+    }
+    else if (!count || count > VLC_MAX_GRADIENT_STOPS || colors == NULL || stops == NULL)
+    {
+        grad->colors = NULL;
+        grad->colors = vg_lite_os_malloc(sizeof(vg_lite_uint32_t) * 2);
+        if (grad->colors == NULL)
+        {
+            return VG_LITE_OUT_OF_MEMORY;
+        }
+        grad->stops = NULL;
+        grad->stops = vg_lite_os_malloc(sizeof(vg_lite_uint32_t) * 2);
+        if (grad->stops == NULL)
+        {
+            return VG_LITE_OUT_OF_MEMORY;
+        }
         return VG_LITE_SUCCESS;
+    }
 
     /* Check stops validity */
     for (i = 0; i < count; i++)
@@ -8245,10 +8387,21 @@ vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 #endif
 
     grad->count = 0;
+    grad->m_count = 0;
     /* Release the image resource. */
     if (grad->image.handle != NULL)
     {
         error = vg_lite_free(&grad->image);
+    }
+    if (grad->color_ramp != NULL)
+    {
+        vg_lite_os_free(grad->color_ramp);
+        grad->color_ramp = NULL;
+    }
+    if (grad->converted_ramp != NULL)
+    {
+        vg_lite_os_free(grad->converted_ramp);
+        grad->converted_ramp = NULL;
     }
 
     return error;
@@ -8274,7 +8427,17 @@ vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
     {
         error = vg_lite_free(&grad->image);
     }
-    
+
+    if (grad->colors != NULL)
+    {
+        vg_lite_os_free(grad->colors);
+        grad->colors = NULL;
+    }
+    if (grad->stops != NULL)
+    {
+        vg_lite_os_free(grad->stops);
+        grad->stops = NULL;
+    }
     return error;
 }
 
@@ -8297,6 +8460,16 @@ vg_lite_error_t vg_lite_clear_radial_grad(vg_lite_radial_gradient_t *grad)
     if (grad->image.handle != NULL)
     {
         error = vg_lite_free(&grad->image);
+    }
+    if (grad->color_ramp != NULL)
+    {
+        vg_lite_os_free(grad->color_ramp);
+        grad->color_ramp = NULL;
+    }
+    if (grad->converted_ramp != NULL)
+    {
+        vg_lite_os_free(grad->converted_ramp);
+        grad->converted_ramp = NULL;
     }
 
     return error;

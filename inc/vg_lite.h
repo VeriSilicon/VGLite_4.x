@@ -988,9 +988,10 @@ typedef unsigned int        vg_lite_color_t;
 
     /* Linear gradient definition. */
     typedef struct vg_lite_linear_gradient {
-        vg_lite_uint32_t colors[VLC_MAX_GRADIENT_STOPS];    /*! Colors for stops. */
+        vg_lite_uint32_t *colors;                           /*! Colors for stops. */
         vg_lite_uint32_t count;                             /*! Count of colors, up to 16. */
-        vg_lite_uint32_t stops[VLC_MAX_GRADIENT_STOPS];     /*! Color stops, value from 0 to 255. */
+        vg_lite_uint32_t m_count;                           /*! The count of memory that has been aloocated, if exceeded, need to be allocated again */
+        vg_lite_uint32_t *stops;                            /*! Color stops, value from 0 to 255. */
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
     } vg_lite_linear_gradient_t;
@@ -998,15 +999,16 @@ typedef unsigned int        vg_lite_color_t;
     /* Extended linear gradient definition. */
     typedef struct vg_lite_ext_linear_gradient {
         vg_lite_uint32_t count;                             /*! Count of colors, up to 256. */
+        vg_lite_uint32_t m_count;                           /*! The count of memory that has been aloocated, if exceeded, need to be allocated again */
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
         vg_lite_linear_gradient_parameter_t linear_grad;    /*!  Include center point,focal point and radius.*/
 
         vg_lite_uint32_t ramp_length;                       /*! Color ramp for gradient paints provided to driver. */
-        vg_lite_color_ramp_t color_ramp[VLC_MAX_COLOR_RAMP_STOPS];
+        vg_lite_color_ramp_t *color_ramp;
 
         vg_lite_uint32_t converted_length;                  /*! Converted internal color ramp. */
-        vg_lite_color_ramp_t converted_ramp[VLC_MAX_COLOR_RAMP_STOPS + 2];
+        vg_lite_color_ramp_t *converted_ramp;
 
         vg_lite_uint8_t pre_multiplied;                     /*! If color values of color_ramp[] are multiply by alpha value of color_ramp[]. */
         vg_lite_gradient_spreadmode_t spread_mode;          /*! The spread mode that applied to the pixels out of the image after transformed. */
@@ -1016,15 +1018,16 @@ typedef unsigned int        vg_lite_color_t;
     typedef struct vg_lite_radial_gradient
     {
         vg_lite_uint32_t count;                             /*! Count of colors, up to 256. */
+        vg_lite_uint32_t m_count;                           /*! The count of memory that has been aloocated, if exceeded, need to be allocated again */
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
         vg_lite_radial_gradient_parameter_t radial_grad;    /*!  Include center point,focal point and radius.*/
 
         vg_lite_uint32_t ramp_length;                       /*! Color ramp for gradient paints provided to the driver. */
-        vg_lite_color_ramp_t color_ramp[VLC_MAX_COLOR_RAMP_STOPS];
+        vg_lite_color_ramp_t *color_ramp;
 
         vg_lite_uint32_t converted_length;                  /*! Converted internal color ramp. */
-        vg_lite_color_ramp_t converted_ramp[VLC_MAX_COLOR_RAMP_STOPS + 2];
+        vg_lite_color_ramp_t *converted_ramp;
 
         vg_lite_uint8_t pre_multiplied;                     /*! If color values of color_ramp[] are multiply by alpha value of color_ramp[]. */
         vg_lite_gradient_spreadmode_t spread_mode;          /*! The spread mode that applied to the pixels out of the image after transformed. */
