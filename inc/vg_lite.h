@@ -994,6 +994,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_uint32_t *stops;                            /*! Color stops, value from 0 to 255. */
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
+        vg_lite_pointer memory;                             /*! The memory to the gradient. */
     } vg_lite_linear_gradient_t;
 
     /* Extended linear gradient definition. */
@@ -1003,6 +1004,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
         vg_lite_linear_gradient_parameter_t linear_grad;    /*!  Include center point,focal point and radius.*/
+        vg_lite_pointer memory;                             /*! The memory to the gradient. */
 
         vg_lite_uint32_t ramp_length;                       /*! Color ramp for gradient paints provided to driver. */
         vg_lite_color_ramp_t *color_ramp;
@@ -1022,6 +1024,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_matrix_t matrix;                            /*! The matrix to transform the gradient. */
         vg_lite_buffer_t image;                             /*! The image for rendering as gradient pattern. */
         vg_lite_radial_gradient_parameter_t radial_grad;    /*!  Include center point,focal point and radius.*/
+        vg_lite_pointer memory;                           /*! The memory to the gradient. */
 
         vg_lite_uint32_t ramp_length;                       /*! Color ramp for gradient paints provided to the driver. */
         vg_lite_color_ramp_t *color_ramp;

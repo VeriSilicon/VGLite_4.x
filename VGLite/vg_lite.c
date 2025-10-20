@@ -7504,7 +7504,11 @@ vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
 #if gcFEATURE_VG_TRACE_API
     VGLITE_LOG("vg_lite_init_grad %p\n", grad);
 #endif
-
+    if (grad->memory != grad)
+    {
+        memset(grad, 0, sizeof(*grad));
+        grad->memory = grad;
+    }
     grad->count = 0;
 
     /* Set the member values according to driver defaults. */
@@ -7554,7 +7558,11 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
 
     if ((linear_gradient.X0 == linear_gradient.X1) && (linear_gradient.Y0 == linear_gradient.Y1))
         return VG_LITE_INVALID_ARGUMENT;
-
+    if (grad->memory != grad)
+    {
+        memset(grad, 0, sizeof(*grad));
+        grad->memory = grad;
+    }
     grad->linear_grad = linear_gradient;
     grad->pre_multiplied = pre_multiplied;
     grad->spread_mode = spread_mode;
@@ -7898,6 +7906,11 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
 
     if (radial_grad.r <= 0)
         return VG_LITE_INVALID_ARGUMENT;
+    if (grad->memory != grad)
+    {
+        memset(grad, 0, sizeof(*grad));
+        grad->memory = grad;
+    }
 
     grad->radial_grad = radial_grad;
     grad->pre_multiplied = pre_multiplied;
@@ -7927,6 +7940,7 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
             {
                 return VG_LITE_OUT_OF_MEMORY;
             }
+            grad->m_count = count;
         }
         else
         {
@@ -8388,6 +8402,7 @@ vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 
     grad->count = 0;
     grad->m_count = 0;
+    grad->memory = NULL;
     /* Release the image resource. */
     if (grad->image.handle != NULL)
     {
@@ -8422,6 +8437,8 @@ vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
 #endif
 
     grad->count = 0;
+    grad->m_count = 0;
+    grad->memory = NULL;
     /* Release the image resource. */
     if (grad->image.handle != NULL)
     {
@@ -8456,6 +8473,8 @@ vg_lite_error_t vg_lite_clear_radial_grad(vg_lite_radial_gradient_t *grad)
 #endif
 
     grad->count = 0;
+    grad->m_count = 0;
+    grad->memory = NULL;
     /* Release the image resource. */
     if (grad->image.handle != NULL)
     {
