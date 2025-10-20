@@ -8221,7 +8221,7 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 #endif
 
     grad->count = 0;    /* Opaque B&W gradient */
-    if (count > 0 && count <= VLC_MAX_COLOR_RAMP_STOPS && colors != NULL && stops != NULL)
+    if (count > 0 && count <= VLC_MAX_GRADIENT_STOPS && colors != NULL && stops != NULL)
     {
         if (count > grad->m_count)
         {
