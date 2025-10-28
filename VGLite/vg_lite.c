@@ -7508,6 +7508,7 @@ vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
     {
         memset(grad, 0, sizeof(*grad));
         grad->memory = grad;
+        vg_lite_identity(&grad->matrix);
     }
     grad->count = 0;
 
@@ -7563,6 +7564,7 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
         memset(grad, 0, sizeof(*grad));
         grad->memory = grad;
     }
+    vg_lite_identity(&grad->matrix);
     grad->linear_grad = linear_gradient;
     grad->pre_multiplied = pre_multiplied;
     grad->spread_mode = spread_mode;
@@ -7910,6 +7912,7 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     {
         memset(grad, 0, sizeof(*grad));
         grad->memory = grad;
+        vg_lite_identity(&grad->matrix);
     }
 
     grad->radial_grad = radial_grad;
