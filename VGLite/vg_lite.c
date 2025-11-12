@@ -8558,6 +8558,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t gpu_idle = 0;
+    vg_lite_uint32_t chip_id = 0;
     vg_lite_int32_t *iparams;
     vg_lite_uint32_t *uiparams;
     vg_lite_buffer_t* buf;
@@ -8582,6 +8583,14 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
         vg_lite_get_register(0x04, &gpu_idle);
         uiparams = (vg_lite_uint32_t *)params;
         *uiparams = ((gpu_idle & 0x0B05) == 0x0B05);
+        break;
+    case VG_LITE_HW_ID:
+        if (count != 1)
+            return VG_LITE_INVALID_ARGUMENT;
+
+        vg_lite_get_product_info(NULL, &chip_id, NULL);
+        uiparams = (vg_lite_uint32_t*)params;
+        *uiparams = chip_id;
         break;
 
     case VG_LITE_SCISSOR_RECT:
