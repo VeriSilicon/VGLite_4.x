@@ -876,6 +876,9 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
         ((uint8_t*)(path->path))[offset] = 0;
     }
 
+    if (((seg_count - 3) >= 0) && (cmd[seg_count - 3] == VLC_OP_MOVE) && (cmd[seg_count - 1] == VLC_OP_END))
+        path->add_end = 1;
+
 #if gcFEATURE_VG_ARC_PATH
     if (arc_path | h_v_path | smooth_path) {
         error = vg_lite_init_arc_path(path,
