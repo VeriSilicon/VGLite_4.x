@@ -654,6 +654,7 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_HARDWARE_RUNNING_TIME,          /*! count must be 1 */
         VG_LITE_SRC_BUF_ALIGNED_CHECK,          /*! count must be 1 for src buffer*/
         VG_LITE_DST_BUF_ALIGNED_CHECK,          /*! count must be 1 for dst buffer*/
+        VG_LITE_HW_ID,                          /*! count must be 1 for GPU hw id */
     } vg_lite_param_type_t;
 
     /* Vg lite buffer type */
