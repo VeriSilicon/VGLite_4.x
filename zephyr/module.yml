@@ -1,0 +1,5 @@
+name: gpu_vglite
+build:
+  cmake-ext: True
+  kconfig: Kconfig
+
