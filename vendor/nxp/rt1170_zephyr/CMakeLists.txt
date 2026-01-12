@@ -30,6 +30,14 @@ target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
     "$<BUILD_INTERFACE:${VgliteDir}/VGLite>"
     "$<BUILD_INTERFACE:${VgliteDir}/VGLiteKernel>" 
 )
+
+zephyr_include_directories(${VgliteDir})
+zephyr_include_directories(${VgliteDir}/inc)
+
+# Add VG Lite specific linker sections
+zephyr_linker_sources(DATA_SECTIONS
+    ${VgliteDir}/VGLiteKernel/zephyr/vglite_sections.ld)
+
 # Define the GPU ID for all sources
 add_compile_definitions(GCID_REV_CID=gc355/0x0_1216)
 target_link_libraries(vglite PRIVATE zephyr_interface)
