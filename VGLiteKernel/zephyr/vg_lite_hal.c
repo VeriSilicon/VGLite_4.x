@@ -8,8 +8,6 @@
 #include "vg_lite_platform.h"
 #include <string.h>
 
-#include <lvgl.h>
-
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/sys_io.h>
@@ -30,12 +28,12 @@
 #define CLOCK_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_clock_id)
 #define RESET_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_reset_id)
 
-#define VGLITE_TESS_H                   CONFIG_LV_Z_VGLITE_TESS_HEIGHT
-#define VGLITE_TESS_W                   CONFIG_LV_Z_VGLITE_TESS_WIDTH
-#define VGLITE_COMMAND_BUF_SIZE         CONFIG_LV_Z_VGLITE_CMD_BUF_SIZE
-#define VGLITE_CONTIGUOUS_AREA_ALIGN    CONFIG_LV_Z_VGLITE_CONTIGUOUS_ALIGN
+#define VGLITE_TESS_H                   CONFIG_VGLITE_TESS_HEIGHT
+#define VGLITE_TESS_W                   CONFIG_VGLITE_TESS_WIDTH
+#define VGLITE_COMMAND_BUF_SIZE         CONFIG_VGLITE_CMD_BUF_SIZE
+#define VGLITE_CONTIGUOUS_AREA_ALIGN    CONFIG_VGLITE_CONTIGUOUS_ALIGN
 
-#ifdef CONFIG_LV_Z_VGLITE_HEAP_USE_CUSTOM_SECTION
+#ifdef CONFIG_VGLITE_HEAP_USE_CUSTOM_SECTION
 #define ATTRIBUTE_VG_LITE_HEAP __attribute__((section(".vg_lite_heap")))
 #else
 #define ATTRIBUTE_VG_LITE_HEAP
@@ -43,8 +41,12 @@
 
 LOG_MODULE_REGISTER(GPU, LOG_LEVEL_INF);
 
-static char __nocache vg_lite_heap_mem[CONFIG_LV_Z_VGLITE_HEAP_SIZE]
-  LV_ATTRIBUTE_MEM_ALIGN
+#undef VGLITE_MEM_ALIGNMENT
+#define VGLITE_MEM_ALIGNMENT 64
+#define VGLITE_ATTRIBUTE_MEM_ALIGN __aligned(VGLITE_MEM_ALIGNMENT)
+
+static char __nocache vg_lite_heap_mem[CONFIG_VG_LITE_K_MEM_POOL_SIZE]
+  VGLITE_ATTRIBUTE_MEM_ALIGN
   ATTRIBUTE_VG_LITE_HEAP;
 
 struct vg_lite_dev_data {
