@@ -1,34 +1,51 @@
 /*
  * Copyright (c) 2020 Actions Technology Co., Ltd
  *
+ * Copyright 2026 NXP
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "vg_lite_platform.h"
-#include "../vg_lite_kernel.h"
-#include "../vg_lite_hal.h"
-#include "../vg_lite_hw.h"
+#include <string.h>
 
-#include <assert.h>
-#include <soc.h>
-#include <device.h>
-#include "nxp_gpu_interface.h"
-#include <sys/sys_heap.h>
-#if defined(CONFIG_CPU_CORTEX_M)
-#  include <cmsis_core.h>
+#include <lvgl.h>
+
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/sys_io.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/init.h>
+#include <zephyr/sys/sys_heap.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/pm/device.h>
+
+#include <vg_lite_kernel.h>
+#include <vg_lite_hal.h>
+#include <vg_lite_hw.h>
+#include <vg_lite.h>
+
+#define VGLITE_GPU_NODE         DT_NODELABEL(gpu2d)
+#define VGLITE_GPU_BASE         DT_REG_ADDR(VGLITE_GPU_NODE)
+#define VGLITE_GPU_IRQN         DT_IRQN(VGLITE_GPU_NODE)
+#define CLOCK_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_clock_id)
+#define RESET_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_reset_id)
+
+#define VGLITE_TESS_H                   CONFIG_LV_Z_VGLITE_TESS_HEIGHT
+#define VGLITE_TESS_W                   CONFIG_LV_Z_VGLITE_TESS_WIDTH
+#define VGLITE_COMMAND_BUF_SIZE         CONFIG_LV_Z_VGLITE_CMD_BUF_SIZE
+#define VGLITE_CONTIGUOUS_AREA_ALIGN    CONFIG_LV_Z_VGLITE_CONTIGUOUS_ALIGN
+
+#ifdef CONFIG_LV_Z_VGLITE_HEAP_USE_CUSTOM_SECTION
+#define ATTRIBUTE_VG_LITE_HEAP __attribute__((section(".vg_lite_heap")))
+#else
+#define ATTRIBUTE_VG_LITE_HEAP
 #endif
 
-#include <irq.h>
-#include <logging/log.h>
-#include <pm/device.h>
 LOG_MODULE_REGISTER(GPU, LOG_LEVEL_INF);
 
-/* For GPU only, 64 bytes is enough except that Verisilicon DC avaiable */
-#undef VGLITE_MEM_ALIGNMENT
-#define VGLITE_MEM_ALIGNMENT 64
-
-#define VG_LITE_K_MEM_POOL_SIZE                                                                    \
-    (CONFIG_VG_LITE_K_MEM_POOL_SIZE + VGLITE_MEM_ALIGNMENT - 1) & ~(VGLITE_MEM_ALIGNMENT - 1)
+static char __nocache vg_lite_heap_mem[CONFIG_LV_Z_VGLITE_HEAP_SIZE]
+  LV_ATTRIBUTE_MEM_ALIGN
+  ATTRIBUTE_VG_LITE_HEAP;
 
 struct vg_lite_dev_data {
     struct sys_heap heap;
@@ -39,34 +56,41 @@ struct vg_lite_dev_data {
 
     vg_lite_gpu_execute_state_t gpu_execute_state;
     int8_t gpu_clken_cnt;
+
+    uint32_t register_base;
+    void *device;
 };
 
-/*
- * 2 command buffer and 1 tess buffer:
- * 1) command buffer default size VG_LITE_COMMAND_BUFFER_SIZE
- * 2) tess_size = VG_LITE_ALIGN(tess_height, 16) * 128
- */
-__in_section_unique(vglite.noinit.mem_pool)
-uint8_t vg_lite_heap_mem[VG_LITE_K_MEM_POOL_SIZE];
 
 static struct vg_lite_dev_data * gp_dev_data = NULL;
+
+void vg_lite_set_gpu_clock_state(int enabled);
 
 void *vg_lite_os_malloc(size_t size)
 {
     if (!gp_dev_data)
         return NULL;
 
+    k_spinlock_key_t key;
+
+    key = k_spin_lock(&gp_dev_data->heap_lock);
     void *ptr = sys_heap_alloc(&gp_dev_data->heap, size);
+    k_spin_unlock(&gp_dev_data->heap_lock, key);
     if (!ptr) {
         printk("VG Lite heap out of memory! Requested %zu bytes\n", size);
     }
+
     return ptr;
 }
 
 void vg_lite_os_free(void *memory)
 {
+    k_spinlock_key_t key;
+
     if (gp_dev_data && memory) {
+        key = k_spin_lock(&gp_dev_data->heap_lock);
         sys_heap_free(&gp_dev_data->heap, memory);
+        k_spin_unlock(&gp_dev_data->heap_lock, key);
     }
 }
 
@@ -82,24 +106,13 @@ void vg_lite_hal_delay(uint32_t milliseconds)
 
 void vg_lite_hal_barrier(void)
 {
-    /* TODO: Memory barrier. */
-    /* flush the write buffer for uncache and write through memory */
-    spi1_cache_ops(SPI_WRITEBUF_FLUSH, (void *)SPI1_UNCACHE_ADDR, 0);
+  __asm__ volatile("dsb" ::: "memory");
 }
 
 void vg_lite_hal_initialize(void)
 {
-    /* Hold reset. */
-    acts_reset_peripheral_assert(RESET_ID_GPU);
-
     /* Turn on the clock. */
     vg_lite_set_gpu_clock_state(1);
-
-    /* Turn on the power (clock is not required). */
-    soc_powergate_set(POWERGATE_GPU_PG_DEV, true);
-
-    /* Release reset. */
-    acts_reset_peripheral_deassert(RESET_ID_GPU);
 
     /*
      * Harware issue:
@@ -107,11 +120,11 @@ void vg_lite_hal_initialize(void)
      * so clear the pending here.
      */
 #if defined(CONFIG_CPU_CORTEX_M)
-    NVIC_ClearPendingIRQ((IRQn_Type)IRQ_ID_GPU);
+    NVIC_ClearPendingIRQ((IRQn_Type)VGLITE_GPU_IRQN);
 #endif
 
     /* Enable interrupt. */
-    irq_enable(IRQ_ID_GPU);
+    irq_enable(VGLITE_GPU_IRQN);
 
     vg_lite_hal_print("power on\n");
 }
@@ -119,13 +132,7 @@ void vg_lite_hal_initialize(void)
 void vg_lite_hal_deinitialize(void)
 {
     /* Disable interrupt. */
-    irq_disable(IRQ_ID_GPU);
-
-    /* Hold reset. */
-    acts_reset_peripheral_assert(RESET_ID_GPU);
-
-    /* Remove power. */
-    soc_powergate_set(POWERGATE_GPU_PG_DEV, false);
+    irq_disable(VGLITE_GPU_IRQN);
 
     /* Remove clock. */
     vg_lite_set_gpu_clock_state(0);
@@ -241,37 +248,39 @@ vg_lite_error_t vg_lite_hal_allocate_contiguous(unsigned long size, vg_lite_vidm
     struct vg_lite_dev_data *data = gp_dev_data;
     unsigned long aligned_size;
     k_spinlock_key_t key;
-
     assert(data != NULL);
+    ARG_UNUSED(pool);
+    ARG_UNUSED(node);
 
     /* Align the size to 64 bytes. */
     aligned_size = VG_LITE_ALIGN(size, VGLITE_MEM_ALIGNMENT);
 
     key = k_spin_lock(&data->heap_lock);
-    *node = sys_heap_aligned_alloc(&data->heap, VGLITE_MEM_ALIGNMENT, aligned_size);
+    *logical = sys_heap_aligned_alloc(&data->heap, VGLITE_MEM_ALIGNMENT, aligned_size);
     k_spin_unlock(&data->heap_lock, key);
 
-    if (*node == NULL) {
-        LOG_ERR("gpu alloc %lu bytes failed!\n", size);
-        return VG_LITE_OUT_OF_MEMORY;
+    if (*logical == NULL) {
+      LOG_ERR("gpu alloc %lu bytes failed!\n", size);
+      return VG_LITE_OUT_OF_MEMORY;
     }
 
-    *node = cache_to_wt_wna_cache(*node);
-    *logical = *node;
-    *klogical = *node;
-    *physical = (uint32_t)cache_to_uncache(*node);
+    *klogical = *logical;
+    /*
+    * i.MX RT series uses Cortex-M7/M4 with MPU (not MMU), so there is
+    * no virtual memory address translation. CPU logical address equals
+    * physical address which equals GPU address.
+    */
+    *physical = (uint32_t)(uintptr_t)(*logical);
 
     return VG_LITE_SUCCESS;
 }
 
-void vg_lite_hal_free_contiguous(void * memory_handle)
+void vg_lite_hal_free_contiguous(void *memory_handle)
 {
     struct vg_lite_dev_data *data = gp_dev_data;
     k_spinlock_key_t key;
 
     assert(data != NULL);
-
-    memory_handle = wt_wna_cache_to_cache(memory_handle);
 
     key = k_spin_lock(&data->heap_lock);
     sys_heap_free(&data->heap, memory_handle);
@@ -286,13 +295,13 @@ void vg_lite_hal_free_os_heap(void)
 uint32_t vg_lite_hal_peek(uint32_t address)
 {
     /* Read data from the GPU register. */
-    return sys_read32(GPU_REG_BASE + address);
+    return sys_read32(VGLITE_GPU_BASE + address);
 }
 
 void vg_lite_hal_poke(uint32_t address, uint32_t data)
 {
     /* Write data to the GPU register. */
-    sys_write32(data, GPU_REG_BASE + address);
+    sys_write32(data, VGLITE_GPU_BASE + address);
 }
 
 vg_lite_error_t vg_lite_hal_query_mem(vg_lite_kernel_mem_t *mem)
@@ -303,60 +312,41 @@ vg_lite_error_t vg_lite_hal_query_mem(vg_lite_kernel_mem_t *mem)
 
 vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
 {
-    node->physical = (uint32_t)cache_to_uncache((void *)node->physical);
-    node->logical = uncache_to_wt_wna_cache((void *)node->physical);
+    node->logical = (void *)(uintptr_t)node->physical;
 
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_hal_unmap_memory(vg_lite_kernel_unmap_memory_t *node)
 {
+    ARG_UNUSED(node);
+
     return VG_LITE_SUCCESS;
 }
 
 void * vg_lite_hal_map(uint32_t flags, uint32_t bytes, void *logical, uint32_t physical, int32_t dma_buf_fd, uint32_t *gpu)
 {
-    if (flags != VG_LITE_HAL_MAP_USER_MEMORY) {
-        return NULL;
-    }
+    ARG_UNUSED(flags);
+    ARG_UNUSED(bytes);
+    ARG_UNUSED(logical);
+    ARG_UNUSED(physical);
+    ARG_UNUSED(dma_buf_fd);
+    ARG_UNUSED(gpu);
 
-    if (logical == NULL) {
-        logical = uncache_to_wt_wna_cache((void *)physical);
-    }
-
-    if (buf_is_nor(logical) || buf_is_nor_un(logical)) {
-        return NULL;
-    }
-
-    *gpu = (uint32_t)cache_to_uncache(logical);
-
-    return logical;
+    return (void *)0;
 }
 
-void vg_lite_hal_unmap(void * handle)
+void vg_lite_hal_unmap(void *handle)
 {
-    (void) handle;
+    ARG_UNUSED(handle);
 }
 
 vg_lite_error_t vg_lite_hal_operation_cache(void *handle, vg_lite_cache_op_t cache_op)
 {
-    switch (cache_op) {
-    case VG_LITE_CACHE_CLEAN:
-        if (buf_is_psram_cache(handle)) {
-            spi1_cache_ops(SPI_CACHE_FLUSH_ALL, handle, 0);
-        }
-        break;
-    case VG_LITE_CACHE_FLUSH:
-    case VG_LITE_CACHE_INVALIDATE:
-        if (buf_is_psram(handle)) {
-            spi1_cache_ops(SPI_CACHE_FLUSH_INVALID_ALL, handle, 0);
-        }
-        break;
-    default:
-        break;
-    }
+    ARG_UNUSED(handle);
+    ARG_UNUSED(cache_op);
 
-    return VG_LITE_SUCCESS;
+    return VG_LITE_NOT_SUPPORT;
 }
 
 vg_lite_error_t vg_lite_hal_memory_export(int32_t *fd)
@@ -383,7 +373,7 @@ void vg_lite_set_gpu_clock_state(int enabled)
     if (enabled) {
         if (++data->gpu_clken_cnt == 1) {
             vg_lite_hal_trace("clk enabled\n");
-            acts_clock_peripheral_enable(CLOCK_ID_GPU);
+            CLOCK_EnableClock(CLOCK_ID_GPU);
             /**
              * FIXME: should add any delay to wait clock stable ?
              *
@@ -393,12 +383,13 @@ void vg_lite_set_gpu_clock_state(int enabled)
     } else {
         if (--data->gpu_clken_cnt == 0) {
             vg_lite_hal_trace("clk disabled\n");
-            acts_clock_peripheral_disable(CLOCK_ID_GPU);
+            CLOCK_DisableClock(CLOCK_ID_GPU);
         }
     }
 
     assert(data->gpu_clken_cnt >= 0);
 }
+
 
 int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * value)
 {
@@ -408,21 +399,19 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t * v
     int result = k_sem_take(&data->wait_sem,
             (timeout == VG_LITE_INFINITE) ? K_FOREVER : K_MSEC(timeout));
 
-    /* Report the event(s) got. */
-    if (value != NULL) {
+    if (!result) {
+      k_spinlock_key_t key = k_spin_lock(&data->heap_lock);
+      if (value != NULL) {
         *value = data->int_flags & mask;
+      }
+
+      data->int_flags = 0U;
+      k_spin_unlock(&data->heap_lock, key);
+
+      return 1;
     }
 
-    data->int_flags = 0;
-
-    /*
-     * FIXME: Flush GPU write buffer here ?
-     *
-     * Synchronization will finally go to this routine.
-     */
-    sys_set_bit(SPI1_GPU_CTL, 24);
-
-    return (result == 0) ? 1 : 0;
+    return 0;
 }
 
 static void vg_lite_dev_isr(const void *arg)
@@ -431,12 +420,13 @@ static void vg_lite_dev_isr(const void *arg)
     struct vg_lite_dev_data *data = dev->data;
 
     /* Read interrupt status. */
-    uint32_t flags = sys_read32(GPU_REG_BASE + VG_LITE_INTR_STATUS);
+    uint32_t flags = sys_read32(VGLITE_GPU_BASE + VG_LITE_INTR_STATUS);
 
     if (flags) {
+        k_spinlock_key_t key = k_spin_lock(&data->heap_lock);
         /* Combine with current interrupt flags. */
         data->int_flags |= flags;
-
+        k_spin_unlock(&data->heap_lock, key);
         /* Wake up any waiters. */
         k_sem_give(&data->wait_sem);
 #if gcdVG_RECORD_HARDWARE_RUNNING_TIME
@@ -458,6 +448,7 @@ DEVICE_DECLARE(gpu);
 
 static int vg_lite_dev_init(const struct device *dev)
 {
+    vg_lite_error_t err;
     struct vg_lite_dev_data *data = dev->data;
 
     data->gpu_execute_state = VG_LITE_GPU_STOP;
@@ -465,11 +456,25 @@ static int vg_lite_dev_init(const struct device *dev)
     sys_heap_init(&data->heap, vg_lite_heap_mem, sizeof(vg_lite_heap_mem));
     k_sem_init(&data->wait_sem, 0, 1);
 
-    IRQ_CONNECT(IRQ_ID_GPU, 0, vg_lite_dev_isr, DEVICE_GET(gpu), 0);
+    data->register_base = VGLITE_GPU_BASE;
+    k_sem_init(&data->wait_sem, 0, 1);
+    data->int_flags = 0U;
+    data->gpu_clken_cnt = 0;
 
-    clk_set_rate(CLOCK_ID_GPU, KHZ(CONFIG_GPU_CLOCK_KHZ));
+    IRQ_CONNECT(VGLITE_GPU_IRQN, 0, vg_lite_dev_isr, DEVICE_GET(gpu), 0);
 
     gp_dev_data = data;
+
+    err = vg_lite_init(VGLITE_TESS_W, VGLITE_TESS_H);
+    if (err != VG_LITE_SUCCESS) {
+      return -ENODEV;
+    }
+
+    err = vg_lite_set_command_buffer_size(VGLITE_COMMAND_BUF_SIZE);
+    if (err != VG_LITE_SUCCESS) {
+      return -ENODEV;
+    }
+
     return 0;
 }
 
@@ -538,7 +543,16 @@ static int vg_lite_dev_pm_control(const struct device *dev, enum pm_device_actio
 #if CONFIG_GPU_DEV
 static struct vg_lite_dev_data vg_lite_dev_data;
 
+#ifdef CONFIG_PM_DEVICE
+PM_DEVICE_DEFINE(gpu, vg_lite_dev_pm_control);
+
 DEVICE_DEFINE(gpu, CONFIG_GPU_DEV_NAME, vg_lite_dev_init,
-        vg_lite_dev_pm_control, &vg_lite_dev_data, NULL, POST_KERNEL,
+        PM_DEVICE_GET(gpu), &vg_lite_dev_data, NULL, POST_KERNEL,
         CONFIG_KERNEL_INIT_PRIORITY_DEVICE, NULL);
+#else
+DEVICE_DEFINE(gpu, CONFIG_GPU_DEV_NAME, vg_lite_dev_init,
+        NULL, &vg_lite_dev_data, NULL, POST_KERNEL,
+        CONFIG_KERNEL_INIT_PRIORITY_DEVICE, NULL);
+#endif /* CONFIG_PM_DEVICE */
+
 #endif /* CONFIG_GPU_DEV */
