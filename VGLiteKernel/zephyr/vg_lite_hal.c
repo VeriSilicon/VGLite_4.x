@@ -67,6 +67,7 @@ struct vg_lite_dev_data {
 static struct vg_lite_dev_data * gp_dev_data = NULL;
 
 void vg_lite_set_gpu_clock_state(int enabled);
+extern void clear_cache_op(void);
 
 void *vg_lite_os_malloc(size_t size)
 {
@@ -108,7 +109,8 @@ void vg_lite_hal_delay(uint32_t milliseconds)
 
 void vg_lite_hal_barrier(void)
 {
-  __asm__ volatile("dsb" ::: "memory");
+   /* flush the write buffer for uncache and write through memory */
+    clear_cache_op();
 }
 
 void vg_lite_hal_initialize(void)
