@@ -1,9 +1,3 @@
-config VGLITE
-    bool "VG Lite GPU driver"
-    depends on DISPLAY
-    help
-      Enable support for the NXP VG Lite GPU/display driver.
-
 config GPU_DEV
     bool "Enable VGLite GPU device"
     default y
@@ -24,47 +18,8 @@ config PM_DEVICE
       
 config VG_LITE_K_MEM_POOL_SIZE
     hex "VG-Lite heap size"
-    depends on VGLITE
     help
       Size (in bytes) of the memory pool used by VG-Lite.
-
-config GPU_CLOCK_KHZ
-    int "GPU clock frequency (kHz)"
-    depends on VGLITE
-    help
-      Clock frequency for the VGLite 2D GPU (in kHz).
-
-config VGLITE_CACHEABLE_MEM_START
-    hex "VGLite cacheable memory start address"
-    depends on VGLITE
-    default 0x80000000 if SOC_MIMXRT1176
-    default 0x20080000 if SOC_MIMXRT595S
-    default 0x30080000 if SOC_MIMXRT798S
-    default 0x80000000
-    help
-      Start address of cacheable memory region for VGLite.
-      This is typically the SDRAM base address.
-
-config VGLITE_CACHEABLE_MEM_SIZE
-    hex "VGLite cacheable memory size"
-    depends on VGLITE
-    default 0x04000000 if SOC_MIMXRT1176  # 64MB
-    default 0x00480000 if SOC_MIMXRT595S   # 4.5MB
-    default 0x00600000 if SOC_MIMXRT798S  # 6MB
-    default 0x04000000
-    help
-      Size of cacheable memory region for VGLite.
-
-config VGLITE_UNCACHE_ADDR
-    hex "VGLite uncached memory address"
-    depends on VGLITE
-    default 0x84000000 if SOC_MIMXRT1176
-    default 0x20500000 if SOC_MIMXRT595S
-    default 0x30680000 if SOC_MIMXRT798S
-    default 0x84000000
-    help
-      Uncached memory address for VGLite operations.
-      This is typically right after the cacheable SDRAM region.
 
 config VGLITE_STACK_SIZE
        int "VGLite thread stack size"
