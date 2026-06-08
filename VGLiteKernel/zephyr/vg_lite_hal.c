@@ -25,8 +25,7 @@
 #define VGLITE_GPU_NODE         DT_NODELABEL(gpu2d)
 #define VGLITE_GPU_BASE         DT_REG_ADDR(VGLITE_GPU_NODE)
 #define VGLITE_GPU_IRQN         DT_IRQN(VGLITE_GPU_NODE)
-#define CLOCK_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_clock_id)
-#define RESET_ID_GPU            DT_PROP(VGLITE_GPU_NODE, nxp_reset_id)
+#define CLOCK_ID_GPU            DT_CLOCKS_CELL_BY_IDX(VGLITE_GPU_NODE, 0, name)
 
 #define VGLITE_TESS_H                   CONFIG_VGLITE_TESS_HEIGHT
 #define VGLITE_TESS_W                   CONFIG_VGLITE_TESS_WIDTH
