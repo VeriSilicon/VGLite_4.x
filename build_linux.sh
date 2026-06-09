@@ -1,70 +1,93 @@
 #!/bin/bash
                                                                                                
-export dumpAPI=0
-
 usage()
 {
     echo
-    echo "Usage: $0 BOARD ChipID CID"
+    if [ -d VGLite/Series ];then
+        echo "Usage: $0 <board> <cid>"
+    else
+        echo "Usage: $0 <board>"
+    fi
     echo
-    echo "  BOARD: X86_51510 PCIE-GEN6 ZC702 IMX6Q35"
-    echo
-    echo "  Example:  ./build_linux.sh X86 gc555 0x41A"
-    echo
+    echo "<board>       Board config: X86/ARM/IMX6Q35"
+    if [ -d VGLite/Series ];then
+        cid_list=$(find VGLite/Series/*/* -type d -name '0x*' | xargs -I {} basename {} | paste -sd '/')
+        echo "<cid>         Support customer ID: ${cid_list}"
+        echo
+        echo "Eg: $0 X86 0x430"
+        echo
+    else
+        echo
+        echo "Eg: $0 X86"
+        echo
+    fi
 }
 
-if [ $# -lt 3 ]; then
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h) 
+            usage
+            exit 0
+        ;;
+        *) 
+            BOARD=$1
+            shift
+            cid=$1
+            shift
+        ;;
+    esac
+done
+
+####  Set VG HW Series/Chip names here ####
+
+if [ -z "${BOARD}" ];then
+    echo "[Error] Must set board config"
     usage
     exit 1
 fi
 
+if [ -d VGLite/Series ];then
+    if [ -z "${cid}" ];then
+        echo "[Error] Must set Customer ID"
+        usage
+        exit 1
+    fi
 
-####  Set VG HW Series/Chip names here ####
+    cid_dir=$(find VGLite/Series -type d -name ${cid})
+    if [ -z "${cid_dir}" ];then
+        echo "[Error] Can not found option directory of ${cid}"
+        usage
+        exit 1
+    fi
+    cp -f ${cid_dir}/* VGLite/ || exit $?
+fi
 
-export Series=$2
-export Chip=$3
-
-cp -f VGLite/Series/${Series}/${Chip}/vg_lite_options.h VGLite/
-
-BOARD=$1
 case "$BOARD" in
 
-ZC702)
+ARM)
     export SDK_DIR=`pwd`/../build.s2c/sdk
-    export CROSS_COMPILE=/home/software/Linux/zync/arm-vivante-linux-gnueabihf/bin/arm-vivante-linux-gnueabihf-
-    export KERNEL_DIR=/home/software/Linux/zync/git/linux-s2c
+    export CROSS_COMPILE=/home/software/Linux/arm-vivante-linux-gnueabihf/bin/arm-vivante-linux-gnueabihf-
+    export KERNEL_DIR=/home/software/Linux/linux-kernel
     export CPU_ARCH=armv7-a
     export ARCH=arm
     export ENABLE_PCIE=0
-    export USE_RESERVE_MEMORY=1
     export gcdIRQ_SHARED=1
-    export CC=${CROSS_COMPILE}gcc
+    export USE_RESERVE_MEMORY=1
+    export BACKUP_COMMAND=0
     export PLATFORM=vivante/vg_lite_platform_default
 ;;
 
-PCIE-GEN6)
+X86)
     export SDK_DIR=`pwd`/../build.s2c/sdk
     export TOOLCHAIN=/usr
     export CROSS_COMPILE=""
     export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-headers-4.8.0-41-generic/
     export ENABLE_PCIE=1
-    export USE_RESERVE_MEMORY=1
     export CPU_ARCH=0
     export ARCH=x86
     export gcdIRQ_SHARED=1
-    export PLATFORM=vivante/vg_lite_platform_default
-;;
-
-X86_51510)
-    export SDK_DIR=`pwd`/../build.s2c/sdk
-    export TOOLCHAIN=/usr
-    export CROSS_COMPILE=""
-    export KERNEL_DIR=/home/software/Linux/x86_pcie/linux-5.15.10/
-    export ENABLE_PCIE=1
     export USE_RESERVE_MEMORY=1
-    export CPU_ARCH=0
-    export ARCH=x86
-    export gcdIRQ_SHARED=1
+    export BACKUP_COMMAND=0
     export PLATFORM=vivante/vg_lite_platform_default
 ;;
 
@@ -80,24 +103,24 @@ IMX6Q35)
     export ENABLE_PCIE=0
     export USE_RESERVE_MEMORY=0
     export gcdIRQ_SHARED=1
+    export BACKUP_COMMAND=0
     export PLATFORM=freescale/vg_lite_platform_imx6
     export SYSROOTFS=/home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/sysroots/cortexa9t2hf-neon-poky-linux-gnueabi
     export ROOTFS_USR=$SYSROOTFS/usr
-    export CFLAGS="--sysroot=$SYSROOTFS -D__ARM_PCS_VFP"
+    export CFLAGS="-D__ARM_PCS_VFP --sysroot=$SYSROOTFS"
     export PFLAGS="--sysroot=$SYSROOTFS"
     export LDFLAGS="--sysroot=$SYSROOTFS"
 
-    source /home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/environment-setup-cortexa9t2hf-neon-poky-linux-gnueabi
+    source  /home/software/Linux/freescale/L5.15.52_RC2_20220919/Toolchain/32/environment-setup-cortexa9t2hf-neon-poky-linux-gnueabi
     export YOCTO_BUILD=1
 ;;
+
 *)
     echo
     echo "ERROR: Unknown [ $BOARD ], or not support so far."
     usage
-    exit
 ;;
 esac;
 
 make clean
 make install
-

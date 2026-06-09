@@ -11,7 +11,7 @@ to develop customized applications for mobile or IOT devices that include Vivant
 
 Please refer to
 
-    Vivante.Programming.VGLite.Vector.Graphics.API-<version>-<date>.pdf
+    Vivante.VGLite.Vector.Graphics.API.User.Manual-<version>-<date>.pdf
 
 document for the VGLite API functions.
 
@@ -20,12 +20,21 @@ LIMITATION
 
     1. Currently VGLite API driver only supports 32-bit OS/RTOS, as VGLite HW/SW is designed for embedded devices.
     2. VGLite driver only support single thread, single context rendering, it does not support multi-thread rendering.
-    3. VGLite GPU does not include MMU, so VGLite driver programs GPU hardware with system memory physical addresses directly.
+    3. VGLite driver programs GPU hardware with system memory physical addresses directly, as VGLite GPU does not include MMU.
 
 
 CHANGES
 =======
 
+May 2026: vglite_4_0_132
+
+    1. Add gcFEATURE_VG_NEW_FACTOR for porter-duff blending configuration.
+    2. Add driver support for the new gcFEATURE_VG_DEC_COMPRESS_2_2 and gcFEATURE_VG_DEC_COMPRESS_3_0.
+    3. Add gcFEATURE_VG_NEW_ROI_MASK for ROI mask support.
+    4. Add gcFEATURE_VG_A124_A8L8 to support A1/A2/A4/L4/A8L8 input and A1/A2/A4/A8L8 output.
+    5. Add gcFEATURE_VG_MESH_FOR_FRAME for slice rendering and gcFEATURE_VG_SIMPLE_BLT for copying slice buffer.
+    6. Support nuttx OS.
+	
 May 2025: vglite_4_0_112
 -------------------------
 
@@ -45,11 +54,11 @@ December 2024: vglite_4_0_106
     4. Define vg_lite_set_scissor(-1,-1,-1,-1) as disable set_scissor.
     5. Fix gradient drawing rendering errors,keep configuration consistent with vg_lite_draw.
     6. Fix Gaussian filter accurary issue.
-	7. Add driver support for the new gcFEATURE_VG_DEC_COMPRESS_2_1.
+    7. Add driver support for the new gcFEATURE_VG_DEC_COMPRESS_2_1.
     8. Add gcFEATURE_VG_SPLIT_PATH_ENDISABLE and vg_lite_set_split.
-	9. Fix vg_lite_get_parameter alignment check.
-	10. Add gcFEATURE_VG_SCREEN_COPY_FIX for screen copy issue.
-	11. Add gcFEATURE_VG_PE_PREFETCH and gcFEATURE_VG_TILE_PE_LINEAR to refine tiled setting.
+    9. Fix vg_lite_get_parameter alignment check.
+    10. Add gcFEATURE_VG_SCREEN_COPY_FIX for screen copy issue.
+    11. Add gcFEATURE_VG_PE_PREFETCH and gcFEATURE_VG_TILE_PE_LINEAR to refine tiled setting.
 	
 July 2024: vglite_4_0_90
 -------------------------

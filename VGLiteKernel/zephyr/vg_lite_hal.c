@@ -109,7 +109,7 @@ void vg_lite_hal_delay(uint32_t milliseconds)
 
 void vg_lite_hal_barrier(void)
 {
-   /* flush the write buffer for uncache and write through memory */
+    /* flush the write buffer for uncache and write through memory */
     clear_cache_op();
 }
 

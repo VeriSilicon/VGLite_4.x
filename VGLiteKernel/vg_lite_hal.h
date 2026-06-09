@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,8 @@
 
 #ifndef _vg_lite_hal_h_
 #define _vg_lite_hal_h_
+
+#include "vg_lite_debug.h"
 
 #define VGLITE_MEM_ALIGNMENT      128
 

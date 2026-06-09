@@ -1,27 +1,26 @@
 /****************************************************************************
 *
-*    Copyright 2012 - 2023 Vivante Corporation, Santa Clara, California.
-*    All Rights Reserved.
+*    The MIT License (MIT)
 *
-*    Permission is hereby granted, free of charge, to any person obtaining
-*    a copy of this software and associated documentation files (the
-*    'Software'), to deal in the Software without restriction, including
-*    without limitation the rights to use, copy, modify, merge, publish,
-*    distribute, sub license, and/or sell copies of the Software, and to
-*    permit persons to whom the Software is furnished to do so, subject
-*    to the following conditions:
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
-*    The above copyright notice and this permission notice (including the
-*    next paragraph) shall be included in all copies or substantial
-*    portions of the Software.
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
 *
-*    THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-*    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-*    IN NO EVENT SHALL VIVANTE AND/OR ITS SUPPLIERS BE LIABLE FOR ANY
-*    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-*    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-*    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
 
@@ -32,9 +31,8 @@
 
 vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_identity %p\n", matrix);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_IDENTITY_API);
+    VG_LITE_TRACE_API("vg_lite_identity %p\n", matrix);
 
     /* Set identify matrix. */
     matrix->m[0][0] = 1.0f;
@@ -54,10 +52,10 @@ vg_lite_error_t vg_lite_identity(vg_lite_matrix_t * matrix)
     return VG_LITE_SUCCESS;
 }
 
-static void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
+static vg_lite_void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
 {
     vg_lite_matrix_t temp;
-    int row, column;
+    vg_lite_int32_t row, column;
     
     /* Process all rows. */
     for (row = 0; row < 3; row++) {
@@ -70,15 +68,14 @@ static void multiply(vg_lite_matrix_t * matrix, vg_lite_matrix_t * mult)
         }
     }
 
-    /* Copy temporary matrix into result. */
-    memcpy(matrix, &temp, sizeof(vg_lite_float_t) * 9);
+    /* Copy temporary matrix into result (m[] only; preserve scale/angle). */
+    memcpy(matrix->m, temp.m, sizeof(matrix->m));
 }
 
 vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t * matrix)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_translate %f %f %p\n", x, y, matrix);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_TRANSLATE_API);
+    VG_LITE_TRACE_API("vg_lite_translate %f %f %p\n", x, y, matrix);
 
     /* Set translation matrix. */
     vg_lite_matrix_t t = {
@@ -98,9 +95,8 @@ vg_lite_error_t vg_lite_translate(vg_lite_float_t x, vg_lite_float_t y, vg_lite_
 
 vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, vg_lite_matrix_t * matrix)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_scale %f %f %p\n", scale_x, scale_y, matrix);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SCALE_API);
+    VG_LITE_TRACE_API("vg_lite_scale %f %f %p\n", scale_x, scale_y, matrix);
 
     /* Set scale matrix. */
     vg_lite_matrix_t s = {
@@ -115,19 +111,18 @@ vg_lite_error_t vg_lite_scale(vg_lite_float_t scale_x, vg_lite_float_t scale_y, 
     /* Multiply with current matrix. */
     multiply(matrix, &s);
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     matrix->scaleX = matrix->scaleX * scale_x;
     matrix->scaleY = matrix->scaleY * scale_y;
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_rotate(vg_lite_float_t degrees, vg_lite_matrix_t * matrix)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_rotate %f %p\n", degrees, matrix);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_ROTATE_API);
+    VG_LITE_TRACE_API("vg_lite_rotate %f %p\n", degrees, matrix);
 
     /* Convert degrees into radians. */
     vg_lite_float_t angle = (degrees / 180.0f) * 3.141592654f;

@@ -1,283 +1,42 @@
 /****************************************************************************
 *
-*    Copyright 2012 - 2023 Vivante Corporation, Santa Clara, California.
-*    All Rights Reserved.
+*    The MIT License (MIT)
 *
-*    Permission is hereby granted, free of charge, to any person obtaining
-*    a copy of this software and associated documentation files (the
-*    'Software'), to deal in the Software without restriction, including
-*    without limitation the rights to use, copy, modify, merge, publish,
-*    distribute, sub license, and/or sell copies of the Software, and to
-*    permit persons to whom the Software is furnished to do so, subject
-*    to the following conditions:
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
-*    The above copyright notice and this permission notice (including the
-*    next paragraph) shall be included in all copies or substantial
-*    portions of the Software.
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
 *
-*    THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-*    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-*    IN NO EVENT SHALL VIVANTE AND/OR ITS SUPPLIERS BE LIABLE FOR ANY
-*    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-*    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-*    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
 
 #include "vg_lite_context.h"
-
-#if (CHIPID==0x255)
-extern vg_lite_error_t set_interpolation_steps(vg_lite_int32_t s_width,
-                                               vg_lite_int32_t s_height,
-                                               vg_lite_matrix_t *matrix,
-                                               vg_lite_uint8_t push_states,
-                                               vg_lite_float_t **steps);
-#endif /* (CHIPID==0x255) */
-
-static float offsetTable[7] = {0, 0.000575f, -0.000575f, 0.0001f, -0.0001f, 0.0000375f, -0.0000375f};
-
-#if VG_SW_BLIT_PRECISION_OPT
-uint8_t GetIndex(uint32_t RotationStep, uint32_t ScaleValue)
-{
-    uint8_t index = 0;
-    switch (RotationStep) {
-        case 0: //rotate 0
-            switch (ScaleValue) {
-                case 10:
-                case 15:
-                case 25:
-                case 30:
-                case 70:
-                case 75:
-                    index = 1;
-                    break;
-                case 45:
-                case 50:
-                case 60:
-                case 65:
-                case 550:
-                    index = 3;
-                    break;
-                case 55:
-                case 250:
-                case 350:
-                    index = 4;
-                    break;
-                case 85:
-                case 90:
-                case 95:
-                case 150:
-                case 450:
-                case 650:
-                case 750:
-                case 850:
-                case 950:
-                    index = 5;
-                    break;
-                case 125:
-                    index = 2;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 2:  //rotate 90
-            switch (ScaleValue) {
-                case 10:
-                    index = 2;
-                    break;
-                case 15:
-                case 25:
-                case 30:
-                case 45:
-                case 75:
-                case 85:
-                case 90:
-                case 95:
-                case 150:
-                case 250:
-                case 350:
-                case 450:
-                case 550:
-                case 850:
-                    index = 5;
-                    break;
-                case 35:
-                case 750:
-                    index = 4;
-                    break;
-                case 50:
-                    index = 1;
-                    break;
-                case 55:
-                case 60:
-                case 65:
-                case 70:
-                    index = 3;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 3:  //rotate 135
-            switch (ScaleValue) {
-                case 10:
-                case 15:
-                case 20:
-                case 35:
-                case 45:
-                case 50:
-                case 60:
-                case 75:
-                    index = 2;
-                    break;
-                case 85:
-                case 90:
-                case 100:
-                case 400:
-                case 450:
-                case 500:
-                case 550:
-                case 850:
-                    index = 4;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 4:  //rotate 180
-            switch (ScaleValue) {
-                case 10:
-                case 15:
-                case 25:
-                case 30:
-                case 35:
-                case 50:
-                    index = 1;
-                    break;
-                case 45:
-                case 55:
-                case 65:
-                case 70:
-                case 75:
-                case 85:
-                case 90:
-                case 95:
-                case 150:
-                case 250:
-                case 350:
-                case 450:
-                case 550:
-                case 650:
-                case 750:
-                case 850:
-                case 950:
-                    index = 5;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 5: //rotate 225
-            switch (ScaleValue) {
-                case 10:
-                case 15:
-                case 20:
-                case 30:
-                case 35:
-                case 40:
-                case 45:
-                case 55:
-                case 60:
-                case 90:
-                    index = 6;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 6: //rotate 270
-            switch (ScaleValue) {
-                case 10:
-                case 25:
-                case 30:
-                case 35:
-                case 45:
-                case 55:
-                case 60:
-                case 65:
-                case 70:
-                case 75:
-                case 80:
-                case 85:
-                case 90:
-                case 95:
-                case 150:
-                case 350:
-                case 450:
-                case 550:
-                case 650:
-                case 750:
-                case 850:
-                case 950:
-                    index = 5;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        case 7: //rotate 315
-            switch (ScaleValue) {
-                case 20:
-                case 25:
-                case 30:
-                case 35:
-                case 40:
-                case 45:
-                case 50:
-                case 55:
-                case 60:
-                case 65:
-                case 70:
-                case 80:
-                case 85:
-                case 90:
-                case 95:
-                case 350:
-                case 550:
-                case 900:
-                    index = 5;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            break;
-        default :
-            index = 0;
-            break;
-    }
-    return index;
-}
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#include "vg_lite_chip.h"
 
 /* Global context variables and feature table.
 */
 vg_lite_context_t   s_context = { 0 };
-uint32_t            submit_flag = 0;
+vg_lite_uint32_t            submit_flag = 0;
 vg_lite_char        dump_api_flag = 1;
 
 #if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
-uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE * 2;
+vg_lite_uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE * 2;
 #else
-uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE;
+vg_lite_uint32_t            command_buffer_size = VG_LITE_COMMAND_BUFFER_SIZE;
 #endif
 
 vg_lite_matrix_t    identity_mtx = {
@@ -325,8 +84,8 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_24BIT_PLANAR,
         gcFEATURE_VG_PIXEL_MATRIX,
         gcFEATURE_VG_NEW_IMAGE_INDEX,
-        gcFEATURE_VG_PARALLEL_PATHS,
-        gcFEATURE_VG_STRIPE_MODE,
+        gcFEATURE_VG_PARALLEL_PATHS_DISABLE,
+        gcFEATURE_VG_STRIPE_MODE_DISABLE,
         gcFEATURE_VG_IM_DEC_INPUT,
         gcFEATURE_VG_GAUSSIAN_BLUR,
         gcFEATURE_VG_RECTANGLE_TILED_OUT,
@@ -355,13 +114,38 @@ vg_lite_ftable_t    s_ftable = {
         gcFEATURE_VG_DST_BUFLEN_ALIGNED,
         gcFEATURE_VG_FORMAT_SUPPORT_CHECK,
         gcFEATURE_VG_YUV_ALIGNED_CHECK,
-        gcFEATURE_VG_512_PARALLEL_PATHS,
+        gcFEATURE_VG_512_PARALLEL_PATHS_DISABLE,
         gcFEATURE_VG_DEC_COMPRESS_2_1,
         gcFEATURE_VG_24BIT_PLANAR_SW,
+        gcFEATURE_VG_RGB8_ETC2_EAC,
+        gcFEATURE_VG_NEW_FACTOR,
+        gcFEATURE_VG_NEW_ROI_MASK,
+        gcFEATURE_VG_A124_A8L8_L4,
+        gcFEATURE_VG_DEC_COMPRESS_2_2,
+        gcFEATURE_VG_DEC_COMPRESS_3_0,
+        gcFEATURE_VG_MESH_FOR_FRAME,
+        gcFEATURE_VG_SIMPLE_BLT,
+        gcFEATURE_VG_EXTERNAL_DMA_MESH,
     }
 };
 
-static vg_lite_error_t check_hardware_chip_info(void)
+#if DUMP_LAST_CAPTURE
+vg_lite_uint8_t last_api_call[LAST_CALL_API_NUMS];
+vg_lite_uint8_t api_call_nums = 0;
+
+vg_lite_void record_api(vg_lite_api_id_t api_id)
+{
+    if (api_call_nums < LAST_CALL_API_NUMS)
+        last_api_call[api_call_nums++] = api_id;
+    else {
+        printf("The number of vg api calls in last frame exceeded LAST_CALL_API_NUMS, please increase it");
+        api_call_nums++;
+    }
+}
+#endif
+
+
+static vg_lite_error_t check_hardware_chip_info(vg_lite_void)
 {
     vg_lite_uint32_t chip_id = 0, chip_rev = 0, cid = 0, eco_id = 0;
 
@@ -378,235 +162,7 @@ static vg_lite_error_t check_hardware_chip_info(void)
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t check_compress(
-    vg_lite_buffer_format_t format,
-    vg_lite_compress_mode_t compress_mode,
-    vg_lite_buffer_layout_t tiled,
-    uint32_t width,
-    uint32_t height
-)
-{
-#if gcFEATURE_VG_DEC_COMPRESS
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-
-    if (compress_mode) {
-        if (compress_mode > VG_LITE_DEC_HV_SAMPLE || compress_mode < VG_LITE_DEC_DISABLE)
-            return VG_LITE_INVALID_ARGUMENT;
-
-        if (tiled) {
-            if (width % 16 || height % 4)
-                return VG_LITE_INVALID_ARGUMENT;
-        }
-        else {
-            if (width % 16 || compress_mode == VG_LITE_DEC_HV_SAMPLE)
-                return VG_LITE_INVALID_ARGUMENT;
-        }
-
-#if gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1
-        if (format != VG_LITE_BGRA8888 && format != VG_LITE_BGRX8888 && format != VG_LITE_BGR888) {
-            printf("Invalid compression format!\n");
-            return VG_LITE_INVALID_ARGUMENT;
-        }       
-#else
-        if ( format != VG_LITE_BGRX8888 && format != VG_LITE_RGBX8888 && format != VG_LITE_BGRA8888 
-            && format != VG_LITE_RGBA8888 && format != VG_LITE_RGB888 && format != VG_LITE_BGR888) {
-            printf("Invalid compression format!\n");
-            return VG_LITE_INVALID_ARGUMENT;
-        }    
-#endif
-    }
-
-    return error;
-#else
-    return VG_LITE_SUCCESS;
-#endif
-}
-
-vg_lite_float_t _calc_decnano_compress_ratio(
-    vg_lite_buffer_format_t format,
-    vg_lite_compress_mode_t compress_mode
-)
-{
-    vg_lite_float_t ratio = 1.0f;
-
-#if gcFEATURE_VG_DEC_COMPRESS_2_1
-    switch (compress_mode) {
-    case VG_LITE_DEC_NON_SAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-        case VG_LITE_BGR888:
-            ratio = 0.5f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.385f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    case VG_LITE_DEC_HSAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-            ratio = 0.385f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.25f;
-            break;
-        case VG_LITE_BGR888:
-            ratio = 0.334f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    case VG_LITE_DEC_HV_SAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-            ratio = 0.25f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.25f;
-            break;
-        case VG_LITE_BGR888:
-            ratio = 0.334f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    default:
-        return ratio;
-    }
-#elif gcFEATURE_VG_DEC_COMPRESS_2_0
-    switch (compress_mode) {
-    case VG_LITE_DEC_NON_SAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-        case VG_LITE_BGR888:
-            ratio = 0.5f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.385f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    case VG_LITE_DEC_HSAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-            ratio = 0.385f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.25f;
-            break;
-        case VG_LITE_BGR888:
-            ratio = 0.334f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    case VG_LITE_DEC_HV_SAMPLE:
-        switch (format) {
-        case VG_LITE_BGRA8888:
-            ratio = 0.385f;
-            break;
-        case VG_LITE_BGRX8888:
-            ratio = 0.25f;
-            break;
-        case VG_LITE_BGR888:
-            ratio = 0.334f;
-            break;
-        default:
-            return ratio;
-        }
-        break;
-
-    default:
-        return ratio;
-    }
-#else
-    #if gcFEATURE_VG_DEC_COMPRESS
-        switch (compress_mode) {
-        case VG_LITE_DEC_NON_SAMPLE:
-            switch (format) {
-            case VG_LITE_ABGR8888:
-            case VG_LITE_ARGB8888:
-            case VG_LITE_BGRA8888:
-            case VG_LITE_RGBA8888:
-                ratio = 0.625f;
-                break;
-            case VG_LITE_XBGR8888:
-            case VG_LITE_XRGB8888:
-            case VG_LITE_BGRX8888:
-            case VG_LITE_RGBX8888:
-                ratio = 0.5f;
-                break;
-            case VG_LITE_RGB888:
-            case VG_LITE_BGR888:
-                ratio = 0.667f;
-                break;
-            default:
-                return ratio;
-            }
-            break;
-
-        case VG_LITE_DEC_HSAMPLE:
-            switch (format) {
-            case VG_LITE_ABGR8888:
-            case VG_LITE_ARGB8888:
-            case VG_LITE_BGRA8888:
-            case VG_LITE_RGBA8888:
-            case VG_LITE_RGB888:
-            case VG_LITE_BGR888:
-                ratio = 0.5f;
-                break;
-            case VG_LITE_XBGR8888:
-            case VG_LITE_XRGB8888:
-            case VG_LITE_BGRX8888:
-            case VG_LITE_RGBX8888:
-                ratio = 0.375f;
-                break;
-            default:
-                return ratio;
-            }
-            break;
-
-        case VG_LITE_DEC_HV_SAMPLE:
-            switch (format) {
-            case VG_LITE_ABGR8888:
-            case VG_LITE_ARGB8888:
-            case VG_LITE_BGRA8888:
-            case VG_LITE_RGBA8888:
-                ratio = 0.375f;
-                break;
-            case VG_LITE_XBGR8888:
-            case VG_LITE_XRGB8888:
-            case VG_LITE_BGRX8888:
-            case VG_LITE_RGBX8888:
-                ratio = 0.25f;
-                break;
-            default:
-                return ratio;
-            }
-            break;
-        default:
-            return ratio;
-        }
-    #endif
-
-#endif
-
-    return ratio;
-}
-
-static inline int32_t has_valid_command_buffer(vg_lite_context_t *context)
+static inline vg_lite_int32_t has_valid_command_buffer(vg_lite_context_t *context)
 {
     if (context == NULL)
         return 0;
@@ -619,10 +175,10 @@ static inline int32_t has_valid_command_buffer(vg_lite_context_t *context)
 }
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-void ptr_modify_cache_command(vg_lite_context_t *context, uint32_t offset, void *data_ptr)
+vg_lite_void ptr_modify_cache_command(vg_lite_context_t *context, vg_lite_uint32_t offset, vg_lite_void *data_ptr)
 {
-    uint32_t data = *(uint32_t*)data_ptr;
-    ((uint32_t*)(context->fb_command_buffer + offset))[1] = data;
+    vg_lite_uint32_t data = *(vg_lite_uint32_t*)data_ptr;
+    ((vg_lite_uint32_t*)(context->fb_command_buffer + offset))[1] = data;
 }
 
 vg_lite_error_t modify_matrix_cache_command(vg_lite_cache_cmd_info *execute_buf, vg_lite_matrix_t *value)
@@ -634,7 +190,7 @@ vg_lite_error_t modify_matrix_cache_command(vg_lite_cache_cmd_info *execute_buf,
     else
     {
         vg_lite_matrix_t* matrix = value;
-        float new_matrix[6];
+        vg_lite_float_t new_matrix[6];
         new_matrix[0] = matrix->m[0][0];
         new_matrix[1] = matrix->m[0][1];
         new_matrix[2] = matrix->m[0][2];
@@ -642,14 +198,14 @@ vg_lite_error_t modify_matrix_cache_command(vg_lite_cache_cmd_info *execute_buf,
         new_matrix[4] = matrix->m[1][1];
         new_matrix[5] = matrix->m[1][2];
 
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start, (void*)&new_matrix[0]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 8, (void*)&new_matrix[1]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 16, (void*)&new_matrix[2]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 24, (void*)&new_matrix[3]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 32, (void*)&new_matrix[4]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 40, (void*)&new_matrix[5]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 48, (void*)&matrix->m[0][2]);
-        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 56, (void*)&matrix->m[1][2]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start, (vg_lite_pointer)&new_matrix[0]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 8, (vg_lite_pointer)&new_matrix[1]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 16, (vg_lite_pointer)&new_matrix[2]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 24, (vg_lite_pointer)&new_matrix[3]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 32, (vg_lite_pointer)&new_matrix[4]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 40, (vg_lite_pointer)&new_matrix[5]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 48, (vg_lite_pointer)&matrix->m[0][2]);
+        ptr_modify_cache_command(&s_context, execute_buf->special_register_offset_start + 56, (vg_lite_pointer)&matrix->m[1][2]);
     }
 
     return error;
@@ -657,8 +213,7 @@ vg_lite_error_t modify_matrix_cache_command(vg_lite_cache_cmd_info *execute_buf,
 #endif
 
 typedef vg_lite_float_t  FLOATVECTOR4[4];
-
-static void ClampColor(FLOATVECTOR4 Source, FLOATVECTOR4 Target, uint8_t Premultiplied)
+static vg_lite_void ClampColor(FLOATVECTOR4 Source, FLOATVECTOR4 Target, vg_lite_uint8_t Premultiplied)
 {
     vg_lite_float_t colorMax;
     /* Clamp the alpha channel. */
@@ -673,29 +228,29 @@ static void ClampColor(FLOATVECTOR4 Source, FLOATVECTOR4 Target, uint8_t Premult
     Target[2] = CLAMP(Source[2], 0.0f, colorMax);
 }
 
-static uint8_t PackColorComponent(vg_lite_float_t value)
+static vg_lite_uint8_t PackColorComponent(vg_lite_float_t value)
 {
     /* Compute the rounded normalized value. */
     vg_lite_float_t rounded = value * 255.0f + 0.5f;
 
     /* Get the integer part. */
-    int32_t roundedInt = (int32_t)rounded;
+    vg_lite_int32_t roundedInt = (vg_lite_int32_t)rounded;
 
     /* Clamp to 0..1 range. */
-    uint8_t clamped = (uint8_t)CLAMP(roundedInt, 0, 255);
+    vg_lite_uint8_t clamped = (vg_lite_uint8_t)CLAMP(roundedInt, 0, 255);
 
     /* Return result. */
     return clamped;
 }
 
 #if DUMP_IMAGE
-static void dump_img(void * memory, int32_t width, int32_t height, vg_lite_buffer_format_t format)
+static vg_lite_void dump_img(vg_lite_void * memory, vg_lite_int32_t width, vg_lite_int32_t height, vg_lite_buffer_format_t format)
 {
     FILE * fp;
-    char imgname[255] = {'\0'};
-    static int32_t num = 1;
-    uint32_t* pt = (uint32_t*) memory;
-    int32_t i;
+    vg_lite_char imgname[255] = {'\0'};
+    static vg_lite_int32_t num = 1;
+    vg_lite_uint32_t* pt = (vg_lite_uint32_t*) memory;
+    vg_lite_int32_t i;
 
     sprintf(imgname, "img_pid%d_%d.txt", getpid(), num++);
     
@@ -769,30 +324,64 @@ static void dump_img(void * memory, int32_t width, int32_t height, vg_lite_buffe
 }
 #endif
 
-static uint32_t rgb_to_l(uint32_t color)
+static vg_lite_uint32_t rgb_to_l(vg_lite_uint32_t color, vg_lite_buffer_t* target)
 {
-    uint32_t l = (uint32_t)((0.2126f * (vg_lite_float_t)(color & 0xFF)) +
-                            (0.7152f * (vg_lite_float_t)((color >> 8) & 0xFF)) +
-                            (0.0722f * (vg_lite_float_t)((color >> 16) & 0xFF)));
-    return l | (l << 24);
+    vg_lite_uint32_t l = 0;
+    switch (target->yuv.yuv2rgb) {
+        case VG_LITE_YUV601:
+            l = (vg_lite_uint32_t)((0.299f * (vg_lite_float_t)(color & 0xFF)) +
+                (0.587f * (vg_lite_float_t)((color >> 8) & 0xFF)) +
+                (0.114f * (vg_lite_float_t)((color >> 16) & 0xFF)));
+            break;
+        case VG_LITE_YUV709:
+            l = (vg_lite_uint32_t)((0.2126f * (vg_lite_float_t)(color & 0xFF)) +
+                (0.7152f * (vg_lite_float_t)((color >> 8) & 0xFF)) +
+                (0.0722f * (vg_lite_float_t)((color >> 16) & 0xFF)));
+            break;
+        default:
+            break;
+    }
+
+    switch (target->format) {
+        case VG_LITE_L8:
+            l = l | l << 24;
+            break;
+        case VG_LITE_A8L8:
+            l = l | (color & 0xFF000000);
+            break;
+        default:
+            break;
+    }
+
+    return l;
 }
 
 /* Get the bpp information of a color format. */
-void get_format_bytes(vg_lite_buffer_format_t format,
-                             uint32_t *mul,
-                             uint32_t *div,
-                             uint32_t *bytes_align)
+vg_lite_void get_format_bytes(vg_lite_buffer_format_t format,
+                             vg_lite_uint32_t *mul,
+                             vg_lite_uint32_t *div,
+                             vg_lite_uint32_t *bytes_align)
 {
     *mul = *div = 1;
     *bytes_align = 4;
     switch (format) {
+        case VG_LITE_A1:
+            *div = 8;
+            break;
+
+        case VG_LITE_A2:
+            *div = 4;
+            break;
+
+        case VG_LITE_L4:
+        case VG_LITE_A4:
+        case VG_LITE_RGB888_ETC2_EAC:
+            *div = 2;
+            break;
+
         case VG_LITE_L8:
         case VG_LITE_A8:
         case VG_LITE_RGBA8888_ETC2_EAC:
-            break;
-
-        case VG_LITE_A4:
-            *div = 2;
             break;
 
         case VG_LITE_ABGR1555:
@@ -816,6 +405,7 @@ void get_format_bytes(vg_lite_buffer_format_t format,
         case VG_LITE_ARGB8565_PLANAR:
         case VG_LITE_RGBA5658_PLANAR:
         case VG_LITE_BGRA5658_PLANAR:
+        case VG_LITE_A8L8:
             *mul = 2;
             break;
 
@@ -943,15 +533,47 @@ void get_format_bytes(vg_lite_buffer_format_t format,
     }
 }
 
+vg_lite_uint8_t is_packed_yuy_format(vg_lite_buffer_format_t format)
+{
+    return (vg_lite_uint8_t)((format == VG_LITE_YUYV || format == VG_LITE_YUY2 || format == VG_LITE_YUY2_TILED
+        || format == VG_LITE_AYUY2 || format == VG_LITE_AYUY2_TILED) ? 1U : 0U);
+}
+
+vg_lite_uint8_t is_lvgl_blend_mode(vg_lite_blend_t blend)
+{
+    return (vg_lite_uint8_t)((blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) ? 1U : 0U);
+}
+
+/* Packed YUY render targets do not support blending in blit APIs. */
+static vg_lite_error_t blit_check_blend_on_yuy_target(vg_lite_blend_t blend, vg_lite_buffer_format_t target_format)
+{
+    if (blend && is_packed_yuy_format(target_format)) {
+        return VG_LITE_NOT_SUPPORT;
+    }
+    return VG_LITE_SUCCESS;
+}
+
 /* Convert VGLite target color format to HW value. */
-static uint32_t convert_target_format(vg_lite_buffer_format_t format, vg_lite_capabilities_t caps)
+static vg_lite_uint32_t convert_target_format(vg_lite_buffer_format_t format)
 {
     switch (format) {
+        case VG_LITE_A1:
+            return 0x401;
+
+        case VG_LITE_A2:
+            return 0x402;
+
+        case VG_LITE_A4:
+            return 0x403;
+
         case VG_LITE_A8:
             return 0x0;
 
         case VG_LITE_L8:
             return 0x6;
+
+        case VG_LITE_A8L8:
+            return 0x400;
 
         case VG_LITE_ABGR4444:
             return 0x14;
@@ -1256,7 +878,7 @@ vg_lite_buffer_format_t convert_24bit_format(vg_lite_buffer_format_t format)
     }
 }
 
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
 /* Convert 24BIT to 24BIT_PLANAR buffer to enable software support 24BIT_PLANAR fotmat.*/
 static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_buffer_t* target)
 {
@@ -1265,13 +887,13 @@ static vg_lite_error_t vg_lite_convert_planar(vg_lite_buffer_t* source, vg_lite_
         if (!target->sw24bit_buffer)
             return VG_LITE_SUCCESS;
     }
-    uint32_t i;
+    vg_lite_uint32_t i;
     int8_t* data_source = source->memory;
     int8_t* data_rgb = target->memory;
     int8_t* data_alpha = target->yuv.alpha_memory;
     if ((source->stride * source->height % 3) != 0)
         return VG_LITE_INVALID_ARGUMENT;
-    uint32_t pixel_size = source->stride * source->height / 3;
+    vg_lite_uint32_t pixel_size = source->stride * source->height / 3;
     switch (source->format)
     {
     case VG_LITE_ABGR8565:
@@ -1320,13 +942,13 @@ vg_lite_error_t vg_lite_convert_24bitplanar_to_24bit(vg_lite_buffer_t* source, v
         if (!source->sw24bit_buffer)
             return VG_LITE_SUCCESS;
     }
-    uint32_t i;
+    vg_lite_uint32_t i;
     int8_t* data_target = target->memory;
     int8_t* data_rgb = source->memory;
     int8_t* data_alpha = source->yuv.alpha_memory;
     if ((target->stride * target->height % 3) != 0)
         return VG_LITE_INVALID_ARGUMENT;
-    uint32_t pixel_size = target->stride * target->height / 3;
+    vg_lite_uint32_t pixel_size = target->stride * target->height / 3;
     switch (source->format)
     {
     case VG_LITE_ABGR8565_PLANAR:
@@ -1371,6 +993,30 @@ vg_lite_error_t vg_lite_convert_24bitplanar_to_24bit(vg_lite_buffer_t* source, v
 }
 #endif
 
+void vg_flush_previous_rt(void)
+{
+#if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
+    vg_lite_finish();
+#else
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
+    if ((s_context.rtbuffer->format >= VG_LITE_ABGR8565) && (s_context.rtbuffer->format <= VG_LITE_RGBA5658))
+    {
+        if (s_context.rtbuffer->sw24bit_planar_buffer)
+        {
+            vg_lite_finish();
+            vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
+        }
+        else
+        {
+            vg_lite_flush();
+        }
+    }
+#else  
+    vg_lite_flush();
+#endif
+#endif /* gcFEATURE_VG_SINGLE_COMMAND_BUFFER */
+}
+
 #define FORMAT_ALIGNMENT(stride,align) \
     { \
         if ((stride) % (align) != 0) \
@@ -1380,7 +1026,7 @@ vg_lite_error_t vg_lite_convert_24bitplanar_to_24bit(vg_lite_buffer_t* source, v
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
 /* Determine source IM is aligned by specified bytes */
-static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint32_t stride)
+static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,vg_lite_uint32_t stride)
 {
     switch (format) {
         case VG_LITE_A4:
@@ -1453,11 +1099,14 @@ static vg_lite_error_t _check_source_aligned(vg_lite_buffer_format_t format,uint
 #endif
 
 #if gcFEATURE_VG_SRC_BUF_ALINGED
-static vg_lite_error_t _check_source_aligned_2(vg_lite_buffer_format_t format, uint32_t stride)
+static vg_lite_error_t _check_source_aligned_2(vg_lite_buffer_format_t format, vg_lite_uint32_t stride)
 {
     switch (format) {
+    case VG_LITE_A1:
+    case VG_LITE_A2:
     case VG_LITE_A4:
     case VG_LITE_A8:
+    case VG_LITE_L4:
     case VG_LITE_L8:
     case VG_LITE_INDEX_1:
     case VG_LITE_INDEX_2:
@@ -1471,6 +1120,7 @@ static vg_lite_error_t _check_source_aligned_2(vg_lite_buffer_format_t format, u
         FORMAT_ALIGNMENT(stride, 1);
         break;
 
+    case VG_LITE_A8L8:
     case VG_LITE_RGBA4444:
     case VG_LITE_BGRA4444:
     case VG_LITE_ABGR4444:
@@ -1519,16 +1169,20 @@ static vg_lite_error_t _check_source_aligned_2(vg_lite_buffer_format_t format, u
     }
 }
 
-static vg_lite_error_t _check_source_aligned_3(vg_lite_buffer_format_t format, uint32_t stride)
+static vg_lite_error_t _check_source_aligned_3(vg_lite_buffer_format_t format, vg_lite_uint32_t stride)
 {
     switch (format) {
+    case VG_LITE_A1:
+    case VG_LITE_A2:
     case VG_LITE_INDEX_1:
     case VG_LITE_INDEX_2:
         FORMAT_ALIGNMENT(stride, 1);
         break;
 
     case VG_LITE_A4:
+    case VG_LITE_L4:
     case VG_LITE_INDEX_4:
+    case VG_LITE_RGB888_ETC2_EAC:
         FORMAT_ALIGNMENT(stride, 2);
         break;
 
@@ -1544,6 +1198,7 @@ static vg_lite_error_t _check_source_aligned_3(vg_lite_buffer_format_t format, u
         FORMAT_ALIGNMENT(stride, 4);
         break;
 
+    case VG_LITE_A8L8:
     case VG_LITE_RGBA4444:
     case VG_LITE_BGRA4444:
     case VG_LITE_ABGR4444:
@@ -1652,8 +1307,10 @@ static vg_lite_error_t _check_format_support_2(vg_lite_buffer_format_t format)
 #endif
 
 vg_lite_error_t peclear_align_check(vg_lite_buffer_t* target, vg_lite_int32_t y) {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
 #if gcFEATURE_VG_DST_ADDRESS_DETAIL_ALIGNED
-    if ((uint32_t)(target->address) % 64 != 0) {
+    if ((vg_lite_uint32_t)(target->address) % 64 != 0) {
         return VG_LITE_INVALID_ARGUMENT;
     }
 #endif
@@ -1661,7 +1318,7 @@ vg_lite_error_t peclear_align_check(vg_lite_buffer_t* target, vg_lite_int32_t y)
     if (target->compress_mode == VG_LITE_DEC_DISABLE) {
 
 #if gcFEATURE_VG_DST_BUFLEN_ALIGNED
-        uint32_t align, mul, div;
+        vg_lite_uint32_t align, mul, div;
         get_format_bytes(target->format, &mul, &div, &align);
         if ((mul / div != 3) && ((target->stride * y) % 64 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1669,7 +1326,7 @@ vg_lite_error_t peclear_align_check(vg_lite_buffer_t* target, vg_lite_int32_t y)
 #endif
 
 #if gcFEATURE_VG_24BIT
-        uint32_t align1, mul1, div1;
+        vg_lite_uint32_t align1, mul1, div1;
         get_format_bytes(target->format, &mul1, &div1, &align1);
         if ((mul1 / div1 == 3) && ((target->stride * y) % 48 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1677,40 +1334,10 @@ vg_lite_error_t peclear_align_check(vg_lite_buffer_t* target, vg_lite_int32_t y)
 #endif
 
     }
-    else {
+    else
+        VG_LITE_RETURN_ERROR(check_compress_stride_align(target->format, target->stride * y));
 
-#if gcFEATURE_VG_DEC_COMPRESS_2_0
-        if (target->format == VG_LITE_BGRA8888 || target->format == VG_LITE_BGRX8888) {
-            if ((target->stride * y) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (target->format == VG_LITE_BGR888) {
-            if ((target->stride * y) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#endif
-
-#if gcFEATURE_VG_DEC_COMPRESS
-        if (target->format == VG_LITE_BGRX8888 || target->format == VG_LITE_RGBX8888
-            || target->format == VG_LITE_BGRA8888 || target->format == VG_LITE_RGBA8888) {
-            if ((target->stride * y) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (target->format == VG_LITE_RGB888 || target->format == VG_LITE_BGR888) {
-            if ((target->stride * y) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#endif
-
-    }
-
-    return VG_LITE_SUCCESS;
+    return error;
 }
 
 vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
@@ -1724,37 +1351,37 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 #endif
 
 #if gcFEATURE_VG_SRC_ADDRESS_64BYTES_ALIGNED
-    if ((uint32_t)(source->address) % 64 != 0) {
+    if ((vg_lite_uint32_t)(source->address) % 64 != 0) {
         printf("buffer address need to be aglined to 64 bytes.");
         return VG_LITE_INVALID_ARGUMENT;
     }
 #endif
 
 #if gcFEATURE_VG_SRC_ADDRESS_DETAIL_ALIGNED
-    uint32_t align, mul, div, bpp;
+    vg_lite_uint32_t align, mul, div, bpp;
     get_format_bytes(source->format, &mul, &div, &align);
     bpp = 8 * mul / div;
 
     if (bpp == 8) {
-        if ((uint32_t)(source->address) % 16 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 16 != 0) {
             printf("buffer address need to be aglined to 16 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
     else if (bpp == 16) {
-        if ((uint32_t)(source->address) % 32 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 32 != 0) {
             printf("buffer address need to be aglined to 32 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
     else if (bpp == 24 || bpp == 32) {
-        if ((uint32_t)(source->address) % 64 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 64 != 0) {
             printf("buffer address need to be aglined to 64 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
     else {
-        if ((uint32_t)(source->address) % 8 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 8 != 0) {
             printf("buffer address need to be aglined to 8 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
@@ -1762,18 +1389,18 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 #endif
 
 #if gcFEATURE_VG_SRC_ADDRESS_DETAIL_ALIGNED_1
-    uint32_t align, mul, div, bpp;
+    vg_lite_uint32_t align, mul, div, bpp;
     get_format_bytes(source->format, &mul, &div, &align);
     bpp = 8 * mul / div;
 
     if (bpp == 32) {
-        if ((uint32_t)(source->address) % 16 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 16 != 0) {
             printf("buffer address need to be aglined to 16 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
     else {
-        if ((uint32_t)(source->address) % 8 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 8 != 0) {
             printf("buffer address need to be aglined to 8 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
@@ -1788,7 +1415,7 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
         source->format == VG_LITE_ARGB8888
         )
     {
-        if ((uint32_t)(source->address) % 16 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 16 != 0) {
             printf("buffer address need to be aglined to 16 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
@@ -1796,7 +1423,7 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
     else
 #endif
     {
-        if ((uint32_t)(source->address) % 8 != 0) {
+        if ((vg_lite_uint32_t)(source->address) % 8 != 0) {
             printf("buffer address need to be aglined to 8 bytes.");
             return VG_LITE_INVALID_ARGUMENT;
         }
@@ -1805,7 +1432,7 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 
     if (source->tiled == VG_LITE_TILED) {
 #if gcFEATURE_VG_SRC_TILE_4PIXELS_ALIGNED
-        uint32_t align, mul, div;
+        vg_lite_uint32_t align, mul, div;
         get_format_bytes(source->format, &mul, &div, &align);
         if ((source->stride % (4 * mul / div) != 0) || (source->height % 4 != 0)) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1813,7 +1440,6 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 #endif
 
 #if gcFEATURE_VG_SRC_BUF_ALINGED
-        vg_lite_error_t error;
         error = _check_source_aligned_3(source->format, source->stride);
         if (error != VG_LITE_SUCCESS) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1853,7 +1479,7 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 
     if (source->tiled == VG_LITE_LINEAR) {
 #if gcFEATURE_VG_16PIXELS_ALIGNED
-        uint32_t align, mul, div;
+        vg_lite_uint32_t align, mul, div;
         get_format_bytes(source->format, &mul, &div, &align);
         if (source->stride % (16 * mul / div) != 0) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1861,7 +1487,6 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 #endif
 
 #if gcFEATURE_VG_SRC_BUF_ALINGED
-        vg_lite_error_t error;
         error = _check_source_aligned_2(source->format, source->stride);
         if (error != VG_LITE_SUCCESS) {
             return VG_LITE_INVALID_ARGUMENT;
@@ -1927,38 +1552,18 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
             }
         }
 #endif
+
+#if gcFEATURE_VG_YUV_HEIGHT_ALIGNED_CHECK
+        if (source->format == VG_LITE_NV12) {
+            if (source->height % 2 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+#endif
     }
 
-
     if (source->compress_mode != VG_LITE_DEC_DISABLE) {
-#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1)
-#if gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1
-        if (source->format == VG_LITE_BGRA8888 || source->format == VG_LITE_BGRX8888) {
-            if ((source->stride * source->height) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (source->format == VG_LITE_BGR888) {
-            if ((source->stride * source->height) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#else
-        if (source->format == VG_LITE_BGRX8888 || source->format == VG_LITE_RGBX8888
-            || source->format == VG_LITE_BGRA8888 || source->format == VG_LITE_RGBA8888) {
-            if ((source->stride * source->height) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (source->format == VG_LITE_RGB888 || source->format == VG_LITE_BGR888) {
-            if ((source->stride * source->height) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#endif
-#endif
+        VG_LITE_RETURN_ERROR(check_compress_stride_align(source->format, source->stride* source->height));
     }
 
     return error;
@@ -1967,13 +1572,13 @@ vg_lite_error_t srcbuf_align_check(vg_lite_buffer_t* source)
 vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t align, mul, div;
+    vg_lite_uint32_t align, mul, div;
 #if gcFEATURE_VG_TILED_LIMIT || gcFEATURE_VG_DST_BUF_ALIGNED
-    uint32_t bpp;
+    vg_lite_uint32_t bpp;
 #endif
 #if gcFEATURE_VG_TILED_LIMIT
-    uint32_t tile_flag = 0;
-    uint32_t tile_flag1 = 0;
+    vg_lite_uint32_t tile_flag = 0;
+    vg_lite_uint32_t tile_flag1 = 0;
 #endif
     get_format_bytes(target->format, &mul, &div, &align);
 #if gcFEATURE_VG_TILED_LIMIT || gcFEATURE_VG_DST_BUF_ALIGNED
@@ -2013,6 +1618,11 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
                 if (target->stride % 8 != 0) {
                     return VG_LITE_INVALID_ARGUMENT;
                 }
+#if gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED_1
+                if (target->alpha_stride % 4 != 0) {
+                    return VG_LITE_INVALID_ARGUMENT;
+                }
+#endif
             }
         }
         else {
@@ -2037,79 +1647,60 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 
         if (bpp == 8 || bpp == 16 || bpp == 32)
         {
-            if ((uint32_t)(target->address) % 4 != 0) {
+            if ((vg_lite_uint32_t)(target->address) % 4 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
 
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
-            if ((uint32_t)(target->address) % 64 != 0) {
+            if ((vg_lite_uint32_t)(target->address) % 64 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
 #endif
 
 #if gcFEATURE_VG_DST_ADDRESS_64BYTES_ALIGNED
-        if ((uint32_t)(target->address) % 64 != 0) {
+        if ((vg_lite_uint32_t)(target->address) % 64 != 0) {
             return VG_LITE_INVALID_ARGUMENT;
         }
 #endif
 
 #if gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED
         if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
-            if ((uint32_t)(target->address) % 32 != 0) {
+            if ((vg_lite_uint32_t)(target->address) % 32 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
-            if ((uint32_t)(target->yuv.alpha_planar) % 16 != 0) {
+            if ((vg_lite_uint32_t)(target->yuv.alpha_planar) % 16 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
-    }
+        }
 #endif
+
+#if gcFEATURE_VG_DST_24BIT_PLANAR_ALIGNED_1
+        if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
+            if ((vg_lite_uint32_t)(target->address) % 64 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+            if ((vg_lite_uint32_t)(target->yuv.alpha_planar) % 64 != 0) {
+                return VG_LITE_INVALID_ARGUMENT;
+            }
+        }
+#endif
+
     }
     else {
-#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1)
-        if ((uint32_t)(target->address) % 64 != 0) {
-            printf("target address need to be aligned to 64 bytes.");
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-
-#if gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1
-        if (target->format == VG_LITE_BGRA8888 || target->format == VG_LITE_BGRX8888) {
-            if ((target->stride * target->height) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (target->format == VG_LITE_BGR888) {
-            if ((target->stride * target->height) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#else
-        if (target->format == VG_LITE_BGRX8888 || target->format == VG_LITE_RGBX8888 
-            || target->format == VG_LITE_BGRA8888 || target->format == VG_LITE_RGBA8888) {
-            if ((target->stride * target->height) % 64 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-
-        if (target->format == VG_LITE_RGB888 || target->format == VG_LITE_BGR888) {
-            if ((target->stride * target->height) % 48 != 0) {
-                return VG_LITE_INVALID_ARGUMENT;
-            }
-        }
-#endif
-#endif
+        VG_LITE_RETURN_ERROR(check_compress_target_address_align(target->address));
+        VG_LITE_RETURN_ERROR(check_compress_stride_align(target->format, target->stride * target->height));
     }
 
 #if gcFEATURE_VG_DST_ADDRESS_DETAIL_ALIGNED
     if (bpp == 24 || target->tiled == VG_LITE_TILED) {
-        if ((uint32_t)(target->address) % 64 != 0) {
+        if ((vg_lite_uint32_t)(target->address) % 64 != 0) {
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
     else {
-        if ((uint32_t)(target->address) % 4 != 0) {
+        if ((vg_lite_uint32_t)(target->address) % 4 != 0) {
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
@@ -2119,18 +1710,18 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
             return VG_LITE_INVALID_ARGUMENT;
         }
         if (bpp == 24) {
-            if ((uint32_t)(target->stride) % 12 != 0) {
+            if ((vg_lite_uint32_t)(target->stride) % 12 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
         else {
-            if ((uint32_t)(target->stride) % 16 != 0) {
+            if ((vg_lite_uint32_t)(target->stride) % 16 != 0) {
                 return VG_LITE_INVALID_ARGUMENT;
             }
         }
     }
     else {
-        if ((uint32_t)(target->stride) % (bpp / 8) != 0) {
+        if ((vg_lite_uint32_t)(target->stride) % (bpp / 8) != 0) {
             return VG_LITE_INVALID_ARGUMENT;
         }
     }
@@ -2169,8 +1760,11 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
         return VG_LITE_INVALID_ARGUMENT;
     }
 
-    if (target->stride % (mul / div) != 0) {
-        return VG_LITE_INVALID_ARGUMENT;
+    if (mul / div)
+    {
+        if (target->stride % (mul / div) != 0) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
     }
 
     if (target->compress_mode || bpp == 24) {
@@ -2215,17 +1809,30 @@ vg_lite_error_t dstbuf_align_check(vg_lite_buffer_t* target)
 
 
 /* Convert VGLite source color format to HW values. */
-uint32_t convert_source_format(vg_lite_buffer_format_t format)
+vg_lite_uint32_t convert_source_format(vg_lite_buffer_format_t format)
 {
     switch (format) {
+        case VG_LITE_L4:
+            return 0x80000;
+
         case VG_LITE_L8:
             return 0x0;
+
+        case VG_LITE_A1:
+
+            return 0x80003;
+
+        case VG_LITE_A2:
+            return 0x80001;
 
         case VG_LITE_A4:
             return 0x1;
 
         case VG_LITE_A8:
             return 0x2;
+
+        case VG_LITE_A8L8:
+            return 0x80002;
 
         case VG_LITE_RGBA4444:
             return 0x23;
@@ -2341,7 +1948,14 @@ uint32_t convert_source_format(vg_lite_buffer_format_t format)
             return 0xA30;
 
         case VG_LITE_RGBA8888_ETC2_EAC:
+#if !gcFEATURE_VG_RGB8_ETC2_EAC
             return 0xE00;
+#else
+            return 0xE07;
+#endif
+
+        case VG_LITE_RGB888_ETC2_EAC:
+            return 0x20000E00;
 
         case VG_LITE_ARGB8565:
             return 0x40000030;
@@ -2554,7 +2168,7 @@ uint32_t convert_source_format(vg_lite_buffer_format_t format)
 }
 
 /* Convert VGLite blend modes to HW values. */
-uint32_t convert_blend(vg_lite_blend_t blend)
+vg_lite_uint32_t convert_blend(vg_lite_blend_t blend)
 {
     switch (blend) {
         case VG_LITE_BLEND_SRC_OVER:
@@ -2611,8 +2225,297 @@ uint32_t convert_blend(vg_lite_blend_t blend)
     }
 }
 
+/* Check the input porter duff factor is conforms to one of VG_LITE_BLEND_NONE/VG_LITE_BLEND_SRC_IN/VG_LITE_BLEND_DST_IN. */
+vg_lite_uint32_t check_porter_duff_factor_match(vg_lite_blend_t blend, vg_lite_porter_duff_config_t porter_duff_config)
+{
+#if gcFEATURE_VG_NEW_FACTOR
+    if (blend != VG_LITE_PORTER_DUFF_BLEND)
+        return 0;
+
+    if (
+        /* case1: porter duff factor configuration is same as VG_LITE_BLEND_NONE. */
+        (porter_duff_config.factor_src_alpha == VG_LITE_BLEND_FACTOR_ALPHA_ZERO
+            && porter_duff_config.factor_src_color == VG_LITE_BLEND_FACTOR_COLOR_ZERO
+            && porter_duff_config.factor_dst_alpha == VG_LITE_BLEND_FACTOR_ALPHA_ZERO
+            && porter_duff_config.factor_dst_color == VG_LITE_BLEND_FACTOR_COLOR_ZERO
+            && porter_duff_config.final_equation_opcode == VG_LITE_BLEND_FUNC_ADD
+            && porter_duff_config.srcchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY
+            && porter_duff_config.dstchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY)
+        ||
+        /* case2: porter duff factor configuration is same as VG_LITE_BLEND_SRC_IN. */
+        (porter_duff_config.factor_src_alpha == VG_LITE_BLEND_FACTOR_ALPHA_DEST_ALPHA
+            && porter_duff_config.factor_src_color == VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA
+            && porter_duff_config.factor_dst_alpha == VG_LITE_BLEND_FACTOR_ALPHA_ZERO
+            && porter_duff_config.factor_dst_color == VG_LITE_BLEND_FACTOR_COLOR_ZERO
+            && porter_duff_config.final_equation_opcode == VG_LITE_BLEND_FUNC_ADD
+            && porter_duff_config.srcchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY
+            && porter_duff_config.dstchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY)
+        ||
+        /* case3: porter duff factor configuration is same as VG_LITE_BLEND_DST_IN. */
+        (porter_duff_config.factor_src_alpha == VG_LITE_BLEND_FACTOR_ALPHA_ONE
+            && porter_duff_config.factor_src_color == VG_LITE_BLEND_FACTOR_COLOR_ONE
+            && porter_duff_config.factor_dst_alpha == VG_LITE_BLEND_FACTOR_ALPHA_SRC_ALPHA
+            && porter_duff_config.factor_dst_color == VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA
+            && porter_duff_config.final_equation_opcode == VG_LITE_BLEND_FUNC_ADD
+            && porter_duff_config.srcchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY
+            && porter_duff_config.dstchannelmode == VG_LITE_CHANNEL_MODE_PREMULTIPLY)
+        )
+        return 1;
+#endif
+    return 0;
+}
+
+/* Config parameters according to the blend mode. */
+vg_lite_void config_factor_parameter(vg_lite_blend_t blend, vg_lite_porter_duff_config_t porter_duff_config, vg_factor_config_t* factor_config)
+{
+    if (factor_config == NULL)
+    {
+        return;
+    }
+
+    switch (blend) 
+    {
+    case VG_LITE_BLEND_NONE:
+    case OPENVG_BLEND_SRC:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_ZERO;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_ZERO;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case VG_LITE_BLEND_SRC_OVER:
+    case OPENVG_BLEND_SRC_OVER:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_ZERO;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_DST_OVER:
+    case OPENVG_BLEND_DST_OVER:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_DEST_ALPHA;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ONE;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_ONE;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_SRC_IN:
+    case OPENVG_BLEND_SRC_IN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_DEST_ALPHA;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_ZERO;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_DST_IN:
+    case OPENVG_BLEND_DST_IN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ONE;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_ONE;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_MULTIPLY:
+    case OPENVG_BLEND_MULTIPLY:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA_PLUS;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_SCREEN:
+    case OPENVG_BLEND_SCREEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA_MUL_DEST_COLOR;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_ONE;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_DARKEN:
+    case OPENVG_BLEND_DARKEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_MIN;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_LIGHTEN:
+    case OPENVG_BLEND_LIGHTEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_MAX;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case  VG_LITE_BLEND_ADDITIVE:
+    case OPENVG_BLEND_ADDITIVE:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_ZERO;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ONE;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_ONE;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case VG_LITE_BLEND_SUBTRACT:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ONE;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_ONE;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_PREMULTIPLY;
+        break;
+    case VG_LITE_BLEND_NORMAL_LVGL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_COLOR;
+        break;
+    case VG_LITE_BLEND_ADDITIVE_LVGL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_ADD_DEST;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_COLOR;
+        break;
+    case VG_LITE_BLEND_SUBTRACT_LVGL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_DEST_SUB_SRC;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_COLOR;
+        break;
+    case VG_LITE_BLEND_MULTIPLY_LVGL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_MUL_DEST;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_COLOR;
+        break;
+    case VG_LITE_BLEND_DIFFERENCE_LVGL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_DEST_SUB_SRC_ABS;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_COLOR;
+        break;
+    case SVG2_BLEND_NORMAL:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        break;
+    case SVG2_BLEND_MULTIPLY:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_SRC_MUL_DEST;
+        break;
+    case SVG2_BLEND_SCREEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_SRC_ADD_DEST_MINUS;
+        break;
+    case SVG2_BLEND_LIGHTEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_MAX_SRC_DEST;
+        break;
+    case SVG2_BLEND_DARKEN:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_MIN_SRC_DEST;
+        break;
+    case SVG2_BLEND_DIFFERENCE:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_DEST_SUB_SRC_ABS;
+        break;
+    case SVG2_BLEND_EXCLUSION:
+        factor_config->factor_src_alpha = VG_LITE_BLEND_FACTOR_ALPHA_ZERO;
+        factor_config->factor_src_color = VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA;
+        factor_config->factor_dst_alpha = VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA;
+        factor_config->factor_dst_color = VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA;
+        factor_config->final_equation_opcode = VG_LITE_BLEND_FUNC_ADD;
+        factor_config->srcchannelmode = VG_LITE_CHANNEL_MODE_SRC_COLOR;
+        factor_config->dstchannelmode = VG_LITE_CHANNEL_MODE_SRC_ADD_DEST_MINUS2;
+        break;
+    case VG_LITE_PORTER_DUFF_BLEND:
+        if (s_context.porter_duff_enable)
+        {
+            factor_config->factor_src_alpha = porter_duff_config.factor_src_alpha;
+            factor_config->factor_src_color = porter_duff_config.factor_src_color;
+            factor_config->factor_dst_alpha = porter_duff_config.factor_dst_alpha;
+            factor_config->factor_dst_color = porter_duff_config.factor_dst_color;
+            factor_config->final_equation_opcode = porter_duff_config.final_equation_opcode;
+            factor_config->dstchannelmode = porter_duff_config.dstchannelmode;
+            factor_config->srcchannelmode = porter_duff_config.srcchannelmode;
+        }
+        else
+        {
+            VGLITE_LOG("Porter duff factor is not configured, please configure it via vg_lite_blend_func() first.\n");
+            return;
+        }
+        break;
+    default:
+        break;
+    }
+};
+
 /* Convert VGLite uv swizzle enums to HW values. */
-uint32_t convert_uv_swizzle(vg_lite_swizzle_t swizzle)
+vg_lite_uint32_t convert_uv_swizzle(vg_lite_swizzle_t swizzle)
 {
     switch (swizzle) {
         case VG_LITE_SWIZZLE_UV:
@@ -2629,7 +2532,7 @@ uint32_t convert_uv_swizzle(vg_lite_swizzle_t swizzle)
 }
 
 /* Convert VGLite yuv standard enums to HW values. */
-uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
+vg_lite_uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
 {
     switch (yuv) {
         case VG_LITE_YUV601:
@@ -2646,28 +2549,30 @@ uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
 }
 
 static vg_lite_error_t submit(vg_lite_context_t * context);
-static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint32_t mask);
+static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_ms, vg_lite_uint32_t mask);
+static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context);
+#if gcFEATURE_VG_MESH_FOR_FRAME
+static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target);
+static vg_lite_error_t vg_lite_target_mesh_copy(vg_lite_buffer_t* target);
+#endif
 
 /* Push a state array into current command buffer. */
-vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_t count, uint32_t *data)
+vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_uint32_t count, vg_lite_uint32_t *data)
 {
-    uint32_t i;
+    vg_lite_uint32_t i;
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4 >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4, context));
 
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATES(count, address);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATES(count, address);
 
     for (i = 0; i < count; i++) {
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = data[i];
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = data[i];
     }
     if (i % 2 == 0) {
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = VG_LITE_NOP();
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = VG_LITE_NOP();
     }
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
@@ -2678,14 +2583,14 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
     }
 
     if (context->backup_fb_command_flag) {
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATES(count, address);
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATES(count, address);
 
         for (i = 0; i < count; i++) {
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1 + i] = data[i];
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1 + i] = data[i];
         }
 
         if (i % 2 == 0) {
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1 + i] = VG_LITE_NOP();
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1 + i] = VG_LITE_NOP();
         }
     }
 
@@ -2694,7 +2599,7 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
 
 #if DUMP_COMMAND
     {
-        uint32_t loops;
+        vg_lite_uint32_t loops;
         if (strncmp(filename, "Commandbuffer", 13)) {
             sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
         }
@@ -2705,16 +2610,16 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
             printf("error!\n");
 
         fprintf(fp, "Command buffer: 0x%08x, ",
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0]);
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0]);
 
         for (loops = 0; loops < count / 2; loops++) {
             fprintf(fp, "0x%08x,\nCommand buffer: 0x%08x, ",
-                    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 - 1],
-                    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2]);
+                    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 - 1],
+                    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2]);
         }
 
         fprintf(fp, "0x%08x,\n",
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 - 1]);
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 - 1]);
 
         fclose(fp);
         fp = NULL;
@@ -2727,7 +2632,7 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
 }
 
 /* Push a single state command into the current command buffer. */
-vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32_t data)
+vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_uint32_t data)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
@@ -2736,16 +2641,13 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
     /* TODO wait for hw to complete development. */
     /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
     {
-        if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-            VG_LITE_RETURN_ERROR(submit(context));
-            VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-        }
+        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
         /* TODO context->hw.hw_states[address & 0xff].state = data;
         context->hw.hw_states[address & 0xff].init = 1;*/
 
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
         if (context->fb_command_offset + 8 > CACHE_COMMAND_BUFFER_SIZE) {
@@ -2755,8 +2657,8 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
         }
 
         if (context->backup_fb_command_flag) {
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
 
             if (s_context.fb_command_buffer_end->special_register_address && address == s_context.fb_command_buffer_end->special_register_address)
                 s_context.fb_command_buffer_end->special_register_offset_start = context->fb_command_offset;
@@ -2776,8 +2678,8 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
             printf("error!\n");
 
         fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
 
         fclose(fp);
         fp = NULL;
@@ -2790,26 +2692,23 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
 }
 
 /* Push a single state command with given address. */
-vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, void * data_ptr)
+vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_void * data_ptr)
 {
     vg_lite_error_t error;
-    uint32_t data = *(uint32_t *) data_ptr;
+    vg_lite_uint32_t data = *(vg_lite_uint32_t *) data_ptr;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
     /* TODO wait for hw to complete development. */
     /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
     {
-        if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-            VG_LITE_RETURN_ERROR(submit(context));
-            VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-        }
+        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
         /* TODO context->hw.hw_states[address & 0xff].state = data;
         context->hw.hw_states[address & 0xff].init = 1;*/
 
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
-        ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
+        ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
         if (context->fb_command_offset + 8 > CACHE_COMMAND_BUFFER_SIZE) {
@@ -2819,8 +2718,8 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
         }
 
         if (context->backup_fb_command_flag) {
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
-            ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STATE(address);
+            ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = data;
 
             if (s_context.fb_command_buffer_end->special_register_address && address == s_context.fb_command_buffer_end->special_register_address)
                 s_context.fb_command_buffer_end->special_register_offset_start = context->fb_command_offset;
@@ -2839,8 +2738,8 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
         if (fp == NULL)
             printf("error!\n");
         fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
 
         fclose(fp);
         fp = NULL;
@@ -2852,19 +2751,16 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
 }
 
 /* Push a "call" command into the current command buffer. */
-vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_t bytes)
+vg_lite_error_t push_call(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_uint32_t bytes)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_CALL((bytes + 7) / 8);
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = address;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_CALL((bytes + 7) / 8);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = address;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
     if (context->fb_command_offset + 8 > CACHE_COMMAND_BUFFER_SIZE) {
@@ -2874,8 +2770,8 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
     }
 
     if (context->backup_fb_command_flag) {
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_CALL((bytes + 7) / 8);
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = address;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_CALL((bytes + 7) / 8);
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = address;
 
         context->fb_command_offset += 8;
     }
@@ -2891,8 +2787,8 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
     if (fp == NULL)
         printf("error!\n");
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0],
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1]);
 
     fclose(fp);
     fp = NULL;
@@ -2900,7 +2796,7 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
 
     CMDBUF_OFFSET(*context) += 8;
 
-#if !gcFEATURE_VG_CMD_CALL_FIX
+#if !gcFEATURE_VG_CMD_CALL_FIX_DISABLE
     VG_LITE_RETURN_ERROR(push_stall(&s_context, 0x10));
 #endif
 
@@ -2908,21 +2804,18 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
 }
 
 #if gcFEATURE_VG_PE_CLEAR
-static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, uint32_t size)
+static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, vg_lite_uint32_t size)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2] = size;
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[3] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2] = size;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[3] = 0;
 
     CMDBUF_OFFSET(*context) += 16;
 
@@ -2934,10 +2827,10 @@ static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, uint32_t size)
     }
 
     if (context->backup_fb_command_flag) {
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA(1);
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[2] = size;
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[3] = 0;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA(1);
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[2] = size;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[3] = 0;
 
         context->fb_command_offset += 16;
     }
@@ -2948,19 +2841,16 @@ static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, uint32_t size)
 #endif
 
 /* Push a rectangle command into the current command buffer. */
-static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, int32_t y, int32_t width, int32_t height)
+static vg_lite_error_t push_rectangle(vg_lite_context_t * context, vg_lite_int32_t x, vg_lite_int32_t y, vg_lite_int32_t width, vg_lite_int32_t height)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
     ((uint16_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[4] = (uint16_t)x;
     ((uint16_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[5] = (uint16_t)y;
     ((uint16_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[6] = (uint16_t)width;
@@ -2974,8 +2864,8 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, in
     }
 
     if (context->backup_fb_command_flag) {
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA(1);
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA(1);
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
         ((uint16_t *) (context->fb_command_buffer + context->fb_command_offset))[4] = (uint16_t)x;
         ((uint16_t *) (context->fb_command_buffer + context->fb_command_offset))[5] = (uint16_t)y;
         ((uint16_t *) (context->fb_command_buffer + context->fb_command_offset))[6] = (uint16_t)width;
@@ -2996,7 +2886,7 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, in
         printf("error!\n");
 
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
 
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
             ((uint16_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[5] << 16 |
@@ -3014,28 +2904,25 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, in
 }
 
 /* Push a data array into the current command buffer. */
-vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * data)
+vg_lite_error_t push_data(vg_lite_context_t * context, vg_lite_uint32_t size, vg_lite_void * data)
 {
     vg_lite_error_t error;
-    uint32_t bytes = VG_LITE_ALIGN(size, 8);
+    vg_lite_uint32_t bytes = VG_LITE_ALIGN(size, 8);
 
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 16 + bytes >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16 + bytes, context));
 
     /* Command buffer size must be at least data size "bytes" plus header and END command */
     if ((bytes + 16) > CMDBUF_SIZE(*context)) {
-        printf("Command buffer size needs increase for data sized %d bytes!\n", (int)(bytes + 16));
+        printf("Command buffer size needs increase for data sized %d bytes!\n", (vg_lite_int32_t)(bytes + 16));
         return VG_LITE_OUT_OF_RESOURCES;
     }
 
     ((uint64_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(bytes >> 3)] = 0;
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA((bytes >> 3));
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA((bytes >> 3));
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
     memcpy(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context) + 8, data, size);
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
@@ -3047,8 +2934,8 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
 
     if (context->backup_fb_command_flag) {
         ((uint64_t *) (context->fb_command_buffer + context->fb_command_offset))[(bytes >> 3)] = 0;
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA((bytes >> 3));;
-        ((uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_DATA((bytes >> 3));;
+        ((vg_lite_uint32_t *) (context->fb_command_buffer + context->fb_command_offset))[1] = 0;
         memcpy(context->fb_command_buffer + context->fb_command_offset + 8, data, size);
 
         context->fb_command_offset += 8 + bytes;
@@ -3057,7 +2944,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
 
 #if DUMP_COMMAND
     {
-        int32_t loops;
+        vg_lite_int32_t loops;
 
         if (strncmp(filename, "Commandbuffer", 13)) {
             sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
@@ -3069,11 +2956,11 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
             printf("error!\n");
 
         fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-                ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
+                ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
         for (loops = 0; loops < (bytes >> 3); loops++) {
             fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-                   ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2],
-                   ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 + 1]);
+                   ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2],
+                   ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[(loops + 1) * 2 + 1]);
         }
 
         fclose(fp);
@@ -3087,21 +2974,18 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
 }
 
 /* Push a "stall" command into the current command buffer. */
-vg_lite_error_t push_stall(vg_lite_context_t * context, uint32_t module)
+vg_lite_error_t push_stall(vg_lite_context_t * context, vg_lite_uint32_t module)
 {
     vg_lite_error_t error;
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    if (CMDBUF_OFFSET(*context) + 16 >= CMDBUF_SIZE(*context)) {
-        VG_LITE_RETURN_ERROR(submit(context));
-        VG_LITE_RETURN_ERROR(stall(context, 0, (uint32_t)~0));
-    }
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
 
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_SEMAPHORE(module);
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2] = VG_LITE_STALL(module);
-    ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[3] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_SEMAPHORE(module);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2] = VG_LITE_STALL(module);
+    ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[3] = 0;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
     if (context->fb_command_offset + 16 > CACHE_COMMAND_BUFFER_SIZE) {
@@ -3111,10 +2995,10 @@ vg_lite_error_t push_stall(vg_lite_context_t * context, uint32_t module)
     }
 
     if (context->backup_fb_command_flag) {
-        ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_SEMAPHORE(module);
-        ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
-        ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[2] = VG_LITE_STALL(module);
-        ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[3] = 0;
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_SEMAPHORE(module);
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[2] = VG_LITE_STALL(module);
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[3] = 0;
 
         context->fb_command_offset += 16;
     }
@@ -3131,9 +3015,9 @@ vg_lite_error_t push_stall(vg_lite_context_t * context, uint32_t module)
         printf("error!\n");
 
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2], 0);
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[2], 0);
 
     fclose(fp);
     fp = NULL;
@@ -3153,7 +3037,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 #if gcdVG_ENABLE_DELAY_RESUME
     vg_lite_kernel_delay_resume_t delay_resume;
     delay_resume.query_delay_resume = 1;
-    int resume_flag = vg_lite_kernel(VG_LITE_QUERY_DELAY_RESUME, &delay_resume);
+    vg_lite_int32_t resume_flag = vg_lite_kernel(VG_LITE_QUERY_DELAY_RESUME, &delay_resume);
 
     if (resume_flag == 1) {
         /* Reset GPU. */
@@ -3189,16 +3073,61 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
     }
 #endif
 
+    /* Wait if GPU has not completed previous CMD buffer */
+    if (submit_flag)
+    {
+        VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
+    }
+
+#if gcFEATURE_VG_MESH_FOR_FRAME
+    vg_lite_kernel_mesh_info_t mesh_data;
+    if (s_context.mesh_mode) {
+        if (s_context.mesh_dirty == 0) {
+            s_context.mesh_dirty = 1;
+            mesh_data.width = s_context.rtbuffer->width;
+            mesh_data.height = s_context.rtbuffer->height;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_SET_TARGET_MESH_W_H, &mesh_data));
+#if DUMP_CAPTURE
+            vg_lite_uint32_t mesh_w_h;
+            mesh_w_h = mesh_data.width | (mesh_data.height << 16);
+            vglitemDUMP_BUFFER("AHB", 0x530, &mesh_w_h, 0, 4);
+#endif
+        }
+        else {
+            printf("Excluding frame bound settings\n");
+            return VG_LITE_INVALID_ARGUMENT;
+        }   
+
+#if gcFEATURE_VG_SIMPLE_BLT
+        if (s_context.mesh_mode == VG_LITE_MESH_COPY_INTERNAL) {
+            VG_LITE_RETURN_ERROR(vg_lite_target_mesh_copy(s_context.rtbuffer));
+        }
+#endif 
+    }
+#endif
+
+#if gcFEATURE_VG_FLEXA
+    vg_lite_kernel_flexa_info_t flexa_data;
+    if (s_context.sync_mode) {
+        if (s_context.flexa_dirty == 0) {
+            s_context.flexa_dirty = 1;
+            flexa_data.target_width = s_context.rtbuffer->width;
+            flexa_data.target_height = s_context.rtbuffer->height;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_FLEXA_SET_TARGET_W_H, &flexa_data));
+        }
+}
+#endif
+
     /* Append END command into the command buffer. */
     if (s_context.frame_flag == VG_LITE_FRAME_END_FLAG) {
         /* A interrupt will be received to indicate that the GPU is idle. */
-        ((uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_END(EVENT_FRAME_END);
-        ((uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_END(EVENT_FRAME_END);
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
         if (context->backup_fb_command_flag && context->fb_finish_flag) {
-            ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_END(EVENT_FRAME_END);
-            ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_END(EVENT_FRAME_END);
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
 
             context->fb_command_offset += 8;
             context->fb_finish_flag = 0;
@@ -3207,13 +3136,13 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
     }
     else {
         /* A interrupt will be received to indicate that the GPU has completed the current instruction. */
-        ((uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_END(EVENT_END);
-        ((uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_END(EVENT_END);
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
         if (context->backup_fb_command_flag && context->fb_finish_flag) {
-            ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_END(EVENT_END);
-            ((uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_END(EVENT_END);
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
 
             context->fb_command_offset += 8;
             context->fb_finish_flag = 0;
@@ -3234,7 +3163,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
         printf("error!\n");
 
     fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
-            ((uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
+            ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
 
     fprintf(fp, "Command buffer addr is : %p,\n", CMDBUF_BUFFER(*context));
     fprintf(fp, "Command buffer offset is : %d,\n", CMDBUF_OFFSET(*context) + 8);
@@ -3257,11 +3186,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
     context->last_command_buffer_logical = submit.context->command_buffer_logical[CMDBUF_INDEX(*context)];
     context->last_command_size = submit.command_size;
 #endif
-    /* Wait if GPU has not completed previous CMD buffer */
-    if (submit_flag)
-    {
-        VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
-    }
+
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_SUBMIT, &submit));
 
     submit_flag = 1;
@@ -3271,9 +3196,6 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
         submit.context->command_buffer_logical[CMDBUF_INDEX(*context)], 0, submit.command_size);
     vglitemDUMP("@[commit]");
 #endif
-#if DUMP_INIT_COMMAND
-    is_init++;
-#endif
 
     /* Reset command buffer. */
     CMDBUF_OFFSET(*context) = 0;
@@ -3282,7 +3204,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 }
 
 /* Wait for the HW to finish the current execution. */
-static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint32_t mask)
+static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_ms, vg_lite_uint32_t mask)
 {
     vg_lite_error_t error;
     vg_lite_kernel_wait_t wait;
@@ -3291,19 +3213,27 @@ static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint
     vglitemDUMP("@[stall]");
 #endif
 
+    if (submit_flag == 0)
+        return VG_LITE_SUCCESS;
+
     /* Wait until GPU is ready. */
     wait.context = &context->context;
     wait.timeout_ms = time_ms > 0 ? time_ms : VG_LITE_INFINITE;
     wait.event_mask = mask;
     wait.reset_type = RESTORE_ALL_COMMAND;
+    wait.event_got = 0;
     error = vg_lite_kernel(VG_LITE_WAIT, &wait);
 
 #if DUMP_LAST_CAPTURE
     if (error == VG_LITE_TIMEOUT)
     {
+        for (vg_lite_int32_t i = 0; i < api_call_nums && i < LAST_CALL_API_NUMS; i++)
+            vglitemDUMP_single("%d ", last_api_call);
+
         vglitemDUMP_BUFFER_single("command", context->Physical,
             context->last_command_buffer_logical, 0, context->last_command_size);
     }
+    api_call_nums = 0;
 #endif
 
     submit_flag = 0;
@@ -3314,12 +3244,31 @@ static vg_lite_error_t stall(vg_lite_context_t * context, uint32_t time_ms, uint
 #endif
 }
 
+/* Handle cmd overflow accordingly */
+static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context) {
+    vg_lite_error_t error;
+    if (size >= CMDBUF_SIZE(*context)) {
+#if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
+        if ((s_context.mesh_mode == VG_LITE_MESH_COPY_INTERNAL) || (s_context.mesh_mode == VG_LITE_MESH_COPY_EXTERNAL)) {
+            printf("Command buffer size needs increase for sized %d bytes!\n", size);
+            return VG_LITE_OUT_OF_RESOURCES;
+        }
+#endif
+        VG_LITE_RETURN_ERROR(submit(context));
+        VG_LITE_RETURN_ERROR(stall(context, 0, (vg_lite_uint32_t)~0));
+#if gcFEATURE_VG_MESH_FOR_FRAME
+        VG_LITE_RETURN_ERROR(mesh_rt_reset(context->rtbuffer));
+#endif
+    }
+    return VG_LITE_SUCCESS;
+}
+
 /* Get the inversion of a matrix. */
-uint32_t inverse(vg_lite_matrix_t * result, vg_lite_matrix_t * matrix)
+vg_lite_uint32_t inverse(vg_lite_matrix_t * result, vg_lite_matrix_t * matrix)
 {
     vg_lite_float_t det00, det01, det02;
     vg_lite_float_t d;
-    int32_t isAffine;
+    vg_lite_int32_t isAffine;
 
     /* Test for identity matrix. */
     if (matrix == NULL) {
@@ -3369,7 +3318,7 @@ uint32_t inverse(vg_lite_matrix_t * result, vg_lite_matrix_t * matrix)
 }
 
 /* Transform a 2D point by a given matrix. */
-uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t * matrix)
+vg_lite_uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t * matrix)
 {
     vg_lite_float_t pt_x;
     vg_lite_float_t pt_y;
@@ -3377,8 +3326,8 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
     
     /* Test for identity matrix. */
     if (matrix == NULL) {
-        result->x = (int)x;
-        result->y = (int)y;
+        result->x = (vg_lite_int32_t)x;
+        result->y = (vg_lite_int32_t)y;
         
         /* Success. */
         return 1;
@@ -3400,34 +3349,36 @@ uint32_t transform(vg_lite_point_t * result, vg_lite_float_t x, vg_lite_float_t 
     pt_y = (x * matrix->m[1][0]) + (y * matrix->m[1][1]) + matrix->m[1][2];
     pt_w = (x * matrix->m[2][0]) + (y * matrix->m[2][1]) + matrix->m[2][2];
     
-    if (pt_w <= 0.0f)
+    if (pt_w <= 0.0f) {
+        s_context.filter = 0;
         return 0;
+    }
     
     /* Compute projected x and y. */
     if (pt_x < 0)
     {
-        result->x = (int)((pt_x / pt_w) - 0.5f);
+        result->x = (vg_lite_int32_t)((pt_x / pt_w) - 0.5f);
     }
     else
     {
-        result->x = (int)((pt_x / pt_w) + 0.5f);
+        result->x = (vg_lite_int32_t)((pt_x / pt_w) + 0.5f);
     }
     if (pt_y < 0)
     {
-        result->y = (int)((pt_y / pt_w) - 0.5f);
+        result->y = (vg_lite_int32_t)((pt_y / pt_w) - 0.5f);
     }
     else
     {
-        result->y = (int)((pt_y / pt_w) + 0.5f);
+        result->y = (vg_lite_int32_t)((pt_y / pt_w) + 0.5f);
     }
     
     /* Success. */
     return 1;
 }
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
 /* Transform a 2D float point by a given matrix. */
-uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t* matrix)
+vg_lite_uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t x, vg_lite_float_t y, vg_lite_matrix_t* matrix)
 {
     vg_lite_float_t pt_x;
     vg_lite_float_t pt_y;
@@ -3435,8 +3386,8 @@ uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t x, vg_li
 
     /* Test for identity matrix. */
     if (matrix == NULL) {
-        result->x = (int)x;
-        result->y = (int)y;
+        result->x = truncf(x);
+        result->y = truncf(y);
 
         /* Success. */
         return 1;
@@ -3460,7 +3411,7 @@ uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t x, vg_li
 #endif
 
 /* Flush specific VG module. */
-static vg_lite_error_t flush_target(void)
+static vg_lite_error_t flush_target(vg_lite_void)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_context_t *context = GET_CONTEXT();
@@ -3468,8 +3419,38 @@ static vg_lite_error_t flush_target(void)
     do {
         VG_LITE_BREAK_ERROR(push_state(context, 0x0A1B, 0x00000011));
         VG_LITE_BREAK_ERROR(push_stall(context, 7));
-    } while (0);
+    } while (VGL_FALSE);
     
+    return error;
+}
+
+/* Allocate memory for image. */
+static vg_lite_error_t image_buffer_update(vg_lite_buffer_t *image, vg_lite_uint32_t width)
+{
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    VG_LITE_CHECK_NULL_POINTER(image);
+
+    /* Check if the memory is reusable. */
+    if (image->handle != NULL)
+    {
+        if ((vg_lite_uint32_t)image->width >= width)
+            return VG_LITE_SUCCESS;
+        /* If the memory size is insufficient, release the old memory first. */
+        VG_LITE_RETURN_ERROR(vg_lite_free(image));
+    }
+
+    /* Allocate the color ramp surface. */
+    memset(image, 0, sizeof(vg_lite_buffer_t));
+    image->width = width;
+    image->height = 1;
+    image->stride = 0;
+    image->image_mode = VG_LITE_NONE_IMAGE_MODE;
+    image->format = VG_LITE_ABGR8888;
+
+    /* Allocate image buffer. */
+    VG_LITE_RETURN_ERROR(vg_lite_allocate(image));
+
     return error;
 }
 
@@ -3477,76 +3458,54 @@ static vg_lite_error_t flush_target(void)
 vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t yuv2rgb = 0;
-    uint32_t uv_swiz = 0;
-    uint32_t tile_setting = 0;
-    uint32_t flexa_mode = 0;
-    uint32_t compress_mode = 0;
-    uint32_t mirror_mode = 0;
-    uint32_t premultiply_dst = 0;
-    uint32_t rgb_alphadiv = 0;
-    uint32_t read_dest = 0;
-    uint32_t dst_format = 0;
-    uint32_t rt_changed = 0;
+    vg_lite_uint32_t yuv2rgb = 0;
+    vg_lite_uint32_t uv_swiz = 0;
+    vg_lite_uint32_t tile_setting = 0;
+    vg_lite_uint32_t compress_mode = 0;
+    vg_lite_uint32_t mirror_mode = 0;
+    vg_lite_uint32_t premultiply_dst = 0;
+    vg_lite_uint32_t rgb_alphadiv = 0;
+    vg_lite_uint32_t read_dest = 0;
+    vg_lite_uint32_t dst_format = 0;
+    vg_lite_uint32_t rt_changed = 0;
 
-    if (target == NULL) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
+    VG_LITE_CHECK_NULL_POINTER(target);
 
     /* Check if render target parameters are really changed. */
     if (memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) {
         rt_changed = 1;
     }
     /* Simply return if render target, scissor, mirror, gamma, flexa states are not changed. */
-    if (!rt_changed && !s_context.scissor_dirty && !s_context.mirror_dirty && !s_context.gamma_dirty && !s_context.flexa_dirty) {
+    if (!rt_changed 
+        && !s_context.scissor_dirty 
+        && !s_context.mirror_dirty 
+        && !s_context.gamma_dirty
+#if gcFEATURE_VG_FLEXA
+        && !s_context.flexa_dirty
+#endif
+#if gcFEATURE_VG_MESH_FOR_FRAME
+        && !s_context.mesh_mode_dirty
+        && !(s_context.mesh_mode && s_context.mesh_dirty)
+#endif
+        ) {
         return VG_LITE_SUCCESS;
     }
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_YUV_OUTPUT
-    if ((target != NULL) &&
-        (target->format == VG_LITE_YUY2 ||
-         target->format == VG_LITE_AYUY2 ||
-         target->format == VG_LITE_YUY2_TILED ||
-         target->format == VG_LITE_AYUY2_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT_PLANAR
-    if (target->format >= VG_LITE_ABGR8565_PLANAR && target->format <= VG_LITE_RGBA5658_PLANAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
+    VG_LITE_RETURN_ERROR(feature_check_target_yuv_output_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_planar_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_render_target_mesh_for_frame(
+        target, s_context.mesh_mode, s_context.mirror_dirty, s_context.mesh_height));
+    VG_LITE_RETURN_ERROR(feature_check_mesh_render_target(
+        s_context.rtbuffer, target, s_context.mesh_mode, s_context.mesh_dirty, s_context.mesh_height, s_context.mesh_count));
+    VG_LITE_RETURN_ERROR(feature_check_flexa_render_target(
+        s_context.rtbuffer, target, s_context.sync_mode, s_context.flexa_dirty));
     VG_LITE_RETURN_ERROR(dstbuf_align_check(target));
-    VG_LITE_RETURN_ERROR(check_compress(target->format, target->compress_mode, target->tiled, target->width, target->height));
+    VG_LITE_RETURN_ERROR(feature_check_compress(target->format, target->compress_mode, target->tiled, target->width, target->height));
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-#if gcFEATURE_VG_IM_FASTCLEAR
-    update_fc_buffer(target);
-#endif
-
     /* Flush previous render target before setting the new render target. */
-#if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
-    vg_lite_finish();
-#else
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-    if ((s_context.rtbuffer->format >= VG_LITE_ABGR8565) && (s_context.rtbuffer->format <= VG_LITE_RGBA5658))
-    {
-        if (s_context.rtbuffer->sw24bit_planar_buffer)
-        {
-            vg_lite_finish();
-            vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
-        }
-        else
-        {
-            vg_lite_flush();
-        }
-    }
-#else
-    vg_lite_flush();
-#endif
-#endif
+    VG_LITE_RETURN_ERROR(feature_check_hw_stall_scissor_target());
 
     /* Program render target states */
     {
@@ -3557,69 +3516,34 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             uv_swiz = convert_uv_swizzle(target->yuv.swizzle);
         }
 
-        if (s_context.flexa_mode) {
-            flexa_mode = 1 << 7;
-        }
-#if (CHIPID==0x355 || CHIPID==0x255)
-        if (s_context.mirror_orient == VG_LITE_ORIENTATION_TOP_BOTTOM) {
-#else
-        if (s_context.mirror_orient == VG_LITE_ORIENTATION_BOTTOM_TOP) {
+#if gcFEATURE_VG_NEW_FACTOR
+        yuv2rgb = convert_yuv2rgb(target->yuv.yuv2rgb);
 #endif
-            mirror_mode = 1 << 16;
-        }
-        compress_mode = ((uint32_t)target->compress_mode) << 25;
+
+        mirror_mode = chip_get_mirror_mode(s_context.mirror_orient);
+        compress_mode = ((vg_lite_uint32_t)target->compress_mode) << 25;
 
         if (target->premultiplied || target->apply_premult) {
             premultiply_dst = 0x00000100;
         }
+        if (target->svg_blend_flag)
+            premultiply_dst = 0x0000100;
 
 #if gcFEATURE_VG_HW_PREMULTIPLY
         rgb_alphadiv = 0x00000200;
 #endif
-#if gcFEATURE_VG_USE_DST
-        read_dest = 0x00100000;
-#else
-        if (!target->screen_copy && target->compress_mode) {
-            read_dest = 0x00100000;
-        }
-#endif
-        dst_format = convert_target_format(target->format, s_context.capabilities);
+        read_dest = feature_set_reg_filed_for_read_destination(target);
+        dst_format = convert_target_format(target->format);
         if (dst_format == 0xFF) {
             printf("Target format: 0x%x is not supported.\n", target->format);
             return VG_LITE_NOT_SUPPORT;
         }
 
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A10,
-            dst_format | read_dest | uv_swiz | yuv2rgb | flexa_mode | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
+            dst_format | read_dest | uv_swiz | yuv2rgb | compress_mode | mirror_mode | s_context.gamma_value | premultiply_dst | rgb_alphadiv));
 
         s_context.mirror_dirty = 0;
         s_context.gamma_dirty = 0;
-
-        if (s_context.flexa_dirty && !s_context.flexa_mode && s_context.tessbuf.tessbuf_size) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AC8, s_context.tessbuf.tessbuf_size -64));
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AC8, s_context.tessbuf.tessbuf_size));
-            s_context.flexa_dirty = 0;
-        }
-
-        if (target->yuv.uv_planar)
-        {   /* Program uv plane address if necessary. */
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5C, target->yuv.uv_planar));
-        }
-        if (target->yuv.alpha_planar) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5D, target->yuv.alpha_planar));
-        }
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A11, target->address));
-
-        tile_setting = (target->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
-
-        /* 24bit format stride configured to 4bpp. */
-        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
-            uint32_t stride = target->stride / 3 * 4;
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, stride | tile_setting));
-        }
-        else {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, target->stride | tile_setting));
-        }
 
         /* Set scissor rectangle on the render target */
         if (s_context.scissor_set) {
@@ -3629,11 +3553,74 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A13, target->width | (target->height << 16)));
         }
         s_context.scissor_dirty = 0;
+#if gcFEATURE_VG_MESH_FOR_FRAME
+        if (s_context.mesh_mode) {
+            s_context.mesh_dirty = 0;
+        }
+#endif
+
+        tile_setting = (target->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0;
+
+        /* 24bit format stride configured to 4bpp. */
+        if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) {
+            vg_lite_uint32_t stride = target->stride / 3 * 4;
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, stride | tile_setting));
+        }
+        else {
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A12, target->stride | tile_setting));
+        }
+
+#if gcFEATURE_VG_MESH_FOR_FRAME
+        s_context.mesh_mode_dirty = 0;
+#if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
+        if ((s_context.mesh_mode == VG_LITE_MESH_COPY_INTERNAL) || (s_context.mesh_mode == VG_LITE_MESH_COPY_EXTERNAL)) {
+            if (target->yuv.uv_planar)
+            {   /* Program uv plane address if necessary. */
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5C, target->mesh_buffer->yuv.uv_planar));
+            }
+            if (target->yuv.alpha_planar) {
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5D, target->mesh_buffer->yuv.alpha_planar));
+            }
+#if _WIN32
+            /* The simulation of DMA in CModel requires additional register configuration */
+            if (s_context.mesh_mode == VG_LITE_MESH_COPY_EXTERNAL) {
+#if CID == 0x456
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x169E, target->address));
+#else
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x161E, target->address));
+#endif
+                if (target->mesh_buffer->yuv.alpha_planar) {
+                    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x114B, target->yuv.alpha_planar));
+                }
+            }
+#endif
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A11, target->mesh_buffer->address));
+            /* Base_address == target_address */
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFF, target->mesh_buffer->address));
+        }
+        else
+#endif
+#endif
+        {
+            if (target->yuv.uv_planar)
+            {   /* Program uv plane address if necessary. */
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5C, target->yuv.uv_planar));
+            }
+            if (target->yuv.alpha_planar) {
+                VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A5D, target->yuv.alpha_planar));
+            }
+
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A11, target->address));
+            /* Base_address == target_address */
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFF, target->address));
+        }
     }
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("    set_render_target %p (%d, %d)\n", target, target->width, target->height);
+#if gcFEATURE_VG_FLEXA
+    s_context.flexa_dirty = 0;
 #endif
+
+    VG_LITE_TRACE_API("    set_render_target %p (%d, %d)\n", target, target->width, target->height);
 
     /* Copy the current render target parameters into s_context.rtbuffer */
     if (rt_changed) {
@@ -3646,7 +3633,7 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix_t *inverse_matrix, vg_lite_int32_t width, vg_lite_int32_t height,
                                   vg_lite_float_t x_step[3], vg_lite_float_t y_step[3], vg_lite_float_t c_step[3])
 {
-#if gcFEATURE_VG_MATH_PRECISION_FIX
+#if gcFEATURE_VG_MATH_PRECISION_FIX_DISABLE
     if (filter == VG_LITE_FILTER_LINEAR)
     {
         /* Compute interpolation steps. */
@@ -3687,23 +3674,23 @@ vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix_t *inv
         c_step[2] = 0.5f * (inverse_matrix->m[2][0] + inverse_matrix->m[2][1]) + inverse_matrix->m[2][2];
 
         // For FL32 rounding trick
-        uint32_t datax[2], datay[2], datac[2];
-        for (int idx = 0; idx < 2; idx++)
+        vg_lite_uint32_t datax[2], datay[2], datac[2];
+        for (vg_lite_int32_t idx = 0; idx < 2; idx++)
         {
-            datax[idx] = *(uint32_t*)((void*)&x_step[idx]);
-            datay[idx] = *(uint32_t*)((void*)&y_step[idx]);
-            datac[idx] = *(uint32_t*)((void*)&c_step[idx]);
+            datax[idx] = *(vg_lite_uint32_t*)((vg_lite_pointer)&x_step[idx]);
+            datay[idx] = *(vg_lite_uint32_t*)((vg_lite_pointer)&y_step[idx]);
+            datac[idx] = *(vg_lite_uint32_t*)((vg_lite_pointer)&c_step[idx]);
         }
-        for (int i = 0; i < 2; i++)
+        for (vg_lite_int32_t i = 0; i < 2; i++)
         {
-            int aSign = (datax[i] & 0x80000000) >> 31;
-            int bSign = (datay[i] & 0x80000000) >> 31;
-            int cSign = (datac[i] & 0x80000000) >> 31;
-            int aIn = (datax[i] & 0x20) >> 5;
-            int bIn = (datay[i] & 0x20) >> 5;
+            vg_lite_int32_t aSign = (datax[i] & 0x80000000) >> 31;
+            vg_lite_int32_t bSign = (datay[i] & 0x80000000) >> 31;
+            vg_lite_int32_t cSign = (datac[i] & 0x80000000) >> 31;
+            vg_lite_int32_t aIn = (datax[i] & 0x20) >> 5;
+            vg_lite_int32_t bIn = (datay[i] & 0x20) >> 5;
             if ((aSign == 0) && (bSign == 0) && (aIn == bIn))
             {
-                int cIn = (aSign ^ cSign) ^ ((~aIn) & 0x1);
+                vg_lite_int32_t cIn = (aSign ^ cSign) ^ ((~aIn) & 0x1);
                 if (cIn == 0)
                 {
                     datac[i] &= 0xFFFFFFDF;
@@ -3712,7 +3699,7 @@ vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix_t *inv
                 {
                     datac[i] |= 0x00000020;
                 }
-                c_step[i] = *(vg_lite_float_t*)((void*)&datac[i]);
+                c_step[i] = *(vg_lite_float_t*)((vg_lite_pointer)&datac[i]);
             }
         }
     }
@@ -3759,26 +3746,220 @@ vg_lite_void calculate_step_value(vg_lite_filter_t filter, vg_lite_matrix_t *inv
 #endif
 }
 
+#if gcFEATURE_VG_MESH_FOR_FRAME
+static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target) {
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    if (s_context.mesh_dirty && s_context.mesh_mode) {
+        VG_LITE_RETURN_ERROR(set_render_target(target));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, s_context.tessbuf.tess_x_y));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A3A, s_context.tessbuf.tess_w_h));
+        s_context.mesh_dirty = 0;
+    }
+
+    return error;
+}
+
+static vg_lite_error_t check_mesh_params(vg_lite_mesh_mode_t mesh_mode,
+                                         vg_lite_uint32_t mesh_height,
+                                         vg_lite_uint32_t mesh_count)
+{
+#if !gcFEATURE_VG_SIMPLE_BLT
+    if (mesh_mode == VG_LITE_MESH_COPY_INTERNAL)
+        return VG_LITE_NOT_SUPPORT;
+#endif
+#if !gcFEATURE_VG_EXTERNAL_DMA_MESH
+    if (mesh_mode == VG_LITE_MESH_COPY_EXTERNAL)
+        return VG_LITE_NOT_SUPPORT;
+#endif
+    if (mesh_count <= 0 || mesh_count > 64) 
+        return VG_LITE_INVALID_ARGUMENT;
+    if (mesh_height <= 0)
+        return VG_LITE_INVALID_ARGUMENT;
+
+    return VG_LITE_SUCCESS;
+}
+
+vg_lite_error_t vg_lite_set_target_mesh(vg_lite_mesh_mode_t mesh_mode,
+                                        vg_lite_uint32_t mesh_height,
+                                        vg_lite_uint32_t mesh_count)
+{
+    DUMP_API_CALL(vg_lite_set_target_mesh);
+    VG_LITE_TRACE_API("vg_lite_set_target_mesh\n");
+
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_kernel_mesh_info_t mesh_data;
+    vg_lite_uint32_t n = 0;
+    static vg_lite_mesh_mode_t last_mesh_mode = VG_LITE_MESH_DISABLE;
+
+    VG_LITE_RETURN_ERROR(check_mesh_params(mesh_mode, mesh_height, mesh_count));
+    VG_LITE_RETURN_ERROR(vg_lite_finish());
+
+    mesh_data.mesh_control = 0;
+    switch (mesh_mode)
+    {
+    case VG_LITE_MESH_DISABLE:
+        /*disable*/
+        s_context.mesh_mode = VG_LITE_MESH_DISABLE;
+        s_context.mesh_height = 0;
+        s_context.mesh_count = 0;
+        break;
+
+    case VG_LITE_MESH_COPY_EXTERNAL:
+    case VG_LITE_MESH_COPY_INTERNAL:
+        mesh_data.mesh_control |= mesh_count << 24;
+    case VG_LITE_MESH_FRAME:
+        n = mesh_height / 16 - 1;
+        if (mesh_height % 16) {
+            n++;
+            printf("Mesh height not aligned for 16p. Set mesh height to %d\n", (n + 1) * 16);
+        }
+        s_context.mesh_mode = mesh_mode;
+        s_context.mesh_height = (n + 1) * 16;
+        s_context.mesh_count = mesh_count;
+        mesh_data.mesh_control |= (n << 15);
+        mesh_data.mesh_control |= (mesh_mode << 1);
+
+        break;
+    default:
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_SET_TARGET_MESH_CONTROL, &mesh_data));
+#if DUMP_CAPTURE
+    vg_lite_uint32_t mesh_c;
+    mesh_c = mesh_data.mesh_control;
+    vglitemDUMP_BUFFER("AHB", 0x520, &mesh_c, 0, 4);
+#endif
+
+    if (last_mesh_mode != mesh_mode) {
+        s_context.mesh_mode_dirty = 1;
+        last_mesh_mode = mesh_mode;
+    }
+
+    return error;
+}
+
+#if gcFEATURE_VG_SIMPLE_BLT
+/* Push a "stall" command into the current command buffer. */
+static vg_lite_error_t push_mesh_stall(vg_lite_context_t* context, vg_lite_uint32_t module)
+{
+    vg_lite_error_t error;
+    if (!has_valid_command_buffer(context))
+        return VG_LITE_NO_CONTEXT;
+
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x1583, 0x1F01));
+
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8, context));
+
+    ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STALL(module);
+    ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
+
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if (context->fb_command_offset + 8 > CACHE_COMMAND_BUFFER_SIZE) {
+        printf("The size of cache is %d bytes, exceeding the capacity of cache buffer(%d bytes)!\n", context->fb_command_offset + 8, CACHE_COMMAND_BUFFER_SIZE);
+        printf("Please clear cache or increase cache buffer size!\n");
+        return VG_LITE_OUT_OF_MEMORY;
+    }
+
+    if (context->backup_fb_command_flag) {
+        ((vg_lite_uint32_t*)(context->fb_command_buffer + context->fb_command_offset))[0] = VG_LITE_STALL(module);
+        ((vg_lite_uint32_t*)(context->fb_command_buffer + context->fb_command_offset))[1] = 0;
+
+        context->fb_command_offset += 8;
+    }
+#endif
+
+#if DUMP_COMMAND
+    if (strncmp(filename, "Commandbuffer", 13)) {
+        sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+    }
+
+    fp = fopen(filename, "a");
+
+    if (fp == NULL)
+        printf("error!\n");
+
+    fprintf(fp, "Command buffer: 0x%08x, 0x%08x,\n",
+        ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0], 0);
+
+    fclose(fp);
+    fp = NULL;
+#endif
+
+    CMDBUF_OFFSET(*context) += 8;
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t vg_lite_target_mesh_copy(vg_lite_buffer_t *target) {
+    DUMP_API_CALL(vg_lite_target_mesh_copy);
+
+    vg_lite_error_t error;
+#if CID == 0x456
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x169D, target->mesh_buffer->address));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x169E, target->address));
+    if (target->mesh_buffer->yuv.alpha_planar && target->yuv.alpha_planar) {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x114A, target->mesh_buffer->yuv.alpha_planar));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x114B, target->yuv.alpha_planar));
+    }
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x169F, target->height * target->stride));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x1680, 0x3));
+    VG_LITE_RETURN_ERROR(push_mesh_stall(&s_context, (0x1F | (1 << 8))));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011001));
+#else
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x161D, target->mesh_buffer->address));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x161E, target->address));
+    if (target->mesh_buffer->yuv.alpha_planar && target->yuv.alpha_planar) {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x114A, target->mesh_buffer->yuv.alpha_planar));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x114B, target->yuv.alpha_planar));
+    }
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x161F, target->height * target->stride));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x1600, 0x3));
+    VG_LITE_RETURN_ERROR(push_mesh_stall(&s_context, (0x1F | (1 << 8))));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00011001));
+#endif
+    return VG_LITE_SUCCESS;
+}
+#endif
+#else
+vg_lite_error_t vg_lite_set_target_mesh(vg_lite_mesh_mode_t mesh_mode,
+                                        vg_lite_uint32_t mesh_height,
+                                        vg_lite_uint32_t mesh_count)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
+#endif /* gcFEATURE_VG_MESH_FOR_FRAME */
+
 /*************** VGLite API Functions ***********************************************/
 
 vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
                               vg_lite_rectangle_t * rect,
                               vg_lite_color_t color)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_clear)(target, rect, color);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_clear, target, rect, color);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CLEAR_API);
+    VG_LITE_TRACE_API("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
 
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max;
-    int32_t  left, top, right, bottom;
-    uint32_t color32;
-    uint32_t tile_setting = 0;
-    uint32_t stripe_mode = 0;
-    uint32_t in_premult = 0;
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+    vg_lite_int32_t  left, top, right, bottom;
+    vg_lite_uint32_t color32;
+    vg_lite_uint32_t tile_setting = 0;
+    vg_lite_uint32_t stripe_mode = 0;
+    vg_lite_uint32_t in_premult = 0;
+#if gcFEATURE_VG_NEW_FACTOR
+    vg_factor_config_t factor_config;
+    factor_config.factor_src_alpha = 0x0;
+    factor_config.factor_src_color = 0x0;
+    factor_config.factor_dst_alpha = 0x0;
+    factor_config.factor_dst_color = 0x0;
+    factor_config.final_equation_opcode = 0x0;
+    factor_config.dstchannelmode = 0x0;
+    factor_config.srcchannelmode = 0x0;
+#endif
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR))
     {
         if (target->sw24bit_buffer)
@@ -3788,20 +3969,11 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         }
     }
 #endif
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_clear %p %p 0x%08X\n", target, rect, color);
-    if (rect) VGLITE_LOG("    Rect(%d, %d, %d, %d)\n", rect->x, rect->y, rect->width, rect->height);
-#endif
+
+    if (rect) VG_LITE_TRACE_API("    Rect(%d, %d, %d, %d)\n", rect->x, rect->y, rect->width, rect->height);
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if (CHIPID == 0x355)
-    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
-        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
-        printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+    VG_LITE_RETURN_ERROR(chip_check_target_format(target->format));
 #endif
 
 #if gcFEATURE_VG_GAMMA
@@ -3848,7 +4020,7 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         bottom = MIN(s_context.scissor[3], bottom);
     }
 
-    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+    if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
         left = MAX(s_context.scissor_layer_range[0], left);
         top = MAX(s_context.scissor_layer_range[1], top);
         right = MIN(s_context.scissor_layer_range[2], right);
@@ -3866,7 +4038,8 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
 
     /* Get converted color when target is in L8 format. */
-    color32 = (target->format == VG_LITE_L8) ? rgb_to_l(color) : color;
+    color32 = (target->format == VG_LITE_L8 || target->format == VG_LITE_A8L8) ? rgb_to_l(color, target) : color;
+
 #if gcFEATURE_VG_RECTANGLE_TILED_OUT
     if (target->tiled == VG_LITE_TILED) {
         tile_setting = 0x40;
@@ -3874,16 +4047,6 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
     }
 #endif
 
-#if gcFEATURE_VG_IM_FASTCLEAR
-    if ((rect == NULL) ||
-        (point_min.x == 0 && point_min.y == 0 &&
-         ((point_max.x - point_min.x) == s_context.rtbuffer->width) &&
-         ((point_max.y - point_min.y) == s_context.rtbuffer->height))) {
-            convert_color(s_context.rtbuffer->format, color32, &color32, NULL);
-            clear_fc(&target->fc_buffer[0],(uint32_t)color32);
-    }
-    else
-#endif
     {
         /* Setup the command buffer. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
@@ -3892,25 +4055,37 @@ vg_lite_error_t vg_lite_clear(vg_lite_buffer_t * target,
         /* Clear operation is not affected by color transformation and pixel matrix.
          * So PE clear and push_rectangle() clear have the same clear result color.
          */
+#if gcFEATURE_VG_NEW_FACTOR
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
+#endif
+
 #if gcFEATURE_VG_PE_CLEAR
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A39, 0));
+        s_context.tessbuf.tess_x_y = 0;
         if ((!rect && (point_min.x == 0 && point_min.y == 0 && (point_max.x - point_min.x) == target->width)) && !s_context.scissor_enable && 
              !s_context.scissor_set && !s_context.enable_mask && !peclear_align_check(target, point_max.y - point_min.y))
         {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000004 | tile_setting | s_context.scissor_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
             VG_LITE_RETURN_ERROR(push_pe_clear(&s_context, target->stride * (point_max.y - point_min.y)));
         }
         else
 #endif
         {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, in_premult | 0x00000001 | tile_setting | s_context.scissor_enable | stripe_mode));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
             VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
         }
 
         /* flush VGPE after clear */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
     }
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565) && (target->format <= VG_LITE_RGBA5658))
     {
         if (target->sw24bit_planar_buffer)
@@ -3930,11 +4105,9 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
                             vg_lite_blend_t blend,
                             vg_lite_filter_t filter)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_blit2)(target, source0, source1, matrix0, matrix1, blend, filter);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_blit2, target, source0, source1, matrix0, matrix1, blend, filter);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_BLIT2_API);
+    VG_LITE_TRACE_API("vg_lite_blit2 %p %p %p %p %p %d %d\n", target, source0, source1, matrix0, matrix1, blend, filter);
 
 #if gcFEATURE_VG_DOUBLE_IMAGE && gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
@@ -3945,63 +4118,43 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     vg_lite_float_t c_step[2][3];
     vg_lite_float_t ratio0 = 1;
     vg_lite_float_t ratio1 = 1;
-    uint32_t imageMode;
-    uint32_t blend_mode;
-    uint32_t filter_mode = 0;
-    int32_t stride0;
-    int32_t stride1;
-    uint32_t rotation = 0;
-    uint32_t conversion = 0;
-    uint32_t tiled0, tiled1;
-    int32_t left, right, bottom, top;
+    vg_lite_uint32_t imageMode;
+    vg_lite_uint32_t blend_mode;
+    vg_lite_uint32_t filter_mode = 0;
+    vg_lite_int32_t stride0;
+    vg_lite_int32_t stride1;
+    vg_lite_uint32_t rotation = 0;
+    vg_lite_uint32_t conversion = 0;
+    vg_lite_uint32_t tiled0, tiled1;
+    vg_lite_int32_t left, right, bottom, top;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_blit2 %p %p %p %p %p %d %d\n", target, source0, source1, matrix0, matrix1, blend, filter);
+#if gcFEATURE_VG_FLEXA
+    if (s_context.sync_mode)
+    {
+        printf("When Flexa is enabled vg_lite_blit2 is not support.\n");
+        return VG_LITE_NOT_SUPPORT;
+    }
 #endif
-
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_24BIT
-    if ((target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) ||
-        (source0->format >= VG_LITE_RGB888 && source0->format <= VG_LITE_RGBA5658) ||
-        (source1->format >= VG_LITE_RGB888 && source1->format <= VG_LITE_RGBA5658)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUY2_INPUT
-    if (source0->format == VG_LITE_YUYV || source0->format == VG_LITE_YUY2 || source1->format == VG_LITE_YUYV || source1->format == VG_LITE_YUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_INPUT
-    if ((source0->format >= VG_LITE_NV12 && source0->format <= VG_LITE_NV16) || (source1->format >= VG_LITE_NV12 && source1->format <= VG_LITE_NV16) || source0->format == VG_LITE_NV24 || source1->format >= VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#elif !gcFEATURE_VG_NV24_INPUT
-    if (source0->format == VG_LITE_NV24 || source1->format >= VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_AYUV_INPUT
-    if (source0->format == VG_LITE_ANV12 || source0->format == VG_LITE_AYUY2 || source1->format == VG_LITE_ANV12 || source1->format == VG_LITE_AYUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_TILED_INPUT
-    if ((source0->format >= VG_LITE_YUY2_TILED && source0->format <= VG_LITE_AYUY2_TILED) || (source1->format >= VG_LITE_YUY2_TILED && source1->format <= VG_LITE_AYUY2_TILED) || 
-       (source0->format == VG_LITE_NV24_TILED) || (source1->format == VG_LITE_NV24_TILED)) {
-        return VG_LITE_NOT_SUPPORT; 
-    }
-#endif
-#if !gcFEATURE_VG_NEW_BLEND_MODE
-    if (blend == VG_LITE_BLEND_DARKEN || blend == VG_LITE_BLEND_LIGHTEN) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_packed_yuy_input(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_packed_yuy_input(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_yuv_input(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_yuv_input(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_nv24_input(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_nv24_input(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_ayuv_input(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_ayuv_input(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_yuv_tiled_input(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_yuv_tiled_input(source1->format));
+    VG_LITE_RETURN_ERROR(feature_check_new_blend_mode(blend));
+    VG_LITE_RETURN_ERROR(feature_check_lvgl_recolor_image_mode(source0->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_lvgl_recolor_image_mode(source1->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_target_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_source_format(source0->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_source_format(source1->format));
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
     if (!matrix0) {
@@ -4027,10 +4180,7 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
         rotation = 0x8000;
     }
 
-    /* Check whether L8 is supported or not. */
-    if ((target->format == VG_LITE_L8) && ((source0->format != VG_LITE_L8) && (source0->format != VG_LITE_A8))) {
-        conversion = 0x80000000;
-    }
+    conversion = feature_a124_a8l8_l8_conversion(target->format, source0->format);
 
     /* Calculate transformation for Image0 (Paint) & Image1 (Image). */
     /* Image1. */
@@ -4191,16 +4341,16 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x10000001 | imageMode | blend_mode | rotation | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
     /* Program image1. */
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[1][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *) &c_step[1][2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *) &x_step[1][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *) &x_step[1][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *) &x_step[1][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[1][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[1][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[1][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[1][2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *) &y_step[1][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *) &y_step[1][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *) &y_step[1][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[1][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[1][2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source0->format) | filter_mode | conversion));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A27, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source0->address));
@@ -4229,16 +4379,16 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min0.x, point_min0.y, point_max0.x - point_min0.x, point_max0.y - point_min0.y));
 
     /* Program image0 (Paint, as background). */
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A84, (void *) &c_step[0][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A85, (void *) &c_step[0][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A86, (void *) &c_step[0][2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7C, (void *) &x_step[0][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7D, (void *) &x_step[0][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7E, (void *) &x_step[0][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A84, (vg_lite_void *) &c_step[0][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A85, (vg_lite_void *) &c_step[0][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A86, (vg_lite_void *) &c_step[0][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7C, (vg_lite_void *) &x_step[0][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7D, (vg_lite_void *) &x_step[0][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A7E, (vg_lite_void *) &x_step[0][2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A80, (void *) &y_step[0][0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A81, (void *) &y_step[0][1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A82, (void *) &y_step[0][2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A80, (vg_lite_void *) &y_step[0][0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A81, (vg_lite_void *) &y_step[0][1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A82, (vg_lite_void *) &y_step[0][2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A24, convert_source_format(source1->format) | filter_mode | conversion));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A26, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A28, source1->address));
@@ -4284,55 +4434,28 @@ vg_lite_error_t vg_lite_blit2(vg_lite_buffer_t* target,
 #endif
 }
 
-/*Check if different tile settings are supported for VG and PE, when the rasterization mode is RECTANGLE*/
-char query_rec_tile_dif_support(vg_lite_buffer_t* target, vg_lite_buffer_t* source) {
-    char support = 1;
-#if !gcFEATURE_VG_SCREEN_COPY_FIX
-    if ((source->compress_mode || target->compress_mode) && target->screen_copy)
-        support = 0;
-#endif
-#if gcFEATURE_VG_TILED_LIMIT == 3
-    uint32_t align, mul, div, bpp;
-    get_format_bytes(target->format, &mul, &div, &align);
-    bpp = 8 * mul / div;
-    if (target->address % 64 != 0) {
-        support = 0;
-    }
-    if (bpp != 24) {
-        if (target->stride % 64 != 0) {
-            support = 0;
-        }
-    }
-    else {
-        if (target->stride % 48 != 0) {
-            support = 0;
-        }
-    }
-#endif
-    return support;
-}
+vg_lite_error_t vg_lite_blend_func(
+    vg_lite_uint32_t factor_src_alpha,
+    vg_lite_uint32_t factor_src_color,
+    vg_lite_uint32_t factor_dst_alpha,
+    vg_lite_uint32_t factor_dst_color,
+    vg_lite_uint32_t final_equation_opcode,
+    vg_lite_uint32_t srcchannelmode,
+    vg_lite_uint32_t dstchannelmode)
+{
+#if gcFEATURE_VG_NEW_FACTOR
 
-vg_lite_error_t vg_rec_tile_set(char support, vg_lite_buffer_t* target, vg_lite_buffer_t* source, vg_lite_matrix_t* matrix, uint32_t* tile_setting, uint32_t* stripe_mode) {
-    if (support)
-    {
-#if gcFEATURE_VG_RECTANGLE_TILED_OUT
-        if ((source->tiled == VG_LITE_TILED) || (fabs(matrix->angle - 90.0) < 0.000001)) {
-            *tile_setting = 0x40;
-            *stripe_mode = 0x20000000;
-        }
+        s_context.porter_duff_config.factor_src_alpha = factor_src_alpha;
+        s_context.porter_duff_config.factor_src_color = factor_src_color;
+        s_context.porter_duff_config.factor_dst_alpha = factor_dst_alpha;
+        s_context.porter_duff_config.factor_dst_color = factor_dst_color;
+        s_context.porter_duff_config.final_equation_opcode = final_equation_opcode;
+        s_context.porter_duff_config.srcchannelmode = srcchannelmode;
+        s_context.porter_duff_config.dstchannelmode = dstchannelmode;
+
+        s_context.porter_duff_enable = 1;
+
 #endif
-    }
-    else
-    {
-        if (target->tiled == VG_LITE_TILED) {
-#if gcFEATURE_VG_RECTANGLE_TILED_OUT
-            *tile_setting = 0x40;
-            *stripe_mode = 0x20000000;
-#else
-            return VG_LITE_NOT_SUPPORT;
-#endif
-        }
-    }
     return VG_LITE_SUCCESS;
 }
 
@@ -4343,7 +4466,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
                             vg_lite_color_t color,
                             vg_lite_filter_t filter)
 {
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_BLIT_API);
+    DUMP_API_CALL(vg_lite_blit, target, source, matrix, blend, color, filter);
+    VG_LITE_TRACE_API("vg_lite_blit %p %p %p %d 0x%08X %d\n", target, source, matrix, blend, color, filter);
+
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR))
     {
         if (target->sw24bit_buffer)
@@ -4361,11 +4488,6 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         }
     }
 #endif
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_blit)(target, source, matrix, blend, color, filter);
-    }
-#endif
 
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
@@ -4374,39 +4496,57 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    uint32_t imageMode = 0;
-    uint32_t paintType = 0;
-    uint32_t in_premult = 0;
-    uint32_t blend_mode;
-    uint32_t filter_mode = 0;
-    uint32_t transparency_mode = 0;
-    uint32_t conversion = 0;
-    uint32_t tiled_source;
-    uint32_t yuv2rgb = 0;
-    uint32_t uv_swiz = 0;
-    uint32_t compress_mode = 0;
-    uint32_t src_premultiply_enable = 0;
-    uint32_t index_endian = 0;
-    uint32_t eco_fifo = 0;
-    uint32_t tile_setting = 0;
-    uint32_t stripe_mode = 0;
-    uint32_t premul_flag = 0;
-    uint32_t prediv_flag = 0;
-    int32_t  left, top, right, bottom;
-    int32_t  stride;
+    vg_lite_uint32_t imageMode = 0;
+    vg_lite_uint32_t paintType = 0;
+    vg_lite_uint32_t in_premult = 0;
+    vg_lite_uint32_t blend_mode;
+    vg_lite_uint32_t filter_mode = 0;
+    vg_lite_uint32_t transparency_mode = 0;
+    vg_lite_uint32_t conversion = 0;
+    vg_lite_uint32_t tiled_source;
+    vg_lite_uint32_t yuv2rgb = 0;
+    vg_lite_uint32_t uv_swiz = 0;
+    vg_lite_uint32_t compress_mode = 0;
+    vg_lite_uint32_t src_premultiply_enable = 0;
+    vg_lite_uint32_t index_endian = 0;
+    vg_lite_uint32_t eco_fifo = 0;
+    vg_lite_uint32_t tile_setting = 0;
+    vg_lite_uint32_t stripe_mode = 0;
+    vg_lite_uint32_t premul_flag = 0;
+    vg_lite_uint32_t prediv_flag = 0;
+    vg_lite_int32_t  left, top, right, bottom;
+    vg_lite_int32_t  stride;
+    vg_lite_uint32_t pattern_tile = 0;
+    vg_lite_porter_duff_config_t porter_duff_config;
+#if gcFEATURE_VG_NEW_FACTOR
+    vg_factor_config_t factor_config;
+    factor_config.factor_src_alpha = 0x0;
+    factor_config.factor_src_color = 0x0;
+    factor_config.factor_dst_alpha = 0x3;
+    factor_config.factor_dst_color = 0x5;
+    factor_config.final_equation_opcode = 0x0;
+    factor_config.dstchannelmode = 0x0;
+    factor_config.srcchannelmode = 0x0;
+    if (blend >= SVG2_BLEND_NORMAL)
+        target->svg_blend_flag = 1;
+    if ((blend >= VG_LITE_BLEND_NONE && blend <= VG_LITE_BLEND_SUBTRACT) || (blend >= OPENVG_BLEND_SRC && blend <= OPENVG_BLEND_ADDITIVE))
+        target->yuv.yuv2rgb = VG_LITE_YUV709;
+#endif
 #if DUMP_CAPTURE
     vg_lite_float_t ratio = 1;
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    uint8_t  lvgl_sw_blend = 0;
+    vg_lite_uint8_t  lvgl_sw_blend = 0;
 #endif
-#if VG_SW_BLIT_PRECISION_OPT
-    uint8_t* buffer_pointer;
-    uint32_t buffer_address = 0,  buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
+
+    vg_lite_uint8_t enable_sw_pre_opt = 0;
+
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
+    vg_lite_uint8_t* buffer_pointer;
+    vg_lite_uint32_t buffer_address = 0,  buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
     vg_lite_point_t image_display_top_left = { 0 };
     vg_lite_point_t image_display_range = { 0 };
-    uint8_t enable_sw_pre_opt = 0;
     vg_lite_float_point_t top_right_point, bottom_right_point, top_left_point, bottom_left_point;
     vg_lite_point_t new_target_top_left = { 0 };
     vg_lite_float_point4_t image_position_on_new_target = { 0 };
@@ -4421,117 +4561,34 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         enable_sw_pre_opt = 1;
         memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_blit %p %p %p %d 0x%08X %d\n", target, source, matrix, blend, color, filter);
-#endif
 
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
-#if !gcFEATURE_VG_RGBA8_ETC2_EAC
-    if (source->format == VG_LITE_RGBA8888_ETC2_EAC) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#else
-    if ((source->format == VG_LITE_RGBA8888_ETC2_EAC) && (source->width % 4 || source->height % 4)) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-#endif
-#if !gcFEATURE_VG_YUY2_INPUT
-    if (source->format == VG_LITE_YUYV || source->format == VG_LITE_YUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_INPUT
-    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#elif !gcFEATURE_VG_NV24_INPUT
-    if (source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_AYUV_INPUT
-    if (source->format == VG_LITE_ANV12 || source->format == VG_LITE_AYUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_TILED_INPUT
-    if ((source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) || (source->format == VG_LITE_NV24_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT
-    if ((target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) ||
-        (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT_PLANAR
-    if (source->format >= VG_LITE_ABGR8565_PLANAR && source->format <= VG_LITE_RGBA5658_PLANAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_IM_DEC_INPUT
-    if (source->compress_mode != VG_LITE_DEC_DISABLE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_STENCIL
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_USE_DST
-    if (target->screen_copy) {
-        if (!target->compress_mode) {
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-        if (blend > VG_LITE_BLEND_NONE && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-            blend = VG_LITE_BLEND_NONE;
-        }
-        if (blend > OPENVG_BLEND_SRC && blend <= OPENVG_BLEND_ADDITIVE) {
-            blend = OPENVG_BLEND_SRC;
-        }
-    }
-#endif
-#if !gcFEATURE_VG_NEW_BLEND_MODE
-    if (blend == VG_LITE_BLEND_DARKEN || blend == VG_LITE_BLEND_LIGHTEN) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-    if (blend && (target->format == VG_LITE_YUYV || target->format == VG_LITE_YUY2 || target->format == VG_LITE_YUY2_TILED
-        || target->format == VG_LITE_AYUY2 || target->format == VG_LITE_AYUY2_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if (CHIPID == 0x355)
-    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
-        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
-        printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
-        printf("Source format: 0x%x is not supported.\n", source->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
+    VG_LITE_RETURN_ERROR(feature_check_source_index_endian(source->format, source->index_endian));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgba8888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgb888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_packed_yuy_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_yuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_nv24_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_ayuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_yuv_tiled_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_planar_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_im_dec_input_compress(source->compress_mode));
+    VG_LITE_RETURN_ERROR(feature_check_stencil_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_dst_screen_copy_blend(target, &blend));
+    VG_LITE_RETURN_ERROR(feature_check_new_blend_mode(blend));
+    VG_LITE_RETURN_ERROR(blit_check_blend_on_yuy_target(blend, target->format));
+    VG_LITE_RETURN_ERROR(feature_check_lvgl_recolor_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_mesh_blt_sw_lvgl_blend(blend, s_context.mesh_mode));
+    VG_LITE_RETURN_ERROR(chip_check_target_format(target->format));
+    VG_LITE_RETURN_ERROR(chip_check_source_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_target_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_source_format(source->format));
     VG_LITE_RETURN_ERROR(srcbuf_align_check(source));
-    VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
@@ -4554,19 +4611,15 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         matrix = &identity_mtx;
     }
 
-#if gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        index_endian = 1 << 14;
-    }
-#endif
-#if !gcFEATURE_VG_STRIPE_MODE
+    chip_get_source_index_endian_bits(source->format, source->index_endian, &index_endian);
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
-    s_context.filter = filter;
 
+    porter_duff_config = s_context.porter_duff_config;
     /* Check if the specified matrix has rotation or perspective. */
     if (   (   (matrix->m[0][1] != 0.0f)
             || (matrix->m[1][0] != 0.0f)
@@ -4574,26 +4627,20 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             || (matrix->m[2][1] != 0.0f)
             || (matrix->m[2][2] != 1.0f)
             )
-        && (   blend == VG_LITE_BLEND_NONE
+        && ((   blend == VG_LITE_BLEND_NONE
             || blend == VG_LITE_BLEND_SRC_IN
             || blend == VG_LITE_BLEND_DST_IN
             )
+            || check_porter_duff_factor_match(blend, porter_duff_config)
+            )
         ) {
-#if gcFEATURE_VG_BORDER_CULLING
-            /* Mark that we have rotation. */
-            transparency_mode = 0x8000;
-#else
-            blend = VG_LITE_BLEND_SRC_OVER;
-#endif
-#if !gcFEATURE_VG_STRIPE_MODE
+            feature_border_culling_special_process(&blend, &transparency_mode);
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
             stripe_mode = 1 << 29;
 #endif
     }
 
-    /* Check whether L8 is supported or not. */
-    if ((target->format == VG_LITE_L8) && ((source->format != VG_LITE_L8) && (source->format != VG_LITE_A8))) {
-        conversion = 0x80000000;
-    }
+    conversion = feature_a124_a8l8_l8_conversion(target->format, source->format);
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
     /* Check if source specify bytes are aligned */
@@ -4603,6 +4650,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif
 
+    s_context.filter = filter;
+
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -4610,7 +4659,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-#if VG_SW_BLIT_PRECISION_OPT    
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW    
     if(enable_sw_pre_opt) {
         if (!transform_float(&top_left_point, 0.0f, 0.0f, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -4627,7 +4676,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if(enable_sw_pre_opt) {
         if (!transform_float(&bottom_left_point, 0.0f, (vg_lite_float_t)source->height, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -4644,7 +4693,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if(enable_sw_pre_opt) {
         if (!transform_float(&bottom_right_point, (vg_lite_float_t)source->width, (vg_lite_float_t)source->height, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -4654,6 +4703,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     /* Transform image (width,0) to screen. */
     if (!transform(&temp, (vg_lite_float_t)source->width, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
+
+    s_context.filter = 0;
     
     /* Determine min/max. */
     if (temp.x < point_min.x) point_min.x = temp.x;
@@ -4661,7 +4712,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if(enable_sw_pre_opt) {
         if (!transform_float(&top_right_point, (vg_lite_float_t)source->width, 0.0f, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -4681,7 +4732,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         bottom = MIN(s_context.scissor[3], bottom);
     }
 
-    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+    if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
         left = MAX(s_context.scissor_layer_range[0], left);
         top = MAX(s_context.scissor_layer_range[1], top);
         right = MIN(s_context.scissor_layer_range[2], right);
@@ -4698,7 +4749,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         return VG_LITE_SUCCESS;
     }
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if(enable_sw_pre_opt) {
         image_display_top_left.x = point_min.x;
         image_display_top_left.y = point_min.y;
@@ -4712,27 +4763,31 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     get_st_gamma_src_dest(source, target);
 #endif
 
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
-    }
+#if !gcFEATURE_VG_NEW_FACTOR
+    VG_LITE_RETURN_ERROR(feature_war_legacy_lvgl_blend(blend, VG_LITE_GLOBAL));
 #endif
-
     /*blend input into context*/
     s_context.blend_mode = blend;
     in_premult = 0x00000000;
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
+#if gcFEATURE_VG_PIXEL_MATRIX
+    if (s_context.matrix_enable == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        prediv_flag = 0;
+    }
+#else
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
         prediv_flag = 0;
     }
+#endif
     else {
         prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE
-        || (s_context.blend_mode >= VG_LITE_BLEND_NORMAL_LVGL && s_context.blend_mode <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
+        || is_lvgl_blend_mode(s_context.blend_mode)){
         premul_flag = 1;
     }
     else {
@@ -4759,10 +4814,9 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
-#if (CHIPID==0x255)
-        src_premultiply_enable = 0x00000000;
-#endif
+    if ((source->format == VG_LITE_A1 || source->format == VG_LITE_A2 || source->format == VG_LITE_A4 || source->format == VG_LITE_A8)
+        && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+        chip_adjust_src_premultiply_enable(&src_premultiply_enable);
 #if gcFEATURE_VG_SRC_PREMULTIPLIED
         src_premultiply_enable = src_premultiply_enable & ~(1 << 8);
 #endif
@@ -4774,40 +4828,44 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     else {
         target->apply_premult = 0;
     }
+
+#if !gcFEATURE_VG_NEW_FACTOR
 #if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
     if (blend == VG_LITE_BLEND_NORMAL_LVGL)
         in_premult = 0x00000000;
 #endif
-#if VG_SW_BLIT_PRECISION_OPT
+#endif
+
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         //update target memory address
         get_format_bytes(target->format, &mul, &div, &required_align);
 
-        uint32_t temp_buffer_address = target->address;
+        vg_lite_uint32_t temp_buffer_address = target->address;
         
-        uint32_t temp_buffer_address1 = 0;
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) 
+        vg_lite_uint32_t temp_buffer_address1 = 0;
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) 
             temp_buffer_address1 = s_context.scissor_layer->address;
         
-        uint32_t temp_buffer_address2 = 0;
+        vg_lite_uint32_t temp_buffer_address2 = 0;
         if (s_context.enable_mask && s_context.mask_layer)
             temp_buffer_address2 = s_context.mask_layer->address;
         
-        int32_t align_require = 4;
-        int32_t align_require_temp = 4;
-        int align_flag = 0;
+        vg_lite_int32_t align_require = 4;
+        vg_lite_int32_t align_require_temp = 4;
+        vg_lite_int32_t align_flag = 0;
 
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
             align_require = 64;
 
-        int dy = image_display_top_left.y;
-        int dx = image_display_top_left.x;
+        vg_lite_int32_t dy = image_display_top_left.y;
+        vg_lite_int32_t dx = image_display_top_left.x;
 
         for (; dy > 0; dy--)
         {
             for (; dx > 0; dx--)
             {
-                if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+                if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer)
                     dx = dx & (~7); // dx need 8 align
 
                 buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
@@ -4823,7 +4881,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
                             }
                         }
                     }
-                    else if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
+                    else if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
                         buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx /8;
                         
                         if ((buffer_scissor_address & (align_require_temp - 1)) == 0) {
@@ -4859,7 +4917,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
                 buffer_mask_address = temp_buffer_address2;
         }
             
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, buffer_scissor_address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
@@ -4878,14 +4936,14 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
         if (align_flag) {
             //update buffer pointer address
-            buffer_pointer = (uint8_t*)target->memory;
+            buffer_pointer = (vg_lite_uint8_t*)target->memory;
             buffer_pointer = buffer_pointer + (buffer_address - target->address);
 
             /* Calculate the transformation matrix */
-            image_position_on_new_target[0].x = 0;              image_position_on_new_target[0].y = 0;
-            image_position_on_new_target[1].x = 0;              image_position_on_new_target[1].y = source->height;
-            image_position_on_new_target[2].x = source->width;  image_position_on_new_target[2].y = source->height;
-            image_position_on_new_target[3].x = source->width;  image_position_on_new_target[3].y = 0;
+            image_position_on_new_target[0].x = 0;                                  image_position_on_new_target[0].y = 0;
+            image_position_on_new_target[1].x = 0;                                  image_position_on_new_target[1].y = (vg_lite_float_t)source->height;
+            image_position_on_new_target[2].x = (vg_lite_float_t)source->width;     image_position_on_new_target[2].y = (vg_lite_float_t)source->height;
+            image_position_on_new_target[3].x = (vg_lite_float_t)source->width;     image_position_on_new_target[3].y = 0;
 
             image_display_position_on_new_target[0].x = top_left_point.x - new_target_top_left.x;      image_display_position_on_new_target[0].y = top_left_point.y - new_target_top_left.y;
             image_display_position_on_new_target[1].x = bottom_left_point.x - new_target_top_left.x;   image_display_position_on_new_target[1].y = bottom_left_point.y - new_target_top_left.y;
@@ -4907,7 +4965,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             memcpy(matrix, &matrix2_temp, sizeof(vg_lite_matrix_t));
         }
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
@@ -4918,68 +4976,8 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
 
-#if (CHIPID==0x255)
-    vg_lite_float_t* steps[3];
-    steps[0] = x_step;
-    steps[1] = y_step;
-    steps[2] = c_step;
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(source->width, source->height, matrix, 0, steps));
-#else
-    /* Compute step values. */
-    calculate_step_value(filter, &inverse_matrix, source->width, source->height, x_step, y_step, c_step);
-
-#if VG_SW_BLIT_PRECISION_OPT && gcFEATURE_VG_BOUNDARY_FILTER_BYPASS
-    if(enable_sw_pre_opt){
-        if (matrix->scaleX > 0.5 || matrix->scaleY > 0.5) {
-            if (filter == VG_LITE_FILTER_POINT) {
-                /* Compute interpolation steps. */
-                x_step[0] = inverse_matrix.m[0][0] / source->width;
-                x_step[1] = inverse_matrix.m[1][0] / source->height;
-                x_step[2] = inverse_matrix.m[2][0];
-                y_step[0] = inverse_matrix.m[0][1] / source->width;
-                y_step[1] = inverse_matrix.m[1][1] / source->height;
-                y_step[2] = inverse_matrix.m[2][1];
-                c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / source->width;
-                c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / source->height;
-                c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
-            }
-            else
-            {
-                /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
-                x_step[0] = inverse_matrix.m[0][0] / source->width;
-                x_step[1] = inverse_matrix.m[1][0] / source->height;
-                x_step[2] = inverse_matrix.m[2][0];
-                y_step[0] = inverse_matrix.m[0][1] / source->width;
-                y_step[1] = inverse_matrix.m[1][1] / source->height;
-                y_step[2] = inverse_matrix.m[2][1];
-                c_step[0] = inverse_matrix.m[0][2] / source->width;
-                c_step[1] = inverse_matrix.m[1][2] / source->height;
-                c_step[2] = inverse_matrix.m[2][2];
-            }
-        }
-    }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
-
-#if VG_SW_BLIT_PRECISION_OPT
-    /* Update C offset */
-    if (enable_sw_pre_opt && filter == VG_LITE_FILTER_POINT) {
-        uint8_t indexC0 = 0;
-        uint8_t indexC1 = 0;
-        uint32_t temp0 = (uint32_t)(matrix->angle / 45);
-        uint32_t temp1 = (uint32_t)(matrix->scaleX * 100);
-        uint32_t temp2 = (uint32_t)(matrix->scaleY * 100);
-        indexC0 = GetIndex(temp0, temp1);
-        indexC1 = GetIndex(temp0, temp2);
-        c_step[0] = c_step[0] + offsetTable[indexC0];
-        c_step[1] = c_step[1] + offsetTable[indexC1];
-    }
-    else
-#endif /* VG_SW_BLIT_PRECISION_OPT */
-#endif
-    {
-        c_step[0] = c_step[0] + offsetTable[0];
-        c_step[1] = c_step[1] + offsetTable[0];
-    }
+    VG_LITE_RETURN_ERROR(chip_calculate_blit_image_steps(source->width, source->height, filter, matrix,
+        &inverse_matrix, x_step, y_step, c_step, enable_sw_pre_opt));
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -5043,43 +5041,41 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
+    VG_LITE_RETURN_ERROR(chip_set_rec_tile(target, source, matrix, &tile_setting, &stripe_mode));
 
-#if !gcFEATURE_VG_PE_PREFETCH && (CHIPID != 0x555)
-#if !gcFEATURE_VG_TILE_PE_LINEAR
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set(0, target, source, matrix, &tile_setting, &stripe_mode));
-#else
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set((target->tiled == VG_LITE_LINEAR) && query_rec_tile_dif_support(target, source), target, source, matrix, &tile_setting, &stripe_mode));
-#endif
-#else
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set(query_rec_tile_dif_support(target, source), target, source, matrix, &tile_setting, &stripe_mode));
-#endif
+    compress_mode = (vg_lite_uint32_t)source->compress_mode << 25;
 
-#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1)
-    if (source->compress_mode != VG_LITE_DEC_DISABLE && target->compress_mode == VG_LITE_DEC_DISABLE) {
-        if (source->format != target->format) {
-            printf("The format of source and target buffers is inconsistent in decompressing!\n");
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
+#if gcFEATURE_VG_NEW_FACTOR
+    config_factor_parameter(blend, porter_duff_config, &factor_config);
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
 #endif
-    compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
-#endif
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    if (blend >= SVG2_BLEND_NORMAL && blend <= SVG2_BLEND_EXCLUSION)
+    {
+        in_premult = 0x00000000;
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    }
+    else
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *) &x_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -5089,16 +5085,55 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
             uv_swiz = convert_uv_swizzle(source->yuv.swizzle);
     }
 
-#if gcFEATURE_VG_IM_FASTCLEAR
-    if (source->fc_enable) {
-        uint32_t im_fc_enable = (source->fc_enable == 0) ? 0 : 0x800000;
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | im_fc_enable | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACF, source->fc_buffer[0].address));   /* FC buffer address. */
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD0, source->fc_buffer[0].color));     /* FC clear value. */
+#if gcFEATURE_VG_GAUSSIAN_BLUR
+    if (target->pattern_mode)
+    {
+        if (target->pattern_mode == VG_LITE_PATTERN_COLOR)
+        {
+            vg_lite_uint8_t a, r, g, b;
+            pattern_tile = 0;
+            a = target->bg_color >> 24;
+            r = target->bg_color >> 16;
+            g = target->bg_color >> 8;
+            b = target->bg_color;
+            target->bg_color = (a << 24) | (b << 16) | (g << 8) | r;
+        }
+        else if (target->pattern_mode == VG_LITE_PATTERN_PAD)
+        {
+            pattern_tile = 0x1000;
+        }
+#if gcFEATURE_VG_IM_REPEAT_REFLECT
+        else if (target->pattern_mode == VG_LITE_PATTERN_REPEAT)
+        {
+            pattern_tile = 0x2000;
+        }
+        else if (target->pattern_mode == VG_LITE_PATTERN_REFLECT)
+        {
+            pattern_tile = 0x3000;
+        }
+#endif
+        else
+        {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
     }
 #endif
 
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+    if (blend >= SVG2_BLEND_NORMAL && blend <= SVG2_BLEND_EXCLUSION)
+    {
+        src_premultiply_enable = 0x01000100;
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+    }
+    else
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | pattern_tile | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+    /* 24bit format stride configured to 4bpp. */
+    if (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658) {
+        stride = source->stride / 3 * 4;
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, stride | tiled_source));
+    }
+    else {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
+    }
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
@@ -5121,63 +5156,52 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
-    /* 24bit format stride configured to 4bpp. */
-    if (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658) {
-        stride = source->stride / 3 * 4;
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, stride | tiled_source));
-    }
-    else {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
-    }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, source->width | (source->height << 16)));
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, image_display_top_left_on_new_target.x, image_display_top_left_on_new_target.y, image_display_range_on_new_target.x, image_display_range_on_new_target.y));
     }
     else
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
     {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
     }
 
-#if !gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif
 
-    if (!s_context.flexa_mode) {
-        error = flush_target();
-    }
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
-    }
+#if !gcFEATURE_VG_NEW_FACTOR
+    VG_LITE_RETURN_ERROR(feature_war_legacy_lvgl_blend(blend, VG_LITE_NORMAL));
 #endif
 
      s_context.filter = 0;
 
-#if VG_SW_BLIT_PRECISION_OPT
+     VG_LITE_BREAK_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
+
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
         }
 
         if (s_context.enable_mask && s_context.mask_layer) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
         }
 
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
     }        
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565) && (target->format <= VG_LITE_RGBA5658))
     {
         if (target->sw24bit_planar_buffer)
@@ -5197,7 +5221,19 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 #if DUMP_CAPTURE
     if (source->compress_mode)
         ratio = _calc_decnano_compress_ratio(source->format, source->compress_mode);
-    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height)*ratio);
+    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (size_t)((source->stride)*(source->height)*ratio));
+    if (source->yuv.uv_planar)
+        vglitemDUMP_BUFFER(
+            "uv_plane",
+            (size_t)source->yuv.uv_planar, source->yuv.uv_memory,
+            0,
+            source->yuv.uv_stride * source->yuv.uv_height);
+    if (source->yuv.v_planar)
+        vglitemDUMP_BUFFER(
+            "v_plane",
+            (size_t)source->yuv.v_planar, source->yuv.v_memory,
+            0,
+            source->yuv.v_stride * source->yuv.v_height);
 #endif
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -5217,11 +5253,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                                 vg_lite_color_t color,
                                 vg_lite_filter_t filter)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_blit_rect)(target, source, rect, matrix, blend, color, filter);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_blit_rect, target, source, rect, matrix, blend, color, filter);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_BLIT_RECT_API);
+    VG_LITE_TRACE_API("vg_lite_blit_rect %p %p %p %p %d 0x%08X %d\n", target, source, rect, matrix, blend, color, filter);
 
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
@@ -5230,34 +5264,47 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    uint32_t imageMode = 0;
-    uint32_t paintType = 0;
-    uint32_t in_premult = 0;
-    uint32_t blend_mode;
-    uint32_t filter_mode = 0;
-    uint32_t transparency_mode = 0;
-    uint32_t conversion = 0;
-    uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
-    uint32_t tiled_source;
-    uint32_t yuv2rgb = 0;
-    uint32_t uv_swiz = 0;
-    uint32_t compress_mode = 0;
-    uint32_t src_premultiply_enable = 0;
-    uint32_t index_endian = 0;
-    uint32_t eco_fifo = 0;
-    uint32_t tile_setting = 0;
-    uint32_t stripe_mode = 0;
-    uint32_t premul_flag = 0;
-    uint32_t prediv_flag = 0;
-    int32_t  left, top, right, bottom;
-    int32_t  stride;
+    vg_lite_uint32_t imageMode = 0;
+    vg_lite_uint32_t paintType = 0;
+    vg_lite_uint32_t in_premult = 0;
+    vg_lite_uint32_t blend_mode;
+    vg_lite_uint32_t filter_mode = 0;
+    vg_lite_uint32_t transparency_mode = 0;
+    vg_lite_uint32_t conversion = 0;
+    vg_lite_uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
+    vg_lite_uint32_t tiled_source;
+    vg_lite_uint32_t yuv2rgb = 0;
+    vg_lite_uint32_t uv_swiz = 0;
+    vg_lite_uint32_t compress_mode = 0;
+    vg_lite_uint32_t src_premultiply_enable = 0;
+    vg_lite_uint32_t index_endian = 0;
+    vg_lite_uint32_t eco_fifo = 0;
+    vg_lite_uint32_t tile_setting = 0;
+    vg_lite_uint32_t stripe_mode = 0;
+    vg_lite_uint32_t premul_flag = 0;
+    vg_lite_uint32_t prediv_flag = 0;
+    vg_lite_int32_t  left, top, right, bottom;
+    vg_lite_int32_t  stride;
+    vg_lite_uint8_t enable_sw_pre_opt = 0;
+    vg_lite_porter_duff_config_t porter_duff_config;
+
+#if gcFEATURE_VG_NEW_FACTOR
+    vg_factor_config_t factor_config;
+    factor_config.factor_src_alpha = 0x0;
+    factor_config.factor_src_color = 0x0;
+    factor_config.factor_dst_alpha = 0x3;
+    factor_config.factor_dst_color = 0x5;
+    factor_config.final_equation_opcode = 0x0;
+    factor_config.dstchannelmode = 0x0;
+    factor_config.srcchannelmode = 0x0;
+#endif
 #if DUMP_CAPTURE
     vg_lite_float_t ratio = 1;
 #endif
 #if !gcFEATURE_VG_LVGL_SUPPORT
-    uint8_t  lvgl_sw_blend = 0;
+    vg_lite_uint8_t  lvgl_sw_blend = 0;
 #endif
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565_PLANAR) && (target->format <= VG_LITE_RGBA5658_PLANAR))
     {
         if (target->sw24bit_buffer)
@@ -5275,14 +5322,13 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         }
     }
 #endif
-#if VG_SW_BLIT_PRECISION_OPT
-    uint8_t* buffer_pointer;
-    uint32_t buffer_address = 0, buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
+    vg_lite_uint8_t* buffer_pointer;
+    vg_lite_uint32_t buffer_address = 0, buffer_scissor_address = 0, buffer_mask_address = 0, mul = 0, div = 0, required_align = 0;
     vg_lite_buffer_t new_target;
     vg_lite_float_point_t top_right_point, bottom_right_point, top_left_point, bottom_left_point;
     vg_lite_point_t image_display_top_left = { 0 };
     vg_lite_point_t image_display_range = { 0 };
-    uint8_t enable_sw_pre_opt = 0;
     vg_lite_point_t new_target_top_left = { 0 };
     vg_lite_float_point4_t image_position_on_new_target = { 0 };
     vg_lite_float_point4_t image_display_position_on_new_target = { 0 };
@@ -5296,119 +5342,41 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         enable_sw_pre_opt = 1;
         memcpy(&temp_matrix, matrix, sizeof(vg_lite_matrix_t));
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_blit_rect %p %p %p %p %d 0x%08X %d\n", target, source, rect, matrix, blend, color, filter);
+
+#if gcFEATURE_VG_FLEXA
+    if (s_context.sync_mode)
+    {
+        printf("When Flexa is enabled vg_lite_blit_rect is not support.\n");
+        return VG_LITE_NOT_SUPPORT;
+    }
 #endif
-
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
-#if !gcFEATURE_VG_RGBA8_ETC2_EAC
-    if (source->format == VG_LITE_RGBA8888_ETC2_EAC) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#else
-    if ((source->format == VG_LITE_RGBA8888_ETC2_EAC) && (source->width % 4 || source->height % 4)) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-#endif
-#if !gcFEATURE_VG_YUY2_INPUT
-    if (source->format == VG_LITE_YUYV || source->format == VG_LITE_YUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_INPUT
-    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#elif !gcFEATURE_VG_NV24_INPUT
-    if (source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_AYUV_INPUT
-    if (source->format == VG_LITE_ANV12 || source->format == VG_LITE_AYUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_TILED_INPUT
-    if ((source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) || (source->format == VG_LITE_NV24_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT
-    if ((target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) ||
-        (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT_PLANAR
-    if (source->format >= VG_LITE_ABGR8565_PLANAR && source->format <= VG_LITE_RGBA5658_PLANAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_IM_DEC_INPUT
-    if (source->compress_mode != VG_LITE_DEC_DISABLE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_STENCIL
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_USE_DST
-    if (target->screen_copy) {
-
-        if (!target->compress_mode)
-            return VG_LITE_INVALID_ARGUMENT;
-
-        if (blend > VG_LITE_BLEND_NONE && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-            blend = VG_LITE_BLEND_NONE;
-        }
-
-        if (blend > OPENVG_BLEND_SRC && blend <= OPENVG_BLEND_ADDITIVE) {
-            blend = OPENVG_BLEND_SRC;
-        }
-    }
-#endif
-#if !gcFEATURE_VG_NEW_BLEND_MODE
-    if (blend == VG_LITE_BLEND_DARKEN || blend == VG_LITE_BLEND_LIGHTEN) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-    if (blend && (target->format == VG_LITE_YUYV || target->format == VG_LITE_YUY2 || target->format == VG_LITE_YUY2_TILED
-        || target->format == VG_LITE_AYUY2 || target->format == VG_LITE_AYUY2_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#if (CHIPID == 0x355)
-    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
-        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
-        printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
-        printf("Source format: 0x%x is not supported.\n", source->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
+    VG_LITE_RETURN_ERROR(feature_check_source_index_endian(source->format, source->index_endian));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgba8888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgb888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_packed_yuy_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_yuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_nv24_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_ayuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_yuv_tiled_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_planar_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_im_dec_input_compress(source->compress_mode));
+    VG_LITE_RETURN_ERROR(feature_check_stencil_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_dst_screen_copy_blend(target, &blend));
+    VG_LITE_RETURN_ERROR(feature_check_new_blend_mode(blend));
+    VG_LITE_RETURN_ERROR(feature_check_lvgl_recolor_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_mesh_blt_sw_lvgl_blend(blend, s_context.mesh_mode));
+    VG_LITE_RETURN_ERROR(blit_check_blend_on_yuy_target(blend, target->format));
+    VG_LITE_RETURN_ERROR(chip_check_target_format(target->format));
+    VG_LITE_RETURN_ERROR(chip_check_source_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_target_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_source_format(source->format));
     VG_LITE_RETURN_ERROR(srcbuf_align_check(source));
-    VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
 #if !gcFEATURE_VG_LVGL_SUPPORT
@@ -5431,19 +5399,15 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         matrix = &identity_mtx;
     }
 
-#if gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        index_endian = 1 << 14;
-    }
-#endif
-#if !gcFEATURE_VG_STRIPE_MODE
+    chip_get_source_index_endian_bits(source->format, source->index_endian, &index_endian);
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
 
     transparency_mode = (source->transparency_mode == VG_LITE_IMAGE_TRANSPARENT ? 0x8000:0);
-    s_context.filter = filter;
 
+    porter_duff_config = s_context.porter_duff_config;
     /* Check if the specified matrix has rotation or perspective. */
     if (   (   (matrix->m[0][1] != 0.0f)
             || (matrix->m[1][0] != 0.0f)
@@ -5451,26 +5415,20 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             || (matrix->m[2][1] != 0.0f)
             || (matrix->m[2][2] != 1.0f)
             )
-        && (   blend == VG_LITE_BLEND_NONE
+        && ((   blend == VG_LITE_BLEND_NONE
             || blend == VG_LITE_BLEND_SRC_IN
             || blend == VG_LITE_BLEND_DST_IN
             )
+            || check_porter_duff_factor_match(blend, porter_duff_config)
+            )
         ) {
-#if gcFEATURE_VG_BORDER_CULLING
-            /* Mark that we have rotation. */
-            transparency_mode = 0x8000;
-#else
-            blend = VG_LITE_BLEND_SRC_OVER;
-#endif
-#if !gcFEATURE_VG_STRIPE_MODE
+            feature_border_culling_special_process(&blend, &transparency_mode);
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
             stripe_mode = 1 << 29;
 #endif
     }
 
-    /* Check whether L8 is supported or not. */
-    if ((target->format == VG_LITE_L8) && ((source->format != VG_LITE_L8) && (source->format != VG_LITE_A8))) {
-        conversion = 0x80000000;
-    }
+    conversion = feature_a124_a8l8_l8_conversion(target->format, source->format);
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
     /* Check if source specify bytes are aligned */
@@ -5485,17 +5443,18 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         rect_y = (rect->y < 0) ? 0 : rect->y;
         rect_w = rect->width;
         rect_h = rect->height;
-        if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
+        if ((rect_x > (vg_lite_uint32_t)source->width) || (rect_y > (vg_lite_uint32_t)source->height) ||
             (rect_w == 0) || (rect_h == 0))
         {
+            printf("The width or height of the rect shouldn't be 0.\n");
             /*No intersection*/
             return VG_LITE_INVALID_ARGUMENT;
         }
-        if (rect_x + rect_w > (uint32_t)source->width)
+        if (rect_x + rect_w > (vg_lite_uint32_t)source->width)
         {
             rect_w = source->width - rect_x;
         }
-        if (rect_y + rect_h > (uint32_t)source->height)
+        if (rect_y + rect_h > (vg_lite_uint32_t)source->height)
         {
             rect_h = source->height - rect_y;
         }
@@ -5506,6 +5465,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         rect_h = source->height;
     }
 
+    s_context.filter = filter;
+
     /* Transform image (0,0) to screen. */
     if (!transform(&temp, 0.0f, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
@@ -5513,7 +5474,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* Set initial point. */
     point_min = temp;
     point_max = temp;
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         if (!transform_float(&top_left_point, 0.0f, 0.0f, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -5530,7 +5491,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         if (!transform_float(&bottom_left_point, 0.0f, (vg_lite_float_t)rect_h, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -5547,7 +5508,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         if (!transform_float(&bottom_right_point, (vg_lite_float_t)rect_w, (vg_lite_float_t)rect_h, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -5557,6 +5518,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     /* Transform image (width,0) to screen. */
     if (!transform(&temp, (vg_lite_float_t)rect_w, 0.0f, matrix))
         return VG_LITE_INVALID_ARGUMENT;
+
+    s_context.filter = 0;
     
     /* Determine min/max. */
     if (temp.x < point_min.x) point_min.x = temp.x;
@@ -5564,7 +5527,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (temp.x > point_max.x) point_max.x = temp.x;
     if (temp.y > point_max.y) point_max.y = temp.y;
 
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         if (!transform_float(&top_right_point, (vg_lite_float_t)rect_w, 0.0f, matrix))
             return VG_LITE_INVALID_ARGUMENT;
@@ -5584,7 +5547,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         bottom = MIN(s_context.scissor[3], bottom);
     }
 
-    if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+    if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
         left = MAX(s_context.scissor_layer_range[0], left);
         top = MAX(s_context.scissor_layer_range[1], top);
         right = MIN(s_context.scissor_layer_range[2], right);
@@ -5595,7 +5558,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     point_min.y = MAX(point_min.y, top);
     point_max.x = MIN(point_max.x, right);
     point_max.y = MIN(point_max.y, bottom);
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         image_display_top_left.x = point_min.x;
         image_display_top_left.y = point_min.y;
@@ -5614,10 +5577,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     get_st_gamma_src_dest(source, target);
 #endif
 
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_GLOBAL, 0xff));
-    }
+#if !gcFEATURE_VG_NEW_FACTOR
+    VG_LITE_RETURN_ERROR(feature_war_legacy_lvgl_blend(blend, VG_LITE_GLOBAL));
 #endif
 
     /*blend input into context*/
@@ -5626,15 +5587,22 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
-    if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+#if gcFEATURE_VG_PIXEL_MATRIX
+    if (s_context.matrix_enable == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
         prediv_flag = 0;
     }
+#else
+    if (s_context.color_transform == 0  && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        prediv_flag = 0;
+    }
+#endif
     else {
         prediv_flag = 1;
     }
     if ((s_context.blend_mode >= OPENVG_BLEND_SRC && s_context.blend_mode <= OPENVG_BLEND_ADDITIVE) || source->image_mode == VG_LITE_STENCIL_MODE
-        || (s_context.blend_mode >= VG_LITE_BLEND_NORMAL_LVGL && s_context.blend_mode <= VG_LITE_BLEND_MULTIPLY_LVGL)) {
+        || is_lvgl_blend_mode(s_context.blend_mode)){
         premul_flag = 1;
     }
     else {
@@ -5661,10 +5629,9 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if((source->format == VG_LITE_A4 || source->format == VG_LITE_A8) && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
-#if (CHIPID==0x255)
-        src_premultiply_enable = 0x00000000;
-#endif
+    if ((source->format == VG_LITE_A1 || source->format == VG_LITE_A2 || source->format == VG_LITE_A4 || source->format == VG_LITE_A8)
+        && blend >= VG_LITE_BLEND_SRC_OVER && blend <= VG_LITE_BLEND_SUBTRACT) {
+        chip_adjust_src_premultiply_enable(&src_premultiply_enable);
 #if gcFEATURE_VG_SRC_PREMULTIPLIED
         src_premultiply_enable = src_premultiply_enable & ~(1 << 8);
 #endif
@@ -5676,40 +5643,44 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     else {
         target->apply_premult = 0;
     }
+
+#if !gcFEATURE_VG_NEW_FACTOR
 #if (gcFEATURE_VG_SRC_PREMULTIPLIED == 0)
     if (blend == VG_LITE_BLEND_NORMAL_LVGL)
         in_premult = 0x00000000;
 #endif
-#if VG_SW_BLIT_PRECISION_OPT
+#endif
+
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         //update target memory address
         get_format_bytes(target->format, &mul, &div, &required_align);
 
-        uint32_t temp_buffer_address = target->address;
+        vg_lite_uint32_t temp_buffer_address = target->address;
 
-        uint32_t temp_buffer_address1 = 0;
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+        vg_lite_uint32_t temp_buffer_address1 = 0;
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer)
             temp_buffer_address1 = s_context.scissor_layer->address;
 
-        uint32_t temp_buffer_address2 = 0;
+        vg_lite_uint32_t temp_buffer_address2 = 0;
         if (s_context.enable_mask && s_context.mask_layer)
             temp_buffer_address2 = s_context.mask_layer->address;
 
-        int32_t align_require = 4;
-        int32_t align_require_temp = 4;
-        int align_flag = 0;
+        vg_lite_int32_t align_require = 4;
+        vg_lite_int32_t align_require_temp = 4;
+        vg_lite_int32_t align_flag = 0;
 
         if (target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658_PLANAR)
             align_require = 64;
 
-        int dy = image_display_top_left.y;
-        int dx = image_display_top_left.x;
+        vg_lite_int32_t dy = image_display_top_left.y;
+        vg_lite_int32_t dx = image_display_top_left.x;
 
         for (; dy > 0; dy--)
         {
             for (; dx > 0; dx--)
             {
-                if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer)
+                if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer)
                     dx = dx & (~7); // dx need 8 align
 
                 buffer_address = temp_buffer_address + dy * target->stride + dx * (mul / div);
@@ -5725,7 +5696,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                             }
                         }
                     }
-                    else if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
+                    else if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) { //then check scissor layer
                         buffer_scissor_address = temp_buffer_address1 + dy * s_context.scissor_layer->stride + dx / 8;
 
                         if ((buffer_scissor_address & (align_require_temp - 1)) == 0) {
@@ -5761,7 +5732,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                 buffer_mask_address = temp_buffer_address2;
         }
 
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, buffer_scissor_address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
@@ -5780,14 +5751,14 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
         if (align_flag) {
             //update buffer pointer address
-            buffer_pointer = (uint8_t*)target->memory;
+            buffer_pointer = (vg_lite_uint8_t*)target->memory;
             buffer_pointer = buffer_pointer + (buffer_address - target->address);
 
             /* Calculate the transformation matrix */
-            image_position_on_new_target[0].x = 0;       image_position_on_new_target[0].y = 0;
-            image_position_on_new_target[1].x = 0;       image_position_on_new_target[1].y = rect_h;
-            image_position_on_new_target[2].x = rect_w;  image_position_on_new_target[2].y = rect_h;
-            image_position_on_new_target[3].x = rect_w;  image_position_on_new_target[3].y = 0;
+            image_position_on_new_target[0].x = 0;                          image_position_on_new_target[0].y = 0;
+            image_position_on_new_target[1].x = 0;                          image_position_on_new_target[1].y = (vg_lite_float_t)rect_h;
+            image_position_on_new_target[2].x = (vg_lite_float_t)rect_w;    image_position_on_new_target[2].y = (vg_lite_float_t)rect_h;
+            image_position_on_new_target[3].x = (vg_lite_float_t)rect_w;    image_position_on_new_target[3].y = 0;
 
             image_display_position_on_new_target[0].x = top_left_point.x - new_target_top_left.x;      image_display_position_on_new_target[0].y = top_left_point.y - new_target_top_left.y;
             image_display_position_on_new_target[1].x = bottom_left_point.x - new_target_top_left.x;   image_display_position_on_new_target[1].y = bottom_left_point.y - new_target_top_left.y;
@@ -5808,7 +5779,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             memcpy(matrix, &matrix2_temp, sizeof(vg_lite_matrix_t));
         }
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -5818,79 +5789,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
 
-#if (CHIPID==0x255)
-    vg_lite_float_t* steps[3];
-    steps[0] = x_step;
-    steps[1] = y_step;
-    steps[2] = c_step;
-    VG_LITE_RETURN_ERROR(set_interpolation_steps(rect_w, rect_h, matrix, 0, steps));
-#else
-    /* Compute step values. */
-#if VG_SW_BLIT_PRECISION_OPT
-    vg_lite_int32_t tem_rect_w = rect_w;
-
-#if gcFEATURE_VG_BOUNDARY_FILTER_BYPASS && gcFEATURE_VG_16PIXELS_ALIGNED
-    if (rect_x == 0 && rect_y == 0) {
-        tem_rect_w = (rect_w + 15) & ~15;
-    }
-#endif
-    calculate_step_value(filter, &inverse_matrix, tem_rect_w, rect_h, x_step, y_step, c_step);
-#else
-    calculate_step_value(filter, &inverse_matrix, rect_w, rect_h, x_step, y_step, c_step);
-#endif
-
-#if VG_SW_BLIT_PRECISION_OPT  && gcFEATURE_VG_BOUNDARY_FILTER_BYPASS
-    if (enable_sw_pre_opt) {
-        if (matrix->scaleX > 0.5 || matrix->scaleY > 0.5) {
-            if (filter == VG_LITE_FILTER_POINT) {
-                /* Compute interpolation steps. */
-                x_step[0] = inverse_matrix.m[0][0] / tem_rect_w;
-                x_step[1] = inverse_matrix.m[1][0] / rect_h;
-                x_step[2] = inverse_matrix.m[2][0];
-                y_step[0] = inverse_matrix.m[0][1] / tem_rect_w;
-                y_step[1] = inverse_matrix.m[1][1] / rect_h;
-                y_step[2] = inverse_matrix.m[2][1];
-                c_step[0] = (0.5f * (inverse_matrix.m[0][0] + inverse_matrix.m[0][1]) + inverse_matrix.m[0][2]) / tem_rect_w;
-                c_step[1] = (0.5f * (inverse_matrix.m[1][0] + inverse_matrix.m[1][1]) + inverse_matrix.m[1][2]) / rect_h;
-                c_step[2] = 0.5f * (inverse_matrix.m[2][0] + inverse_matrix.m[2][1]) + inverse_matrix.m[2][2];
-            }
-            else
-            {
-                /* Shift the linear sampling points to center of pixels to avoid pixel offset issue */
-                x_step[0] = inverse_matrix.m[0][0] / tem_rect_w;
-                x_step[1] = inverse_matrix.m[1][0] / rect_h;
-                x_step[2] = inverse_matrix.m[2][0];
-                y_step[0] = inverse_matrix.m[0][1] / tem_rect_w;
-                y_step[1] = inverse_matrix.m[1][1] / rect_h;
-                y_step[2] = inverse_matrix.m[2][1];
-                c_step[0] = inverse_matrix.m[0][2] / tem_rect_w;
-                c_step[1] = inverse_matrix.m[1][2] / rect_h;
-                c_step[2] = inverse_matrix.m[2][2];
-            }
-        }
-    }
-#endif
-
-#if VG_SW_BLIT_PRECISION_OPT
-    /* Update C offset */
-    if (enable_sw_pre_opt && filter == VG_LITE_FILTER_POINT) {
-        uint8_t indexC0 = 0;
-        uint8_t indexC1 = 0;
-        uint32_t temp0 = (uint32_t)(matrix->angle / 45);
-        uint32_t temp1 = (uint32_t)(matrix->scaleX * 100);
-        uint32_t temp2 = (uint32_t)(matrix->scaleY * 100);
-        indexC0 = GetIndex(temp0, temp1);
-        indexC1 = GetIndex(temp0, temp2);
-        c_step[0] = c_step[0] + offsetTable[indexC0];
-        c_step[1] = c_step[1] + offsetTable[indexC1];
-    }
-    else
-#endif /* VG_SW_BLIT_PRECISION_OPT */
-#endif
-    {
-        c_step[0] = c_step[0] + offsetTable[0];
-        c_step[1] = c_step[1] + offsetTable[0];
-    }
+    VG_LITE_RETURN_ERROR(chip_calculate_blit_image_steps(chip_process_blit_boundary_point(rect_x, rect_y, rect_w),
+        rect_h, filter, matrix, &inverse_matrix, x_step, y_step, c_step, enable_sw_pre_opt));
 
     /* Determine image mode (NORMAL, NONE , MULTIPLY or STENCIL) depending on the color. */
     switch (source->image_mode) {
@@ -5954,43 +5854,34 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
     blend_mode = convert_blend(blend);
     tiled_source = (source->tiled != VG_LITE_LINEAR) ? 0x10000000 : 0 ;
+    VG_LITE_RETURN_ERROR(chip_set_rec_tile(target, source, matrix, &tile_setting, &stripe_mode));
 
-#if !gcFEATURE_VG_PE_PREFETCH && (CHIPID != 0x555)
-#if !gcFEATURE_VG_TILE_PE_LINEAR
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set(0, target, source, matrix, &tile_setting, &stripe_mode));
-#else
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set((target->tiled == VG_LITE_LINEAR) && query_rec_tile_dif_support(target, source), target, source, matrix, &tile_setting, &stripe_mode));
-#endif
-#else
-    VG_LITE_RETURN_ERROR(vg_rec_tile_set(query_rec_tile_dif_support(target, source), target, source, matrix, &tile_setting, &stripe_mode));
-#endif
+    compress_mode = (vg_lite_uint32_t)source->compress_mode << 25;
 
-#if (gcFEATURE_VG_DEC_COMPRESS || gcFEATURE_VG_DEC_COMPRESS_2_0 || gcFEATURE_VG_DEC_COMPRESS_2_1)
-    if (source->compress_mode != VG_LITE_DEC_DISABLE && target->compress_mode == VG_LITE_DEC_DISABLE) {
-        if (source->format != target->format) {
-            printf("The format of source and target buffers is inconsistent in decompressing!\n");
-            return VG_LITE_INVALID_ARGUMENT;
-        }
-    }
+#if gcFEATURE_VG_NEW_FACTOR
+    config_factor_parameter(blend, porter_duff_config, &factor_config);
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
 #endif
-    compress_mode = (uint32_t)source->compress_mode << 25;
 
     /* Setup the command buffer. */
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
-#endif
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void *) &x_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -6000,16 +5891,16 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
             uv_swiz = convert_uv_swizzle(source->yuv.swizzle);
     }
 
-#if gcFEATURE_VG_IM_FASTCLEAR
-    if (source->fc_enable) {
-        uint32_t im_fc_enable = (source->fc_enable == 0) ? 0 : 0x800000;
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | im_fc_enable | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACF, source->fc_buffer[0].address));   /* FC buffer address. */
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD0, source->fc_buffer[0].color));     /* FC clear value. */
-    }
-#endif
-
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
+    /* 24bit format stride configured to 4bpp. */
+    if (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658) {
+        stride = source->stride / 3 * 4;
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, stride | tiled_source));
+    }
+    else {
+        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
+    }
+
     if (source->yuv.uv_planar) {
         /* Program u plane address if necessary. */
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A51, source->yuv.uv_planar));
@@ -6032,14 +5923,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A29, source->address));
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A34, 0));
-    /* 24bit format stride configured to 4bpp. */
-    if (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658) {
-        stride = source->stride / 3 * 4;
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, stride | tiled_source));
-    }
-    else {
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2B, source->stride | tiled_source));
-    }
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2D, rect_x | (rect_y << 16)));
     
@@ -6052,51 +5935,50 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
     }
     
-#if VG_SW_BLIT_PRECISION_OPT
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, image_display_top_left_on_new_target.x, image_display_top_left_on_new_target.y, image_display_range_on_new_target.x, image_display_range_on_new_target.y));
     }
     else
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
     {
         VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
     }
 
-#if !gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif
 
-    if (!s_context.flexa_mode) {
-        error = flush_target();
-    }
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    if (blend >= VG_LITE_BLEND_NORMAL_LVGL && blend <= VG_LITE_BLEND_MULTIPLY_LVGL) {
-        VG_LITE_RETURN_ERROR(vg_lite_dest_global_alpha(VG_LITE_NORMAL, 0xFF));
-    }
+    error = flush_target();
+
+#if !gcFEATURE_VG_NEW_FACTOR
+    VG_LITE_RETURN_ERROR(feature_war_legacy_lvgl_blend(blend, VG_LITE_NORMAL));
 #endif
 
      s_context.filter = 0;
 
-#if VG_SW_BLIT_PRECISION_OPT
+     VG_LITE_BREAK_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
+
+#if gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW
     if (enable_sw_pre_opt) {
-        if (s_context.scissor_enable && s_context.scissor_layer->scissor_buffer) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
+        if (s_context.scissor_enable && s_context.scissor_layer && s_context.scissor_layer->scissor_buffer) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A17, s_context.scissor_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A16, s_context.scissor_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000100));
         }
 
         if (s_context.enable_mask && s_context.mask_layer) {
-            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, s_context.mask_layer->stride));
+            VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, s_context.mask_layer->address));
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
         }
 
         memcpy(matrix, &temp_matrix, sizeof(vg_lite_matrix_t));
     }
-#endif /* VG_SW_BLIT_PRECISION_OPT */
+#endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((target->format >= VG_LITE_ABGR8565) && (target->format <= VG_LITE_RGBA5658))
     {
         if (target->sw24bit_planar_buffer)
@@ -6115,7 +5997,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #if DUMP_CAPTURE
     if (source->compress_mode)
         ratio = _calc_decnano_compress_ratio(source->format, source->compress_mode);
-    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride)*(source->height)*ratio);
+    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (size_t)((source->stride)*(source->height)*ratio));
 #endif
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -6127,93 +6009,24 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 #endif
 }
 
-/* Program initial states for tessellation buffer. */
-static vg_lite_error_t program_tessellation(vg_lite_context_t *context)
-{
-    vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t tessellation_size = 0;
-
-#if (CHIPID==0x355 || CHIPID==0x255)
-
-    /* Compute tessellation buffer size. */
-    uint32_t width = (context->tessbuf.tess_w_h & 0xFFFF);
-    /* uint32_t height = (context->tessbuf.tess_w_h >> 16); */
-
-    context->tessbuf.tess_stride = VG_LITE_ALIGN(width * 8, 64);
-
-    /* Each bit in the L1 cache represents 64 bytes of tessellation data. */
-    context->tessbuf.L1_size = VG_LITE_ALIGN(VG_LITE_ALIGN(context->tessbuf.tessbuf_size / 64, 64) / 8, 64);
-#if (CHIPID==0x355)
-    /* Each bit in the L2 cache represents 32 bytes of L1 data. */
-    context->tessbuf.L2_size = VG_LITE_ALIGN(VG_LITE_ALIGN(context->tessbuf.L1_size / 32, 64) / 8, 64);
-    tessellation_size = context->tessbuf.L2_size;
-#else /* CHIPID: 0x255 */
-    tessellation_size = context->tessbuf.L1_size;
-#endif
-
-    context->tessbuf.L1_phyaddr = context->tessbuf.physical_addr + context->tessbuf.tessbuf_size;
-    context->tessbuf.L2_phyaddr = context->tessbuf.L1_phyaddr + context->tessbuf.L1_size;
-    context->tessbuf.L1_logical = context->tessbuf.logical_addr + context->tessbuf.tessbuf_size;
-    context->tessbuf.L2_logical = context->tessbuf.L1_logical + context->tessbuf.L1_size;
-
-    /* Program tessellation buffer: input for VG module. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A30, context->tessbuf.physical_addr));   /* Tessellation buffer address. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A31, context->tessbuf.L1_phyaddr));   /* L1 address of tessellation buffer. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A32, context->tessbuf.L2_phyaddr));   /* L2 address of tessellation buffer. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A33, context->tessbuf.tess_stride));
-
-    /* Program tessellation control: for TS module. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A35, context->tessbuf.physical_addr));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A36, context->tessbuf.L1_phyaddr));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A37, context->tessbuf.L2_phyaddr));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A38, context->tessbuf.tess_stride));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A3A, context->tessbuf.tess_w_h));
-
-#if (REVISION==0x1217 && (CID==0x407 || CID==0x408))
-     VG_LITE_RETURN_ERROR(push_state(context, 0x0AB1, context->tessbuf.tess_stride));
-     VG_LITE_RETURN_ERROR(push_state(context, 0x0AB2, context->tessbuf.tess_stride));
-#endif
-
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A3D, tessellation_size / 64));
-
-#else /* (CHIPID==0x355 || CHIPID==0x255) */
-
-    tessellation_size =  context->tessbuf.tessbuf_size;
-
-    /* Program tessellation control: for TS module. */
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0A35, context->tessbuf.physical_addr));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0AC8, tessellation_size));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0ACB, context->tessbuf.physical_addr + tessellation_size));
-    VG_LITE_RETURN_ERROR(push_state(context, 0x0ACC, context->tessbuf.countbuf_size));
-
-#endif /* (CHIPID==0x355 || CHIPID==0x255) */
-
-    return error;
-}
-
 vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_init)(tess_width, tess_height);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_init, tess_width, tess_height);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_INIT_API);
+    VG_LITE_TRACE_API("vg_lite_init %d %d\n", tess_width, tess_height);
 
     vg_lite_error_t error;
     vg_lite_kernel_initialize_t initialize;
-    uint8_t i;
+    vg_lite_uint8_t i;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_init %d %d\n", tess_width, tess_height);
-#endif
 
-    if (s_context.rtbuffer) {
+    if (s_context.state != 0) {
         if (s_context.tess_width >= tess_width && s_context.tess_height >= tess_height) {
             /* VGLite is already initialized properly. Return */
             return VG_LITE_SUCCESS;
         }
         else {
-            vg_lite_close();
+            VG_LITE_RETURN_ERROR(vg_lite_close());
         }
     }
 
@@ -6247,14 +6060,14 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
 
     /* Save draw context. */
     s_context.capabilities = initialize.capabilities;
-    s_context.command_buffer[0] = (uint8_t *)initialize.command_buffer[0];
-    s_context.command_buffer[1] = (uint8_t *)initialize.command_buffer[1];
+    s_context.command_buffer[0] = (vg_lite_uint8_t *)initialize.command_buffer[0];
+    s_context.command_buffer[1] = (vg_lite_uint8_t *)initialize.command_buffer[1];
     s_context.command_buffer_size = command_buffer_size;
     s_context.command_offset[0] = 0;
     s_context.command_offset[1] = 0;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-    s_context.fb_command_buffer = (uint8_t*)initialize.fb_command_buffer;
+    s_context.fb_command_buffer = (vg_lite_uint8_t*)initialize.fb_command_buffer;
     s_context.fb_command_buffer_size = initialize.fb_command_buffer_size;
     s_context.fb_command_buffer_physical = initialize.fb_command_buffer_gpu;
     s_context.fb_command_buffer_index = 0;
@@ -6269,7 +6082,7 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
         s_context.tessbuf.tessbuf_size = initialize.tessbuf_size;
         s_context.tessbuf.countbuf_size = initialize.countbuf_size;
 
-        VG_LITE_RETURN_ERROR(program_tessellation(&s_context));
+        VG_LITE_RETURN_ERROR(chip_program_tessellation(&s_context));
         /* Init register gcregVGPEColorKey. */
         for (i = 0; i < 8; i++) {
             VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A90 + i, 0));
@@ -6288,45 +6101,49 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
 
     s_context.path_counter = 0;
 
-#if VG_SW_SPLIT_PATH_SUPPORT
+#if gcFEATURE_COMBO_VG_SPLIT_PATH_SUPPORT_BY_SW
     s_context.split_path = 1;
+#endif
+
+#if gcFEATURE_VG_MESH_FOR_FRAME
+    s_context.mesh_dirty = 1;
+#endif
+
+#if gcFEATURE_VG_FLEXA
+    s_context.flexa_dirty = 1;
 #endif
 
     s_context.mirror_orient = VG_LITE_ORIENTATION_TOP_BOTTOM;
 
-#if DUMP_INIT_COMMAND   
-    physical_address = (size_t)CMDBUF_BUFFER(s_context);
-    uint32_t * ptr = (uint32_t*) s_context.context.command_buffer_logical[CMDBUF_INDEX(s_context)];
-    ptr += 1;
-    for (int i = 0; i < 12; i++)
-    {
-        init_buffer[i] = *ptr;
-        ptr+=2;
-    }
-    is_init = 0;
-#endif
+    /* backup init commands */
+    memcpy(s_context.context.init_command_buffer_logical,
+           s_context.context.command_buffer_logical[CMDBUF_INDEX(s_context)],
+           CMDBUF_OFFSET(s_context));
+    s_context.context.init_command_buffer_offset = CMDBUF_OFFSET(s_context);
 
 #if DUMP_CAPTURE || DUMP_LAST_CAPTURE
     _SetDumpFileInfo();
 #endif
 
+    s_context.state = 1;
+
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t vg_lite_close(void)
+vg_lite_error_t vg_lite_close(vg_lite_void)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_close)();
-    }
-#endif
+    DUMP_API_CALL(vg_lite_close);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CLOSE_API);
+    VG_LITE_TRACE_API("vg_lite_close\n");
 
     vg_lite_error_t error;
     vg_lite_kernel_terminate_t terminate;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_close\n");
-#endif
+
+    if (s_context.state == 0) {
+        /* VGLite is already closed properly. Return */
+        return VG_LITE_SUCCESS;
+    }
 
     /* Ensure the GPU finishes potential pending tasks. */
     VG_LITE_RETURN_ERROR(vg_lite_finish());
@@ -6388,15 +6205,9 @@ vg_lite_error_t vg_lite_close(void)
 
 vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_set_command_buffer_size)(size);
-    }
-#endif
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_command_buffer_size %d\n", size);
-#endif
+    DUMP_API_CALL(vg_lite_set_command_buffer_size, size);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_COMMAND_BUFFER_SIZE_API);
+    VG_LITE_TRACE_API("vg_lite_set_command_buffer_size %d\n", size);
 
     if (command_buffer_size == 0)
         return VG_LITE_INVALID_ARGUMENT;
@@ -6408,12 +6219,12 @@ vg_lite_error_t vg_lite_set_command_buffer_size(vg_lite_uint32_t size)
 
 vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_COMMAND_BUFFER_API);
+    VG_LITE_TRACE_API("vg_lite_set_command_buffer 0x%08X %d\n", physical, size);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_command_buffer 0x%08X %d\n", physical, size);
-#endif
 
     if ((physical == 0) || (size == 0) || (physical % 64) || (size % 128))
         return VG_LITE_INVALID_ARGUMENT;
@@ -6425,7 +6236,7 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
     {
         
         if (submit_flag)
-            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
 
         if (!s_context.custom_cmdbuf)
         {
@@ -6456,7 +6267,7 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
     s_context.context.command_buffer_logical[0] = map.logical;
     s_context.context.command_buffer_physical[0] = map.physical;
 
-    s_context.context.command_buffer_logical[1] = (void*)((uint8_t*)map.logical + map.bytes / 2);
+    s_context.context.command_buffer_logical[1] = (vg_lite_pointer)((vg_lite_uint8_t*)map.logical + map.bytes / 2);
     s_context.context.command_buffer_physical[1] = map.physical + map.bytes / 2;
 
     s_context.command_buffer[0] = s_context.context.command_buffer_logical[0];
@@ -6473,12 +6284,12 @@ vg_lite_error_t vg_lite_set_command_buffer(vg_lite_uint32_t physical, vg_lite_ui
 
 vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_TESS_BUFFER_API);
+    VG_LITE_TRACE_API("vg_lite_set_tess_buffer 0x%08X %d\n", physical, size);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_memory_t map = { 0 };
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_tess_buffer 0x%08X %d\n", physical, size);
-#endif
 
     if ((physical == 0) || (size == 0) || (physical % 64) || (size % 64) || (size < MIN_TS_SIZE))
         return VG_LITE_INVALID_ARGUMENT;
@@ -6489,7 +6300,7 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
     if (s_context.tessbuf.logical_addr)
     {
         if (submit_flag)
-            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
         if (!s_context.custom_tessbuf)
         {
             vg_lite_kernel_free_t free;
@@ -6527,12 +6338,12 @@ vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint3
 
 vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_MEM_SIZE_API);
+    VG_LITE_TRACE_API("vg_lite_get_mem_size %p\n", size);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_mem_t mem;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_mem_size %p\n", size);
-#endif
 
     mem.pool = VG_LITE_POOL_RESERVED_MEMORY1;
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_QUERY_MEM, &mem));
@@ -6541,16 +6352,34 @@ vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t* size)
     return error;
 }
 
+static vg_lite_uint32_t _is_tiled_yuv_planer_format(vg_lite_buffer_format_t foramt)
+{
+    switch (foramt)
+    {
+    case VG_LITE_ANV12:
+    case VG_LITE_NV12:
+    case VG_LITE_YV12:
+    case VG_LITE_YV24:
+    case VG_LITE_YV16:
+    case VG_LITE_NV16:
+    case VG_LITE_NV12_TILED:
+    case VG_LITE_ANV12_TILED:
+    case VG_LITE_NV24:
+    case VG_LITE_NV24_TILED:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 /* Handle tiled & yuv allocation. Currently including NV12, ANV12, YV12, YV16, NV16, YV24, NV24. */
 static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t    yplane_size = 0;
+    vg_lite_uint32_t    yplane_size = 0;
     vg_lite_kernel_allocate_t allocate, uv_allocate, v_allocate;
     
-    if (((buffer->format < VG_LITE_NV12) || (buffer->format > VG_LITE_ANV12_TILED)
-        || (buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_YUY2_TILED))
-        && ((buffer->format != VG_LITE_NV24) && (buffer->format != VG_LITE_NV24_TILED)))
+    if (!_is_tiled_yuv_planer_format(buffer->format))
     {
         return error;
     }
@@ -6627,7 +6456,7 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
     buffer->address = allocate.memory_gpu;
     
     if ((buffer->format == VG_LITE_NV12) || (buffer->format == VG_LITE_ANV12)
-        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24)
+        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24) || (buffer->format == VG_LITE_NV24_TILED)
         || (buffer->format == VG_LITE_NV12_TILED) || (buffer->format == VG_LITE_ANV12_TILED)) {
         /* Allocate buffer memory: UV. */
         uv_allocate.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
@@ -6660,11 +6489,11 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
 }
 
 /* Handle tiled & yuv map. Currently including NV12, ANV12, YV12, YV16, NV16, YV24, NV24. */
-static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, int32_t fd)
+static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, vg_lite_int32_t fd)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_map_t map;
-    uint32_t yplane_size = 0;
+    vg_lite_uint32_t yplane_size = 0;
 
     /* For NV12, there are 2 planes (Y, UV);
     For ANV12, there are 3 planes (Y, UV, Alpha).
@@ -6747,7 +6576,7 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
     buffer->address = map.memory_gpu;
 
     if ((buffer->format == VG_LITE_NV12) || (buffer->format == VG_LITE_ANV12)
-        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24)
+        || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24) || (buffer->format == VG_LITE_NV24_TILED)
         || (buffer->format == VG_LITE_NV12_TILED) || (buffer->format == VG_LITE_ANV12_TILED)) {
         /* Map buffer memory: UV. */
         map.bytes = buffer->yuv.uv_stride * buffer->yuv.uv_height;
@@ -6796,24 +6625,18 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
 
 vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_allocate)(buffer);
-    }
-#endif
-
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_kernel_allocate_t allocate;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_allocate %p  (w: %d, h: %d, fmt: %d)\n", buffer, buffer->width, buffer->height, buffer->format);
-#endif
+    DUMP_API_CALL(vg_lite_allocate, buffer);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_ALLOCATE_API);
+    VG_LITE_TRACE_API("vg_lite_allocate %p  (w: %d, h: %d, fmt: %d)\n", buffer, buffer->width, buffer->height, buffer->format);
 
-    if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC && (buffer->width % 4 || buffer->height % 4))
+    if ((buffer->format == VG_LITE_RGBA8888_ETC2_EAC || buffer->format == VG_LITE_RGB888_ETC2_EAC) && (buffer->width % 4 || buffer->height % 4))
         return VG_LITE_INVALID_ARGUMENT;
 
     /* Default to tiled mode for ETC2 format */
-    if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC) {
+    if (buffer->format == VG_LITE_RGBA8888_ETC2_EAC || buffer->format == VG_LITE_RGB888_ETC2_EAC) {
         buffer->tiled = VG_LITE_TILED;
     }
 
@@ -6871,7 +6694,7 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
     }
 
-    if ((buffer->format >= VG_LITE_NV12 && buffer->format <= VG_LITE_ANV12_TILED
+    if ((buffer->format >= VG_LITE_ANV12 && buffer->format <= VG_LITE_ANV12_TILED
          && buffer->format != VG_LITE_AYUY2 && buffer->format != VG_LITE_YUY2_TILED) 
         || (buffer->format >= VG_LITE_NV24 && buffer->format <= VG_LITE_NV24_TILED)) {
         _allocate_tiled_yuv_planar(buffer);
@@ -6880,14 +6703,12 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         /* Driver need compute the stride always with RT500 project. */
 
         vg_lite_float_t ratio = 1.0f;
-        uint32_t mul, div, align;
+        vg_lite_uint32_t mul, div, align;
         get_format_bytes(buffer->format, &mul, &div, &align);
         buffer->stride = buffer->width * mul / div;
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
-        int tmp_align = 16 * mul / div;
-        if (buffer->format >= VG_LITE_INDEX_1 && buffer->format <= VG_LITE_INDEX_8)
-            tmp_align = align;
+        vg_lite_int32_t tmp_align = 16 * mul / div;
         if ((mul / div) % 2 != 0) {
             if (buffer->stride % tmp_align != 0) {
                 buffer->stride = (buffer->stride + tmp_align) / tmp_align * tmp_align;
@@ -6900,11 +6721,9 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         /* Allocate the buffer. */
         if (buffer->compress_mode)
             ratio = _calc_decnano_compress_ratio(buffer->format, buffer->compress_mode);
-        allocate.bytes = (uint32_t)(buffer->stride * buffer->height * ratio);
-
-#if gcFEATURE_VG_IM_FASTCLEAR
-        allocate.bytes = VG_LITE_ALIGN(allocate.bytes, 64);
-#endif
+        if (ratio < 0)
+            return VG_LITE_NOT_SUPPORT;
+        allocate.bytes = (vg_lite_uint32_t)(buffer->stride * buffer->height * ratio);
         allocate.contiguous = 1;
         allocate.pool = (vg_lite_vidmem_pool_t)s_context.render_buffer_pool;
         VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
@@ -6915,8 +6734,8 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
         buffer->address = allocate.memory_gpu;
         buffer->pool    = (vg_lite_memory_pool_t)allocate.pool;
 
-        if ((buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_AYUY2_TILED) || ((buffer->format >= VG_LITE_ABGR8565_PLANAR)
-             && (buffer->format <= VG_LITE_RGBA5658_PLANAR))) {
+        if ((buffer->format == VG_LITE_AYUY2) || (buffer->format == VG_LITE_AYUY2_TILED))
+        {
             allocate.bytes = (buffer->stride / 2) * buffer->height;
             VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
             buffer->yuv.alpha_stride = buffer->stride;
@@ -6924,60 +6743,56 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
             buffer->yuv.alpha_handle = allocate.memory_handle;
             buffer->yuv.alpha_memory = allocate.memory;
             buffer->yuv.alpha_planar = allocate.memory_gpu;
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
-            if ((buffer->format >= VG_LITE_ABGR8565_PLANAR) && (buffer->format <= VG_LITE_RGBA5658_PLANAR))
+        }
+
+        else if ((buffer->format >= VG_LITE_ABGR8565_PLANAR) && (buffer->format <= VG_LITE_RGBA5658_PLANAR))
+        {
+            allocate.bytes = (buffer->stride / 2) * buffer->height;
+            VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
+            buffer->yuv.alpha_stride = buffer->stride;
+            buffer->yuv.alpha_height = buffer->height;
+            buffer->yuv.alpha_handle = allocate.memory_handle;
+            buffer->yuv.alpha_memory = allocate.memory;
+            buffer->yuv.alpha_planar = allocate.memory_gpu;
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
+            if (buffer->sw24bit_buffer)
             {
-                if (buffer->sw24bit_buffer)
-                {
-                    vg_lite_free(buffer->sw24bit_buffer);
-                    buffer->sw24bit_buffer = NULL;
-                }
-
-                buffer->sw24bit_buffer = (vg_lite_buffer_t*)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
-                memcpy(buffer->sw24bit_buffer, buffer, sizeof(vg_lite_buffer_t));
-                buffer->sw24bit_buffer->format = convert_24bit_format(buffer->format);
-                memset(&(buffer->sw24bit_buffer->yuv), 0, sizeof(vg_lite_yuvinfo_t));
-                buffer->sw24bit_buffer->sw24bit_buffer = NULL;
-                vg_lite_allocate(buffer->sw24bit_buffer);
-                buffer->sw24bit_buffer->sw24bit_planar_buffer = buffer;
-
+                vg_lite_free(buffer->sw24bit_buffer);
+                buffer->sw24bit_buffer = NULL;
             }
+
+            buffer->sw24bit_buffer = (vg_lite_buffer_t*)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
+            memcpy(buffer->sw24bit_buffer, buffer, sizeof(vg_lite_buffer_t));
+            buffer->sw24bit_buffer->format = convert_24bit_format(buffer->format);
+            memset(&(buffer->sw24bit_buffer->yuv), 0, sizeof(vg_lite_yuvinfo_t));
+            buffer->sw24bit_buffer->sw24bit_buffer = NULL;
+            vg_lite_allocate(buffer->sw24bit_buffer);
+            buffer->sw24bit_buffer->sw24bit_planar_buffer = buffer;
 #endif
         }
     }
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("=>buffer: width=%d, height=%d, stride=%d, bytes=%d, format=%d\n", 
+    VG_LITE_TRACE_API("=>buffer: width=%d, height=%d, stride=%d, bytes=%d, format=%d\n",
         buffer->width, buffer->height, buffer->stride, allocate.bytes, buffer->format);
-#endif
 
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_free)(buffer);
-    }
-#endif
-
     vg_lite_error_t error;
     vg_lite_kernel_free_t free, uv_free, v_free;
 #if DUMP_CAPTURE
     vg_lite_float_t ratio = 1;
 #endif
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_free %p\n", buffer);
-#endif
+    DUMP_API_CALL(vg_lite_free, buffer);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_FREE_API);
+    VG_LITE_TRACE_API("vg_lite_free %p\n", buffer);
 
-    if (buffer == NULL)
-        return VG_LITE_INVALID_ARGUMENT;
+    VG_LITE_CHECK_NULL_POINTER(buffer);
     if (!(memcmp(s_context.rtbuffer,buffer,sizeof(vg_lite_buffer_t))) ) {
-        if (VG_LITE_SUCCESS == submit(&s_context)) {
-            VG_LITE_RETURN_ERROR(stall(&s_context, 0, ~0));
-        }
+        VG_LITE_RETURN_ERROR(vg_lite_finish());
 
 #if DUMP_CAPTURE
         vglitemDUMP("@[swap 0x%08X %dx%d +%u]",
@@ -6991,7 +6806,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
             "framebuffer",
             (size_t)s_context.rtbuffer->address,s_context.rtbuffer->memory,
             0,
-            s_context.rtbuffer->stride*(s_context.rtbuffer->height)*ratio);
+            (size_t)(s_context.rtbuffer->stride*(s_context.rtbuffer->height)*ratio));
 #endif
 
         memset(s_context.rtbuffer, 0, sizeof(vg_lite_buffer_t));
@@ -7006,7 +6821,7 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     }
 #endif
 
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((buffer->format >= VG_LITE_ABGR8565_PLANAR) && (buffer->format <= VG_LITE_RGBA5658_PLANAR))
     {
         if (buffer->sw24bit_buffer != NULL) {
@@ -7015,6 +6830,14 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
             vg_lite_os_free(buffer->sw24bit_buffer);
             buffer->sw24bit_buffer = NULL;
         }
+    }
+#endif
+
+#if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
+    if (buffer->mesh_buffer != NULL && buffer->mesh_buffer->handle != NULL) {
+        VG_LITE_RETURN_ERROR(vg_lite_free(buffer->mesh_buffer));
+        vg_lite_os_free(buffer->mesh_buffer);
+        buffer->mesh_buffer = NULL;
     }
 #endif
 
@@ -7053,20 +6876,6 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
         buffer->yuv.v_memory = NULL;
     }
 
-#if gcFEATURE_VG_IM_FASTCLEAR
-    if (buffer->fc_buffer[0].handle != 0)
-    {
-#if VG_TARGET_FC_DUMP
-        vglitemDUMP_BUFFER(
-            "fcbuffer",
-            (uint64_t)buffer->fc_buffer[0].address,buffer->fc_buffer[0].memory,
-            0,
-            buffer->fc_buffer[0].stride*(buffer->fc_buffer[0].height));
-#endif
-        _free_fc_buffer(&buffer->fc_buffer[0]);
-    }
-#endif 
-
     /* Make sure we have a valid memory handle. */
     if (buffer->handle == NULL) {
         return VG_LITE_INVALID_ARGUMENT;
@@ -7083,20 +6892,14 @@ vg_lite_error_t vg_lite_free(vg_lite_buffer_t * buffer)
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, int32_t fd)
+vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, vg_lite_int32_t fd)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_map)(buffer, flag, fd);
-    }
-#endif
-
     vg_lite_error_t error;
     vg_lite_kernel_map_t map, map1;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_map %p\n", buffer);
-#endif
+    DUMP_API_CALL(vg_lite_map, buffer, flag, fd);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_MAP_API);
+    VG_LITE_TRACE_API("vg_lite_map %p\n", buffer);
 
     /* We either need a logical or physical address. */
     if (buffer->memory == NULL && buffer->address == 0) {
@@ -7117,7 +6920,7 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
         buffer->yuv.swizzle = VG_LITE_SWIZZLE_UV;
     }
 
-    if ((buffer->format >= VG_LITE_NV12 && buffer->format <= VG_LITE_ANV12_TILED
+    if ((buffer->format >= VG_LITE_ANV12 && buffer->format <= VG_LITE_ANV12_TILED
         && buffer->format != VG_LITE_AYUY2 && buffer->format != VG_LITE_YUY2_TILED)
         || (buffer->format >= VG_LITE_NV24 && buffer->format <= VG_LITE_NV24_TILED)) {
 
@@ -7132,7 +6935,7 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
     {
         /* Compute the stride. Align if necessary. */
         if (buffer->stride == 0) {
-            uint32_t mul, div, align;
+            vg_lite_uint32_t mul, div, align;
             get_format_bytes(buffer->format, &mul, &div, &align);
             buffer->stride = buffer->width * mul / div;
         }
@@ -7201,18 +7004,13 @@ vg_lite_error_t vg_lite_map(vg_lite_buffer_t* buffer, vg_lite_map_flag_t flag, i
 
 vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_unmap)(buffer);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_unmap, buffer);
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_UNMAP_API);
+    VG_LITE_TRACE_API("vg_lite_unmap %p\n", buffer);
 
     vg_lite_error_t error;
     vg_lite_kernel_unmap_t unmap, uv_unmap, v_unmap, alpha_unmap;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_unmap %p\n", buffer);
-#endif
 
     /* Make sure we have a valid memory handle. */
     if (buffer->handle == NULL) {
@@ -7254,18 +7052,12 @@ vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t * buffer)
 
 vg_lite_error_t vg_lite_flush_mapped_buffer(vg_lite_buffer_t * buffer)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_flush_mapped_buffer)(buffer);
-    }
-#endif
+    DUMP_API_CALL(vg_lite_flush_mapped_buffer, buffer);
+    VG_LITE_TRACE_API("vg_lite_flush_mapped_buffer %p\n", buffer);
 
     vg_lite_error_t error;
     vg_lite_kernel_cache_t cache;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_flush_mapped_buffer %p\n", buffer);
-#endif
 
     /* Make sure we have a valid memory handle. */
     if (buffer->handle == NULL) {
@@ -7281,12 +7073,11 @@ vg_lite_error_t vg_lite_flush_mapped_buffer(vg_lite_buffer_t * buffer)
 
 vg_lite_error_t vg_lite_get_register(vg_lite_uint32_t address, vg_lite_uint32_t* result)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_REGISTER_API);
+    VG_LITE_TRACE_API("vg_lite_get_register 0x%08X %p\n", address, result);
+
     vg_lite_error_t error;
     vg_lite_kernel_info_t data;
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_register 0x%08X %p\n", address, result);
-#endif
 
     /* Get input register address. */
     data.addr = address;
@@ -7302,9 +7093,8 @@ vg_lite_error_t vg_lite_get_register(vg_lite_uint32_t address, vg_lite_uint32_t*
 
 vg_lite_error_t vg_lite_get_info(vg_lite_info_t *info)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_info %p\n", info);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_INFO_API);
+    VG_LITE_TRACE_API("vg_lite_get_info %p\n", info);
 
     if (info != NULL)
     {
@@ -7319,13 +7109,13 @@ vg_lite_error_t vg_lite_get_info(vg_lite_info_t *info)
 
 vg_lite_uint32_t vg_lite_get_product_info(vg_lite_char* name, vg_lite_uint32_t* chip_id, vg_lite_uint32_t* chip_rev)
 {
-    const char *product_name;
-    uint32_t name_len;
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_PRODUCT_INFO_API);
+    VG_LITE_TRACE_API("vg_lite_get_product_info %p %p %p\n", name, chip_id, chip_rev);
+
+    const vg_lite_char *product_name;
+    vg_lite_uint32_t name_len;
     vg_lite_uint32_t rev = 0, id = 0;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_product_info %p %p %p\n", name, chip_id, chip_rev);
-#endif
 
     vg_lite_get_register(0x24, &rev);
     vg_lite_get_register(0x20, &id);
@@ -7360,11 +7150,11 @@ vg_lite_uint32_t vg_lite_get_product_info(vg_lite_char* name, vg_lite_uint32_t* 
 
 vg_lite_uint32_t vg_lite_query_feature(vg_lite_feature_t feature)
 {
-    uint32_t result;
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_QUERY_FEATURE_API);
+    VG_LITE_TRACE_API("vg_lite_query_feature %d\n", feature);
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_query_feature %d\n", feature);
-#endif
+    vg_lite_uint32_t result;
+
 
     if (feature < gcFEATURE_COUNT)
         result = s_ftable.ftable[feature];
@@ -7376,28 +7166,44 @@ vg_lite_uint32_t vg_lite_query_feature(vg_lite_feature_t feature)
 
 vg_lite_error_t vg_lite_finish()
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_finish)();
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_FINISH_API);
+    DUMP_API_CALL(vg_lite_finish);
+    VG_LITE_TRACE_API("vg_lite_finish\n");
 
     vg_lite_error_t  error;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_finish\n");
+
+#if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
+    if (((s_context.mesh_mode == VG_LITE_MESH_COPY_INTERNAL) || (s_context.mesh_mode == VG_LITE_MESH_COPY_EXTERNAL))
+        && s_context.frame_flag != VG_LITE_FRAME_END_FLAG) {
+        return VG_LITE_SUCCESS;
+    }
+#endif
+
+#if gcFEATURE_VG_FLEXA
+    if (s_context.sync_mode == VG_LITE_MESH_COPY_INTERNAL && s_context.frame_flag != VG_LITE_FRAME_END_FLAG) {
+        return VG_LITE_SUCCESS;
+    }
 #endif
 
     /* Return if there is nothing to submit. */
     if (CMDBUF_OFFSET(s_context) == 0)
     {
         if (submit_flag)
-            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+            VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
+        s_context.frame_flag = VG_LITE_END_FLAG;
         return VG_LITE_SUCCESS;
     }
 
+#if gcFEATURE_VG_MESH_FOR_FRAME
+    if (s_context.mesh_mode && s_context.mesh_dirty) {
+        printf("Excluding frame bound settings, merge to next submission\n");
+        return VG_LITE_SUCCESS;
+    }
+#else
     /* Flush is moved from each draw to here. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
+#endif 
 
     VG_LITE_RETURN_ERROR(flush_target());
 
@@ -7412,14 +7218,14 @@ vg_lite_error_t vg_lite_finish()
 #endif
 
 #if defined(_WINDLL)
-    VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+    VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
 #elif defined(__linux__)
-    VG_LITE_RETURN_ERROR(stall(&s_context, 20000, (uint32_t)~0));
+    VG_LITE_RETURN_ERROR(stall(&s_context, 20000, (vg_lite_uint32_t)~0));
 #else
-    VG_LITE_RETURN_ERROR(stall(&s_context, 5000, (uint32_t)~0));
+    VG_LITE_RETURN_ERROR(stall(&s_context, 5000, (vg_lite_uint32_t)~0));
 #endif
 
-#if (!gcFEATURE_VG_24BIT_PLANAR && gcFEATURE_VG_24BIT_PLANAR_SW)
+#if gcFEATURE_COMBO_VG_24BIT_PLANAR_BY_SW
     if ((s_context.rtbuffer->format >= VG_LITE_ABGR8565) && (s_context.rtbuffer->format <= VG_LITE_RGBA5658))
     {
         if (s_context.rtbuffer->sw24bit_planar_buffer)
@@ -7427,12 +7233,6 @@ vg_lite_error_t vg_lite_finish()
             vg_lite_convert_planar(s_context.rtbuffer, s_context.rtbuffer->sw24bit_planar_buffer);
         }
     }
-#endif
-
-#if gcFEATURE_VG_IM_FASTCLEAR
-#if VG_TARGET_FC_DUMP
-    fc_buf_dump(s_context.rtbuffer, &s_context.fcBuffer);
-#endif
 #endif
 
 #if gcFEATURE_VG_SINGLE_COMMAND_BUFFER
@@ -7446,33 +7246,51 @@ vg_lite_error_t vg_lite_finish()
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t vg_lite_flush(void)
+vg_lite_error_t vg_lite_flush(vg_lite_void)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_flush)();
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_FLUSH_API);
+    DUMP_API_CALL(vg_lite_flush);
+    VG_LITE_TRACE_API("vg_lite_flush\n");
 
 #if !gcFEATURE_VG_SINGLE_COMMAND_BUFFER
     vg_lite_error_t error;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_flush\n");
+
+#if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
+    if (((s_context.mesh_mode == VG_LITE_MESH_COPY_INTERNAL) || (s_context.mesh_mode == VG_LITE_MESH_COPY_EXTERNAL))
+        && s_context.frame_flag != VG_LITE_FRAME_END_FLAG) {
+        return VG_LITE_SUCCESS;
+    }
+#endif
+#if gcFEATURE_VG_FLEXA
+    if (s_context.sync_mode == VG_LITE_MESH_COPY_INTERNAL && s_context.frame_flag != VG_LITE_FRAME_END_FLAG) {
+        return VG_LITE_SUCCESS;
+    }
 #endif
 
     /* Return if there is nothing to submit. */
     if (CMDBUF_OFFSET(s_context) == 0)
+    {
+        s_context.frame_flag = VG_LITE_END_FLAG;
         return VG_LITE_SUCCESS;
+    }
 
     /* Wait if GPU has not completed previous CMD buffer */
     if (submit_flag)
     {
-        VG_LITE_RETURN_ERROR(stall(&s_context, 0, (uint32_t)~0));
+        VG_LITE_RETURN_ERROR(stall(&s_context, 0, (vg_lite_uint32_t)~0));
     }
 
-    /* Submit the current command buffer. */
+#if gcFEATURE_VG_MESH_FOR_FRAME
+    if (s_context.mesh_mode && s_context.mesh_dirty) {
+        printf("Excluding frame bound settings, merge to next submission\n");
+        return VG_LITE_SUCCESS;
+    }
+#else
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001));
+#endif
+
+    /* Submit the current command buffer. */
     VG_LITE_RETURN_ERROR(flush_target());
     VG_LITE_RETURN_ERROR(submit(&s_context));
 #if gcFEATURE_VG_POWER_MANAGEMENT
@@ -7495,17 +7313,12 @@ vg_lite_error_t vg_lite_flush(void)
 
 vg_lite_error_t vg_lite_init_grad(vg_lite_linear_gradient_t *grad)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_INIT_GRAD_API);
+    DUMP_API_CALL(vg_lite_init_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_init_grad %p\n", grad);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_init_grad)(grad);
-    }
-#endif
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_init_grad %p\n", grad);
-#endif
     if (grad->memory != grad)
     {
         memset(grad, 0, sizeof(*grad));
@@ -7533,6 +7346,10 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
                                  vg_lite_gradient_spreadmode_t spread_mode,
                                  vg_lite_uint8_t pre_multiplied)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_LINEAR_GRAD_API);
+    VG_LITE_TRACE_API("vg_lite_set_linear_grad %p %d %p (%f %f %f %f) %d %d\n", grad, count, color_ramp,
+        linear_gradient.X0, linear_gradient.X1, linear_gradient.Y0, linear_gradient.Y1, spread_mode, pre_multiplied);
+
     static vg_lite_color_ramp_t default_ramp[] =
     {
         {
@@ -7545,16 +7362,11 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
         }
     };
 
-    uint32_t i, trg_count;
+    vg_lite_uint32_t i, trg_count;
     vg_lite_float_t prev_stop;
-    vg_lite_color_ramp_t *src_ramp;
-    vg_lite_color_ramp_t *src_ramp_last;
-    vg_lite_color_ramp_t *trg_ramp;
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_linear_grad %p %d %p (%f %f %f %f) %d %d\n", grad, count, color_ramp,
-        linear_gradient.X0, linear_gradient.X1, linear_gradient.Y0, linear_gradient.Y1, spread_mode, pre_multiplied);
-#endif
+    vg_lite_color_ramp_t *src_ramp = NULL;
+    vg_lite_color_ramp_t *src_ramp_last = NULL;
+    vg_lite_color_ramp_t *trg_ramp = NULL;
 
     /* Reset the count. */
     trg_count = 0;
@@ -7621,14 +7433,15 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
         goto Empty_sequence_handler;
     }
 
-    for(i = 0; i < count;i++)
-        grad->color_ramp[i] = color_ramp[i];
     grad->ramp_length = count;
 
-    /* Determine the last source ramp. */
-    src_ramp_last
-        = grad->color_ramp
-        + grad->ramp_length;
+    if (grad->color_ramp != NULL){
+        for (i = 0; i < count; i++)
+            grad->color_ramp[i] = color_ramp[i];
+
+        /* Determine the last source ramp. */
+        src_ramp_last = grad->color_ramp + grad->ramp_length;
+    }
 
     /* Set the initial previous stop. */
     prev_stop = -1;
@@ -7639,7 +7452,7 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
     /* Walk through the source ramp. */
     for (
         src_ramp = grad->color_ramp, trg_ramp = grad->converted_ramp;
-        (src_ramp < src_ramp_last) && (trg_count < count + 2);
+        src_ramp && trg_ramp && (src_ramp < src_ramp_last) && (trg_count < count + 2);
         src_ramp += 1
         )
     {
@@ -7690,15 +7503,15 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
     }
 
     /* Empty sequence? */
-    if (trg_count == 0)
+    if (trg_count == 0 && grad->converted_ramp)
     {
         memcpy(grad->converted_ramp, default_ramp, sizeof(default_ramp));
-        grad->converted_length = sizeof(default_ramp) / 5;
+        grad->converted_length = sizeof(default_ramp) / sizeof(vg_lite_color_ramp_t);
     }
     else
     {
         /* The last stop must be at 1.0. */
-        if (trg_ramp[-1].stop != 1.0f)
+        if (trg_ramp && trg_ramp[-1].stop != 1.0f)
         {
             /* Replicate the last entry. */
             *trg_ramp = trg_ramp[-1];
@@ -7717,30 +7530,26 @@ vg_lite_error_t vg_lite_set_linear_grad(vg_lite_ext_linear_gradient_t *grad,
 
 Empty_sequence_handler:
     memcpy(grad->converted_ramp, default_ramp, sizeof(default_ramp));
-    grad->converted_length = sizeof(default_ramp) / 5;
+    grad->converted_length = sizeof(default_ramp) / sizeof(vg_lite_color_ramp_t);
 
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_update_linear_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_UPDATE_LINEAR_GRAD_API);
+    DUMP_API_CALL(vg_lite_update_linear_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_update_linear_grad %p\n", grad);
 
-    uint32_t ramp_length;
+    vg_lite_uint32_t ramp_length;
     vg_lite_color_ramp_t *color_ramp;
-    uint32_t stop;
-    uint32_t i, width;
-    uint8_t* bits;
+    vg_lite_uint32_t stop;
+    vg_lite_uint32_t i, width;
+    vg_lite_uint8_t* bits;
     vg_lite_float_t x0,y0,x1,y1,length,dx,dy;
     vg_lite_error_t error = VG_LITE_SUCCESS;
+    vg_lite_uint32_t align, mul, div;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_update_linear_grad %p\n", grad);
-#endif
 
     /* Get shortcuts to the color ramp. */
     ramp_length = grad->converted_length;
@@ -7752,7 +7561,7 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
     y1 = grad->matrix.m[1][0] * grad->linear_grad.X1 + grad->matrix.m[1][1] * grad->linear_grad.Y1 + grad->matrix.m[1][2];
     dx = x1 - x0;
     dy = y1 - y0;
-    length = (vg_lite_float_t)sqrt((double)(dx * dx + dy * dy));
+    length = (vg_lite_float_t)sqrt((vg_lite_double_t)dx * (vg_lite_double_t)dx + (vg_lite_double_t)dy * (vg_lite_double_t)dy);
     width = ramp_length * 128;
 
     if (length <= 0)
@@ -7771,22 +7580,18 @@ vg_lite_error_t vg_lite_update_linear_grad(vg_lite_ext_linear_gradient_t *grad)
     /* Set grad to ramp surface. */
     grad->linear_grad.X0 = 0.f;
     grad->linear_grad.Y0 = 0.f;
-    grad->linear_grad.X1 = (float)width;
+    grad->linear_grad.X1 = (vg_lite_float_t)width;
     grad->linear_grad.Y1 = 0.f;
 
-    /* Allocate the color ramp surface. */
-    memset(&grad->image, 0, sizeof(grad->image));
-    grad->image.width = width;
-    grad->image.height = 1;
-    grad->image.stride = 0;
-    grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
-    grad->image.format = VG_LITE_ABGR8888;
-
     /* Allocate the image for gradient. */
-    VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
+    VG_LITE_RETURN_ERROR(image_buffer_update(&grad->image, width));
+
     memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
     /* Set pointer to color array. */
-    bits = (uint8_t *)grad->image.memory;
+    bits = (vg_lite_uint8_t*)grad->image.memory;
+
+    get_format_bytes(VG_LITE_ABGR8888, &mul, &div, &align);
+    width = grad->image.stride * div / mul;
 
     /* Start filling the color array. */
     stop = 0;
@@ -7882,6 +7687,10 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
                                  vg_lite_gradient_spreadmode_t spread_mode,
                                  vg_lite_uint8_t pre_multiplied)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_RADIAL_GRAD_API);
+    VG_LITE_TRACE_API("vg_lite_set_radial_grad %p %d %p (%f %f %f %f %f) %d %d\n", grad, count, color_ramp,
+        radial_grad.cx, radial_grad.cy, radial_grad.fx, radial_grad.fy, radial_grad.r, spread_mode, pre_multiplied);
+
     static vg_lite_color_ramp_t defaultRamp[] =
     {
         {
@@ -7894,16 +7703,11 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
         }
     };
 
-    uint32_t i, trgCount;
+    vg_lite_uint32_t i, trgCount;
     vg_lite_float_t prevStop;
-    vg_lite_color_ramp_t *srcRamp;
-    vg_lite_color_ramp_t *srcRampLast;
-    vg_lite_color_ramp_t *trgRamp;
-
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_radial_grad %p %d %p (%f %f %f %f %f) %d %d\n", grad, count, color_ramp,
-        radial_grad.cx, radial_grad.cy, radial_grad.fx, radial_grad.fy, radial_grad.r, spread_mode, pre_multiplied);
-#endif
+    vg_lite_color_ramp_t *srcRamp = NULL;
+    vg_lite_color_ramp_t *srcRampLast = NULL;
+    vg_lite_color_ramp_t *trgRamp = NULL;
 
     /* Reset the count. */
     trgCount = 0;
@@ -7970,14 +7774,15 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
         goto Empty_sequence_handler;
     }
 
-    for(i = 0; i < count;i++)
-        grad->color_ramp[i] = color_ramp[i];
     grad->ramp_length = count;
 
-    /* Determine the last source ramp. */
-    srcRampLast
-        = grad->color_ramp
-        + grad->ramp_length;
+    if (grad->color_ramp){
+        for (i = 0; i < count; i++)
+            grad->color_ramp[i] = color_ramp[i];
+
+        /* Determine the last source ramp. */
+        srcRampLast = grad->color_ramp + grad->ramp_length;
+    }
 
     /* Set the initial previous stop. */
     prevStop = -1;
@@ -7988,7 +7793,7 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     /* Walk through the source ramp. */
     for (
         srcRamp = grad->color_ramp, trgRamp = grad->converted_ramp;
-        (srcRamp < srcRampLast) && (trgCount < count + 2);
+        srcRamp && trgRamp && (srcRamp < srcRampLast) && (trgCount < count + 2);
         srcRamp += 1
         )
     {
@@ -8039,15 +7844,15 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
     }
 
     /* Empty sequence? */
-    if (trgCount == 0)
+    if (trgCount == 0 && grad->converted_ramp)
     {
         memcpy(grad->converted_ramp,defaultRamp,sizeof(defaultRamp));
-        grad->converted_length = sizeof(defaultRamp) / 5;
+        grad->converted_length = sizeof(defaultRamp) / sizeof(vg_lite_color_ramp_t);
     }
     else
     {
         /* The last stop must be at 1.0. */
-        if (trgRamp[-1].stop != 1.0f)
+        if (trgRamp && trgRamp[-1].stop != 1.0f)
         {
             /* Replicate the last entry. */
             *trgRamp = trgRamp[-1];
@@ -8066,30 +7871,25 @@ vg_lite_error_t vg_lite_set_radial_grad(vg_lite_radial_gradient_t *grad,
 
 Empty_sequence_handler:
     memcpy(grad->converted_ramp,defaultRamp,sizeof(defaultRamp));
-    grad->converted_length = sizeof(defaultRamp) / 5;
+    grad->converted_length = sizeof(defaultRamp) / sizeof(vg_lite_color_ramp_t);
 
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_update_radial_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_UPDATE_RADIAL_GRAD_API);
+    DUMP_API_CALL(vg_lite_update_radial_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_update_radial_grad %p\n", grad);
 
-    uint32_t ramp_length;
+    vg_lite_uint32_t ramp_length;
     vg_lite_color_ramp_t *colorRamp;
-    uint32_t common, stop;
-    uint32_t i, width;
-    uint8_t* bits;
+    vg_lite_uint32_t common, stop;
+    vg_lite_uint32_t i, width;
+    vg_lite_uint8_t* bits;
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    uint32_t align, mul, div;
+    vg_lite_uint32_t align, mul, div;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_update_radial_grad %p\n", grad);
-#endif
 
     /* Get shortcuts to the color ramp. */
     ramp_length = grad->converted_length;
@@ -8109,7 +7909,7 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
                  vg_lite_float_t frac = mul2 - (vg_lite_float_t)floor(mul2);
                  if (frac > 0.00013f)    /* Suppose error for zero is 0.00013 */
                  {
-                     common = MAX(common, (uint32_t)(1.0f / frac + 0.5f));
+                     common = MAX(common, (vg_lite_uint32_t)(1.0f / frac + 0.5f));
                  }
              }
          }
@@ -8123,22 +7923,15 @@ vg_lite_error_t vg_lite_update_radial_grad(vg_lite_radial_gradient_t *grad)
         width = ramp_length * 128;
     }
 
-    /* Allocate the color ramp surface. */
-    memset(&grad->image, 0, sizeof(grad->image));
-    grad->image.width = width;
-    grad->image.height = 1;
-    grad->image.stride = 0;
-    grad->image.image_mode = VG_LITE_NONE_IMAGE_MODE;
-    grad->image.format = VG_LITE_ABGR8888;
-
     /* Allocate the image for gradient. */
-    VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
+    VG_LITE_RETURN_ERROR(image_buffer_update(&grad->image, width));
 
     get_format_bytes(VG_LITE_ABGR8888, &mul, &div, &align);
     width = grad->image.stride * div / mul;
 
+    memset(grad->image.memory, 0, grad->image.stride * grad->image.height);
     /* Set pointer to color array. */
-    bits = (uint8_t *)grad->image.memory;
+    bits = (vg_lite_uint8_t*)grad->image.memory;
 
     /* Start filling the color array. */
     stop = 0;
@@ -8233,11 +8026,11 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
                                  vg_lite_uint32_t *colors,
                                  vg_lite_uint32_t *stops)
 {
-    uint32_t i;
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_GRAD_API);
+    VG_LITE_TRACE_API("vg_lite_set_grad %p %d %p %p\n", grad, count, colors, stops);
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_set_grad %p %d %p %p\n", grad, count, colors, stops);
-#endif
+    vg_lite_uint32_t i;
+
 
     grad->count = 0;    /* Opaque B&W gradient */
     if (count > 0 && count <= VLC_MAX_GRADIENT_STOPS && colors != NULL && stops != NULL)
@@ -8295,8 +8088,9 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 
     /* Check stops validity */
     for (i = 0; i < count; i++)
-        if (stops[i] < VLC_GRADIENT_BUFFER_WIDTH) {
-            if (!grad->count || stops[i] > grad->stops[grad->count - 1]) {
+        if (grad->colors && grad->stops && stops[i] < VLC_GRADIENT_BUFFER_WIDTH) {
+            if (!grad->count || stops[i] > grad->stops[grad->count - 1])
+            {
                 grad->stops[grad->count] = stops[i];
                 grad->colors[grad->count] = colors[i];
                 grad->count++;
@@ -8312,24 +8106,19 @@ vg_lite_error_t vg_lite_set_grad(vg_lite_linear_gradient_t *grad,
 
 vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_update_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_UPDATE_GRAD_API);
+    DUMP_API_CALL(vg_lite_update_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_update_grad %p\n", grad);
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
-    int32_t r0, g0, b0, a0;
-    int32_t r1, g1, b1, a1;
-    int32_t lr, lg, lb, la;
-    uint32_t i;
-    int32_t j;
-    int32_t ds, dr, dg, db, da;
-    uint32_t *buffer = (uint32_t *)grad->image.memory;
+    vg_lite_int32_t r0, g0, b0, a0;
+    vg_lite_int32_t r1, g1, b1, a1;
+    vg_lite_int32_t lr, lg, lb, la;
+    vg_lite_uint32_t i;
+    vg_lite_int32_t j;
+    vg_lite_int32_t ds, dr, dg, db, da;
+    vg_lite_uint32_t *buffer = (vg_lite_uint32_t *)grad->image.memory;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_update_grad %p\n", grad);
-#endif
 
     if (grad->count == 0) {
         /* If no valid stops have been specified (e.g., due to an empty input
@@ -8341,7 +8130,7 @@ vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
         grad->stops[1] = 255;
         grad->colors[1] = 0xFFFFFFFF;   /* Opaque white */
         grad->count = 2;
-    } else if (grad->count && grad->stops[0] != 0) {
+    } else if (grad->stops[0] != 0) {
         /* If at least one valid stop has been specified, but none has been
         * defined with an offset of 0, an implicit stop is added with an
         * offset of 0 and the same color as the first user-defined stop. */
@@ -8393,17 +8182,12 @@ vg_lite_error_t vg_lite_update_grad(vg_lite_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_clear_linear_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CLEAR_LINEAR_GRAD_API);
+    DUMP_API_CALL(vg_lite_clear_linear_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_clear_linear_grad %p\n", grad);
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_clear_linear_grad %p\n", grad);
-#endif
 
     grad->count = 0;
     grad->m_count = 0;
@@ -8429,17 +8213,12 @@ vg_lite_error_t vg_lite_clear_linear_grad(vg_lite_ext_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_clear_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CLEAR_GRAD_API);
+    DUMP_API_CALL(vg_lite_clear_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_clear_grad %p\n", grad);
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_clear_grad %p\n", grad);
-#endif
 
     grad->count = 0;
     grad->m_count = 0;
@@ -8465,17 +8244,12 @@ vg_lite_error_t vg_lite_clear_grad(vg_lite_linear_gradient_t *grad)
 
 vg_lite_error_t vg_lite_clear_radial_grad(vg_lite_radial_gradient_t *grad)
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_clear_radial_grad)(grad);
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CLEAR_RADIAL_GRAD_API);
+    DUMP_API_CALL(vg_lite_clear_radial_grad, grad);
+    VG_LITE_TRACE_API("vg_lite_clear_radial_grad %p\n", grad);
 
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_clear_radial_grad %p\n", grad);
-#endif
 
     grad->count = 0;
     grad->m_count = 0;
@@ -8501,38 +8275,32 @@ vg_lite_error_t vg_lite_clear_radial_grad(vg_lite_radial_gradient_t *grad)
 
 vg_lite_matrix_t * vg_lite_get_linear_grad_matrix(vg_lite_ext_linear_gradient_t *grad)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_linear_grad_matrix %p\n", grad);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_LINEAR_GRAD_MATRIX_API);
+    VG_LITE_TRACE_API("vg_lite_get_linear_grad_matrix %p\n", grad);
 
     return &grad->matrix;
 }
 
 vg_lite_matrix_t * vg_lite_get_grad_matrix(vg_lite_linear_gradient_t *grad)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_grad_matrix %p\n", grad);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_GRAD_MATRIX_API);
+    VG_LITE_TRACE_API("vg_lite_get_grad_matrix %p\n", grad);
 
     return &grad->matrix;
 }
 
 vg_lite_matrix_t * vg_lite_get_radial_grad_matrix(vg_lite_radial_gradient_t *grad)
 {
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_radial_grad_matrix %p\n", grad);
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_RADIAL_GRAD_MATRIX_API);
+    VG_LITE_TRACE_API("vg_lite_get_radial_grad_matrix %p\n", grad);
 
     return &grad->matrix;
 }
 
 vg_lite_error_t vg_lite_dump_command_buffer()
 {
-#if DUMP_API
-    if (dump_api_flag) {
-        FUNC_DUMP(vg_lite_dump_command_buffer)();
-    }
-#endif
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_DUMP_COMMAND_BUFFER_API);
+    DUMP_API_CALL(vg_lite_dump_command_buffer);
     vg_lite_error_t error = VG_LITE_SUCCESS;
 #if DUMP_CAPTURE
     vg_lite_kernel_submit_t submit;
@@ -8558,6 +8326,9 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
                                       vg_lite_int32_t count,
                                       vg_lite_pointer params)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_GET_PARAMETER_API);
+    VG_LITE_TRACE_API("vg_lite_get_parameter %d %p\n", count, params);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t gpu_idle = 0;
     vg_lite_uint32_t chip_id = 0;
@@ -8566,9 +8337,6 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
     vg_lite_buffer_t* buf;
     vg_lite_kernel_hardware_running_time_t time;
 
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_get_parameter %d %p\n", count, params);
-#endif
 
     switch (type)
     {
@@ -8608,7 +8376,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 
     case VG_LITE_HARDWARE_RUNNING_TIME:
         vg_lite_kernel(VG_LITE_RECORD_RUNNING_TIME, &time);
-        *((float*)params) = (float)time.run_time / (float)time.hertz;
+        *((vg_lite_float_t*)params) = (vg_lite_float_t)time.run_time / 1000.0f;
         break;
 
     case VG_LITE_SRC_BUF_ALIGNED_CHECK:
@@ -8619,9 +8387,9 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 #endif
         if (srcbuf_align_check(buf))
             return VG_LITE_NOT_ALIGNED;
-        if (check_compress(buf->format, buf->compress_mode, buf->tiled, buf->width, buf->height))
+        if (feature_check_compress(buf->format, buf->compress_mode, buf->tiled, buf->width, buf->height))
             return VG_LITE_NOT_ALIGNED;
-        if ((buf->format == VG_LITE_RGBA8888_ETC2_EAC) && (buf->width % 4 || buf->height % 4)) {
+        if ((buf->format == VG_LITE_RGBA8888_ETC2_EAC || buf->format == VG_LITE_RGB888_ETC2_EAC) && (buf->width % 4 || buf->height % 4)) {
             return VG_LITE_NOT_ALIGNED;
         }
         break;
@@ -8630,7 +8398,7 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
         buf = ((vg_lite_buffer_t*)params);
         if (dstbuf_align_check(buf))
             return VG_LITE_NOT_ALIGNED;
-        if (check_compress(buf->format, buf->compress_mode, buf->tiled, buf->width, buf->height))
+        if (feature_check_compress(buf->format, buf->compress_mode, buf->tiled, buf->width, buf->height))
             return VG_LITE_NOT_ALIGNED;
         if (peclear_align_check(buf, buf->height)) {
             printf("Not aligned for peclear.\n");
@@ -8648,10 +8416,13 @@ vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
 }
 
 vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *source,
-                                vg_lite_int32_t sx, vg_lite_int32_t sy,
                                 vg_lite_int32_t dx, vg_lite_int32_t dy,
+                                vg_lite_int32_t sx, vg_lite_int32_t sy,
                                 vg_lite_uint32_t width, vg_lite_uint32_t height)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_COPY_IMAGE_API);
+    VG_LITE_TRACE_API("vg_lite_copy_image %p %p %d %d %d %d %d %d\n", target, source, sx, sy, dx, dy, width, height);
+
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
@@ -8660,129 +8431,72 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     vg_lite_float_t x_step[3];
     vg_lite_float_t y_step[3];
     vg_lite_float_t c_step[3];
-    uint32_t imageMode = 0;
-    uint32_t in_premult = 0;
-    int32_t stride;
-    uint32_t transparency_mode = 0;
-    uint32_t filter_mode = 0;
-    uint32_t conversion = 0;
-    uint32_t tiled_source;
-    int32_t left, top, right, bottom;
-    uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
-    vg_lite_rectangle_t rectangle = { dx, dy, width, height };
-    uint32_t yuv2rgb = 0;
-    uint32_t uv_swiz = 0;
-    uint32_t compress_mode;
-    uint32_t src_premultiply_enable = 0;
-    uint32_t index_endian = 0;
-    uint32_t eco_fifo = 0;
-    uint32_t tile_setting = 0;
-    uint32_t stripe_mode = 0;
-    uint32_t premul_flag = 0;
-    uint32_t prediv_flag = 0;
+    vg_lite_uint32_t imageMode = 0;
+    vg_lite_uint32_t in_premult = 0;
+    vg_lite_int32_t stride;
+    vg_lite_uint32_t transparency_mode = 0;
+    vg_lite_uint32_t filter_mode = 0;
+    vg_lite_uint32_t conversion = 0;
+    vg_lite_uint32_t tiled_source;
+    vg_lite_int32_t left, top, right, bottom;
+    vg_lite_uint32_t rect_x = 0, rect_y = 0, rect_w = 0, rect_h = 0;
+    vg_lite_rectangle_t rectangle = { sx, sy, width, height };
+    vg_lite_uint32_t yuv2rgb = 0;
+    vg_lite_uint32_t uv_swiz = 0;
+    vg_lite_uint32_t compress_mode;
+    vg_lite_uint32_t src_premultiply_enable = 0;
+    vg_lite_uint32_t index_endian = 0;
+    vg_lite_uint32_t eco_fifo = 0;
+    vg_lite_uint32_t tile_setting = 0;
+    vg_lite_uint32_t stripe_mode = 0;
+    vg_lite_uint32_t prediv_flag = 0;
     vg_lite_color_t color = 0;
+#if gcFEATURE_VG_NEW_FACTOR
+    vg_factor_config_t factor_config;
+    factor_config.factor_src_alpha = 0x0;
+    factor_config.factor_src_color = 0x0;
+    factor_config.factor_dst_alpha = 0x0;
+    factor_config.factor_dst_color = 0x0;
+    factor_config.final_equation_opcode = 0x0;
+    factor_config.dstchannelmode = 0x0;
+    factor_config.srcchannelmode = 0x0;
+#endif
 #if DUMP_CAPTURE
     vg_lite_float_t ratio = 1;
 #endif
-#if gcFEATURE_VG_TRACE_API
-    VGLITE_LOG("vg_lite_copy_image %p %p %d %d %d %d %d %d\n", target, source, sx, sy, dx, dy, width, height);
+#if gcFEATURE_VG_FLEXA
+    if (s_context.sync_mode)
+    {
+        printf("When Flexa is enabled vg_lite_copy_image is not support.\n");
+        return VG_LITE_NOT_SUPPORT;
+    }
 #endif
-
 #if gcFEATURE_VG_ERROR_CHECK
-#if !gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_RECTANGLE_TILED_OUT
-    if (target->tiled != VG_LITE_LINEAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_RGBA8_ETC2_EAC
-    if (source->format == VG_LITE_RGBA8888_ETC2_EAC) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#else
-    if ((source->format == VG_LITE_RGBA8888_ETC2_EAC) && (source->width % 4 || source->height % 4)) {
-        return VG_LITE_INVALID_ARGUMENT;
-    }
-#endif
-#if !gcFEATURE_VG_YUY2_INPUT
-    if (source->format == VG_LITE_YUYV || source->format == VG_LITE_YUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_INPUT
-    if ((source->format >= VG_LITE_NV12 && source->format <= VG_LITE_NV16) || source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#elif !gcFEATURE_VG_NV24_INPUT
-    if (source->format == VG_LITE_NV24) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_AYUV_INPUT
-    if (source->format == VG_LITE_ANV12 || source->format == VG_LITE_AYUY2) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_YUV_TILED_INPUT
-    if ((source->format >= VG_LITE_YUY2_TILED && source->format <= VG_LITE_AYUY2_TILED) || (source->format == VG_LITE_NV24_TILED)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT
-    if ((target->format >= VG_LITE_RGB888 && target->format <= VG_LITE_RGBA5658) ||
-        (source->format >= VG_LITE_RGB888 && source->format <= VG_LITE_RGBA5658)) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_24BIT_PLANAR
-    if (source->format >= VG_LITE_ABGR8565_PLANAR && source->format <= VG_LITE_RGBA5658_PLANAR) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_IM_DEC_INPUT
-    if (source->compress_mode != VG_LITE_DEC_DISABLE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_STENCIL
-    if (source->image_mode == VG_LITE_STENCIL_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if !gcFEATURE_VG_LVGL_SUPPORT
-    if (source->image_mode == VG_LITE_RECOLOR_MODE) {
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-#if (CHIPID == 0x355)
-    if (target->format == VG_LITE_L8 || target->format == VG_LITE_YUYV ||
-        target->format == VG_LITE_BGRA2222 || target->format == VG_LITE_RGBA2222 ||
-        target->format == VG_LITE_ABGR2222 || target->format == VG_LITE_ARGB2222) {
-        printf("Target format: 0x%x is not supported.\n", target->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-    if (source->format == VG_LITE_L8 || source->format == VG_LITE_YUYV ||
-        source->format == VG_LITE_BGRA2222 || source->format == VG_LITE_RGBA2222 ||
-        source->format == VG_LITE_ABGR2222 || source->format == VG_LITE_ARGB2222) {
-        printf("Source format: 0x%x is not supported.\n", source->format);
-        return VG_LITE_NOT_SUPPORT;
-    }
-#endif
-
+    VG_LITE_RETURN_ERROR(feature_check_source_index_endian(source->format, source->index_endian));
+    VG_LITE_RETURN_ERROR(feature_check_target_rectangle_tiled_out(target->tiled));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgba8888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_rgb888_etc2_eac(source->format, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_source_packed_yuy_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_yuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_planar_nv24_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_ayuv_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_source_yuv_tiled_input(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_packed_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_24bit_planar_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_im_dec_input_compress(source->compress_mode));
+    VG_LITE_RETURN_ERROR(feature_check_stencil_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(feature_check_lvgl_recolor_image_mode(source->image_mode));
+    VG_LITE_RETURN_ERROR(chip_check_target_format(target->format));
+    VG_LITE_RETURN_ERROR(chip_check_source_format(source->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_target_format(target->format));
+    VG_LITE_RETURN_ERROR(feature_check_a124_a8l8_source_format(source->format));
     VG_LITE_RETURN_ERROR(srcbuf_align_check(source));
-    VG_LITE_RETURN_ERROR(check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
+    VG_LITE_RETURN_ERROR(feature_check_compress(source->format, source->compress_mode, source->tiled, source->width, source->height));
 #endif /* gcFEATURE_VG_ERROR_CHECK */
 
-#if gcFEATURE_VG_INDEX_ENDIAN
-    if ((source->format >= VG_LITE_INDEX_1) && (source->format <= VG_LITE_INDEX_4) && source->index_endian) {
-        index_endian = 1 << 14;
-    }
-#endif
-#if !gcFEATURE_VG_STRIPE_MODE
+    chip_get_source_index_endian_bits(source->format, source->index_endian, &index_endian);
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     /* Enable fifo feature to share buffer between vg and ts to improve the rotation performance */
     eco_fifo = 1 << 7;
 #endif
@@ -8791,12 +8505,9 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
     vg_lite_matrix_t* matrix = &n;
     vg_lite_identity(matrix);
-    vg_lite_translate((vg_lite_float_t)sx, (vg_lite_float_t)sy, matrix);
+    vg_lite_translate((vg_lite_float_t)dx, (vg_lite_float_t)dy, matrix);
 
-    /* Check whether L8 is supported or not. */
-    if ((target->format == VG_LITE_L8) && ((source->format != VG_LITE_L8) && (source->format != VG_LITE_A8))) {
-        conversion = 0x80000000;
-    }
+    conversion = feature_a124_a8l8_l8_conversion(target->format, source->format);
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
     /* Check if source specify bytes are aligned */
@@ -8812,17 +8523,17 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     rect_y = (rect->y < 0) ? 0 : rect->y;
     rect_w = rect->width;
     rect_h = rect->height;
-    if ((rect_x > (uint32_t)source->width) || (rect_y > (uint32_t)source->height) ||
+    if ((rect_x > (vg_lite_uint32_t)source->width) || (rect_y > (vg_lite_uint32_t)source->height) ||
         (rect_w == 0) || (rect_h == 0))
     {
         /*No intersection*/
         return VG_LITE_INVALID_ARGUMENT;
     }
-    if (rect_x + rect_w > (uint32_t)source->width)
+    if (rect_x + rect_w > (vg_lite_uint32_t)source->width)
     {
         rect_w = source->width - rect_x;
     }
-    if (rect_y + rect_h > (uint32_t)source->height)
+    if (rect_y + rect_h > (vg_lite_uint32_t)source->height)
     {
         rect_h = source->height - rect_y;
     }
@@ -8898,16 +8609,23 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
     /* Adjust premultiply setting according to openvg condition */
     src_premultiply_enable = 0x01000100;
+#if gcFEATURE_VG_PIXEL_MATRIX
+    if (s_context.matrix_enable == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
+        (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
+        prediv_flag = 0;
+    }
+#else
     if (s_context.color_transform == 0 && s_context.gamma_dst == s_context.gamma_src && s_context.matrix_enable == 0 && s_context.dst_alpha_mode == 0 && s_context.src_alpha_mode == 0 &&
         (source->image_mode == VG_LITE_NORMAL_IMAGE_MODE || source->image_mode == 0)) {
         prediv_flag = 0;
     }
+#endif
     else {
         prediv_flag = 1;
     }
 
-    if ((source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 0) ||
-        (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
+    if ((source->premultiplied == 0 && target->premultiplied == 0)
+        || (source->premultiplied == 1 && target->premultiplied == 0 && prediv_flag == 0)) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
@@ -8916,8 +8634,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         src_premultiply_enable = 0x01000100;
         in_premult = 0x10000000;
     }
-    else if ((source->premultiplied == 0 && target->premultiplied == 1) ||
-        (source->premultiplied == 0 && target->premultiplied == 0 && premul_flag == 1)) {
+    else if (source->premultiplied == 0 && target->premultiplied == 1) {
         src_premultiply_enable = 0x01000100;
         in_premult = 0x00000000;
     }
@@ -8926,7 +8643,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         src_premultiply_enable = 0x00000100;
         in_premult = 0x00000000;
     }
-    if (source->premultiplied == target->premultiplied && premul_flag == 0) {
+    if (source->premultiplied == target->premultiplied) {
         target->apply_premult = 1;
     }
     else {
@@ -8942,7 +8659,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     if (!inverse(&inverse_matrix, matrix))
         return VG_LITE_SUCCESS;
 
-#if gcFEATURE_VG_MATH_PRECISION_FIX
+#if gcFEATURE_VG_MATH_PRECISION_FIX_DISABLE
 
     /* Compute interpolation steps. */
     x_step[0] = inverse_matrix.m[0][0];
@@ -8981,24 +8698,31 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         stripe_mode = 0x20000000;
     }
 #endif
-    compress_mode = (uint32_t)source->compress_mode << 25;
+    compress_mode = (vg_lite_uint32_t)source->compress_mode << 25;
+
+#if gcFEATURE_VG_NEW_FACTOR
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | factor_config.dstchannelmode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0xAF8, factor_config.factor_src_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0xAF9, factor_config.factor_src_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0xAFA, factor_config.factor_dst_alpha));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0xAFB, factor_config.factor_dst_color));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0xAF7, factor_config.final_equation_opcode));
+#endif
 
     /* Setup the command buffer. */
-#if gcFEATURE_VG_GLOBAL_ALPHA
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD1, s_context.dst_alpha_mode | s_context.dst_alpha_value | s_context.src_alpha_mode | s_context.src_alpha_value));
-#endif
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tile_setting | eco_fifo | s_context.scissor_enable | stripe_mode));
+    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (void*)&c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (void*)&c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (void*)&c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (void*)&x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (void*)&x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (void*)&x_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_pointer)&c_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_pointer)&c_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_pointer)&c_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_pointer)&x_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_pointer)&x_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_pointer)&x_step[2]));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (void*)&y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (void*)&y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (void*)&y_step[2]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_pointer)&y_step[0]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_pointer)&y_step[1]));
+    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_pointer)&y_step[2]));
 
     if (((source->format >= VG_LITE_YUY2) &&
         (source->format <= VG_LITE_AYUY2)) ||
@@ -9007,15 +8731,6 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
         yuv2rgb = convert_yuv2rgb(source->yuv.yuv2rgb);
         uv_swiz = convert_uv_swizzle(source->yuv.swizzle);
     }
-
-#if gcFEATURE_VG_IM_FASTCLEAR
-    if (source->fc_enable) {
-        uint32_t im_fc_enable = (source->fc_enable == 0) ? 0 : 0x800000;
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | im_fc_enable | ahb_read_split | compress_mode | src_premultiply_enable | index_endian));
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0ACF, source->fc_buffer[0].address));   /* FC buffer address. */
-        VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AD0, source->fc_buffer[0].color));     /* FC clear value. */
-    }
-#endif
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A25, convert_source_format(source->format) | filter_mode | uv_swiz | yuv2rgb | conversion | compress_mode | src_premultiply_enable | index_endian));
     if (source->yuv.uv_planar) {
@@ -9044,19 +8759,16 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A2F, rect_w | (rect_h << 16)));
     VG_LITE_RETURN_ERROR(push_rectangle(&s_context, point_min.x, point_min.y, point_max.x - point_min.x, point_max.y - point_min.y));
 
-#if !gcFEATURE_VG_STRIPE_MODE
+#if !gcFEATURE_VG_STRIPE_MODE_DISABLE
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0E02, 0x10 | (0x7 << 8)));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0F00, 0x10 | (0x7 << 8)));
 #endif
 
-    if (!s_context.flexa_mode) {
-        error = flush_target();
-    }
-
+    VG_LITE_BREAK_ERROR(push_state(&s_context, 0x0A1B, 0x00000011));
 #if DUMP_CAPTURE
     if (source->compress_mode)
         ratio = _calc_decnano_compress_ratio(source->format, source->compress_mode);
-    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (source->stride) * (source->height)*ratio);
+    vglitemDUMP_BUFFER("image", (size_t)source->address, source->memory, 0, (size_t)((source->stride)*(source->height)*ratio));
 #endif
 #if DUMP_IMAGE
     dump_img(source->memory, source->width, source->height, source->format);
@@ -9070,6 +8782,8 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
 
 vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_MEMORY_POOL_API);
+
     if (!(pool >= VG_LITE_MEMORY_POOL_1 && pool <= VG_LITE_MEMORY_POOL_2))
         return VG_LITE_INVALID_ARGUMENT;
 
@@ -9093,17 +8807,26 @@ vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memo
     return VG_LITE_SUCCESS;
 }
 
-vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag)
+vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag, vg_lite_bool_t stall_flag)
 {
-    s_context.frame_flag = flag;
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_FRAME_DELIMITER_API);
+    VG_LITE_TRACE_API("vg_lite_frame_delimiter \n");
 
-    vg_lite_error_t error = vg_lite_finish();
+    vg_lite_error_t error;
+
+    s_context.frame_flag = flag;
+    if(stall_flag == 0)
+        error = vg_lite_flush();
+    else
+        error = vg_lite_finish();
 
     return error;
 }
 
-vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, int *buf_index, vg_lite_matrix_t *matrix)
+vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, vg_lite_int32_t *buf_index, vg_lite_matrix_t *matrix)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_CACHE_COMMAND_API);
+
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
@@ -9168,10 +8891,10 @@ vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, in
 
     case VG_LITE_CMDCACHE_EXECUTE:
     {
-        int temp_index = *buf_index;
+        vg_lite_int32_t temp_index = *buf_index;
         vg_lite_cache_cmd_info* execute_buf = s_context.fb_command_buffer_start;
 
-        for (int i = 0; i < temp_index; i++) {
+        for (vg_lite_int32_t i = 0; i < temp_index; i++) {
             execute_buf = execute_buf->next;
         }
 
@@ -9195,6 +8918,8 @@ vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, in
 
 vg_lite_error_t vg_lite_set_dump_api(vg_lite_char flag)
 {
+    DUMP_LAST_FRAME_CAPTURE(VG_LITE_SET_DUMP_API);
+
     dump_api_flag = flag;
     return VG_LITE_SUCCESS;
 }

@@ -38,6 +38,6 @@ zephyr_include_directories(${VgliteDir}/inc)
 zephyr_linker_sources(DATA_SECTIONS
     ${VgliteDir}/VGLiteKernel/zephyr/vglite_sections.ld)
 
-# Define the GPU ID for all sources
+#Define the GPU ID for all sources
 add_compile_definitions(GCID_REV_CID=gc355/0x0_1216)
 target_link_libraries(vglite PRIVATE zephyr_interface)

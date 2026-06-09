@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -108,7 +108,7 @@ typedef enum vg_lite_error
     VG_LITE_ALREADY_EXISTS,       /*! Object already exists                            */
     VG_LITE_NOT_ALIGNED,          /*! Data alignment error                             */
     VG_LITE_FLEXA_TIME_OUT,       /*! VG timeout requesting for segment buffer         */
-    VG_LITE_FLEXA_HANDSHAKE_FAIL, /*! VG and SBI synchronizer handshake failed         */
+    VG_LITE_FLEXA_OUTOFSYNC,      /*! Flexa outofsync                                  */
     VG_LITE_SYSTEM_CALL_FAIL,     /*! kernel api call fail                             */
 }
 vg_lite_error_t;
@@ -168,18 +168,6 @@ typedef enum vg_lite_kernel_command
     /* Query mem. */
     VG_LITE_QUERY_MEM,
 
-    /* Flexa disable */
-    VG_LITE_FLEXA_DISABLE,
-
-    /* Flexa enable */
-    VG_LITE_FLEXA_ENABLE,
-
-    /* Flexa stop frame */
-    VG_LITE_FLEXA_STOP_FRAME,
-
-    /* Set background address */
-    VG_LITE_FLEXA_SET_BACKGROUND_ADDRESS,
-
     /* Map memory to user */
     VG_LITE_MAP_MEMORY,
 
@@ -209,6 +197,44 @@ typedef enum vg_lite_kernel_command
 
     /* Excute command backed up by user */
     VG_LITE_EXECUTE_BACKUP_COMMAND,
+    
+    /* Target mesh set */
+    VG_LITE_SET_TARGET_MESH_CONTROL,
+    
+    VG_LITE_SET_TARGET_MESH_W_H,
+
+    /* Flexa disable */
+    VG_LITE_FLEXA_DISABLE,
+
+    /* Flexa enable */
+    VG_LITE_FLEXA_ENABLE,
+
+    /* Frame set */
+    VG_LITE_FLEXA_SET_TARGET_W_H,
+
+    /* Set consumer0 address */
+    VG_LITE_FLEXA_SET_CONSUMER0_ADDRESS,
+
+    /* Set consumer1 address */
+    VG_LITE_FLEXA_SET_CONSUMER1_ADDRESS,
+
+    /* Set producer address */
+    VG_LITE_FLEXA_SET_PRODUCER_ADDRESS,
+
+    /* Set producer1 address */
+    VG_LITE_FLEXA_SET_PRODUCER1_ADDRESS,
+
+    /* Set distribute consumer1 address */
+    VG_LITE_FLEXA_SET_DISTRIBUTE_CONSUMER1,
+
+    /* Set distribute consumer0 address */
+    VG_LITE_FLEXA_SET_DISTRIBUTE_CONSUMER0,
+
+    /* Flexa stop consumer frame */
+    VG_LITE_FLEXA_STOP_CONSUMER,
+
+    /* Flexa stop PRODUCER frame */
+    VG_LITE_FLEXA_STOP_PRODUCER,
 }
 vg_lite_kernel_command_t;
 
@@ -253,6 +279,14 @@ typedef struct vg_lite_kernel_context {
     uint32_t                  power_context_physical;
     uint32_t                  power_context_size;
     uint32_t                  power_context_capacity;
+
+    /* Initial command buffer  */
+    void                     *init_command_buffer;
+    void                     *init_command_buffer_logical;
+    void                     *init_command_buffer_klogical;
+    uint32_t                 init_command_buffer_physical;
+    uint32_t                 init_command_buffer_size;
+    uint32_t                 init_command_buffer_offset;
 }
 vg_lite_kernel_context_t;
 
@@ -525,7 +559,6 @@ typedef struct vg_lite_kernel_flexa_info
 {
     uint32_t                    sbi_mode;
     uint32_t                    sync_mode;
-    uint32_t                    flexa_mode;
     uint32_t                    stream_id;
     uint32_t                    segment_address;
     uint32_t                    segment_count;
@@ -533,8 +566,37 @@ typedef struct vg_lite_kernel_flexa_info
     uint32_t                    stop_flag;
     uint32_t                    start_flag;
     uint32_t                    reset_flag;
+    uint32_t                    plane1_stream_id;
+    uint32_t                    plane2_stream_id;
+    uint32_t                    segment_offset;
+    uint32_t                    mesh_size;
+    uint32_t                    consumer0_start_timeout_mode;
+    uint32_t                    consumer1_start_timeout_mode;
+    uint32_t                    producer0_start_timeout_mode;
+    uint32_t                    producer1_start_timeout_mode;
+    uint32_t                    consumer0_request_timeout_mode;
+    uint32_t                    consumer1_request_timeout_mode;
+    uint32_t                    producer0_request_timeout_mode;
+    uint32_t                    producer1_request_timeout_mode;
+    uint32_t                    consumer0_consumer_id;
+    uint32_t                    consumer1_consumer_id;
+    uint32_t                    producer0_consumer_id;
+    uint32_t                    producer1_consumer_id;
+    uint32_t                    target_width;
+    uint32_t                    target_height;
+    uint8_t                     consumer0_set;
+    uint8_t                     consumer1_set;
 }
 vg_lite_kernel_flexa_info_t;
+
+typedef struct vg_lite_kernel_mesh_info
+{
+    uint32_t                    mesh_control;
+    uint32_t                    width;
+    uint32_t                    height;
+}
+vg_lite_kernel_mesh_info_t;
+
 
 typedef struct vg_lite_kernel_mem
 {

@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -52,10 +52,6 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         sizeof(vg_lite_kernel_unmap_t),
         sizeof(vg_lite_kernel_info_t),
         sizeof(vg_lite_kernel_mem_t),
-        sizeof(vg_lite_kernel_flexa_info_t),
-        sizeof(vg_lite_kernel_flexa_info_t),
-        sizeof(vg_lite_kernel_flexa_info_t),
-        sizeof(vg_lite_kernel_flexa_info_t),
         sizeof(vg_lite_kernel_map_memory_t),
         sizeof(vg_lite_kernel_unmap_memory_t),
         sizeof(vg_lite_kernel_close_t),
@@ -66,6 +62,19 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
         sizeof(vg_lite_kernel_delay_resume_t),
         sizeof(vg_lite_kernel_gpu_clock_state_t),
         sizeof(vg_lite_kernel_cmdcache_t),
+        sizeof(vg_lite_kernel_mesh_info_t),
+        sizeof(vg_lite_kernel_mesh_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
+        sizeof(vg_lite_kernel_flexa_info_t),
     };
 
     if (device == 0) {

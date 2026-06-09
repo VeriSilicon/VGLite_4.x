@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -99,8 +99,11 @@ static int drv_probe(struct pci_dev *p_dev, const struct pci_device_id *ent)
         vg_lite_kernel_error("pci_enable_device call failed.\n");
         return ret;
     }
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
+    ret = dma_set_mask(&p_dev->dev, dma_mask);
+#else
     ret = pci_set_dma_mask(p_dev, dma_mask);
+#endif
     if (ret) {
         vg_lite_kernel_error("Failed to set DMA mask.\n");
         goto err0;
@@ -108,13 +111,11 @@ static int drv_probe(struct pci_dev *p_dev, const struct pci_device_id *ent)
 
     pci_set_master(p_dev);
 
-    ret = pci_request_regions(p_dev, "vg_lite");
-    if (ret) {
-        vg_lite_kernel_error("Failed to get ownership of BAR region.\n");
-        goto err1;
-    }
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,8,0)
+    ret = pci_alloc_irq_vectors(p_dev, 1, 1, PCI_IRQ_INTX);
+#else
     ret = pci_alloc_irq_vectors(p_dev, 1, 32, PCI_IRQ_LEGACY);
+#endif
     if (ret < 1) {
         vg_lite_kernel_error("Failed to allocate irq vectors.\n");
         goto err2;
@@ -136,8 +137,6 @@ err3:
     pci_free_irq_vectors(p_dev);
 err2:
     pci_release_regions(p_dev);
-err1:
-    pci_clear_master(p_dev);
 err0:
     pci_disable_device(p_dev);
 
@@ -149,7 +148,6 @@ static void drv_remove(struct pci_dev *p_dev)
     pci_set_drvdata(p_dev, NULL);
     pci_free_irq_vectors(p_dev);
     pci_clear_master(p_dev);
-    pci_release_regions(p_dev);
     pci_disable_device(p_dev);
 
     return;

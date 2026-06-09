@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -34,6 +34,7 @@
 #define VG_LITE_HW_CHIP_ID           0x020
 #define VG_LITE_HW_CMDBUF_ADDRESS    0x500
 #define VG_LITE_HW_CMDBUF_SIZE       0x504
+#define VG_LITE_HW_FETCH_POS         0x508
 #define VG_LITE_POWER_CONTROL        0x100
 #define VG_LITE_POWER_MODULE_CONTROL 0x104
 

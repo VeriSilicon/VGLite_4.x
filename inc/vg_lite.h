@@ -1,27 +1,26 @@
 /****************************************************************************
 *
-*    Copyright 2012 - 2023 Vivante Corporation, Santa Clara, California.
-*    All Rights Reserved.
+*    The MIT License (MIT)
 *
-*    Permission is hereby granted, free of charge, to any person obtaining
-*    a copy of this software and associated documentation files (the
-*    'Software'), to deal in the Software without restriction, including
-*    without limitation the rights to use, copy, modify, merge, publish,
-*    distribute, sub license, and/or sell copies of the Software, and to
-*    permit persons to whom the Software is furnished to do so, subject
-*    to the following conditions:
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
-*    The above copyright notice and this permission notice (including the
-*    next paragraph) shall be included in all copies or substantial
-*    portions of the Software.
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
 *
-*    THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-*    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-*    IN NO EVENT SHALL VIVANTE AND/OR ITS SUPPLIERS BE LIABLE FOR ANY
-*    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-*    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-*    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
 
@@ -47,13 +46,13 @@ extern "C" {
 #define VGLITE_VERSION_3_0          1
 
 #define VGLITE_MAKE_VERSION(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
-#define VGLITE_VERSION_MAJOR(version) (((uint32_t)(version) >> 16) & 0xff)
-#define VGLITE_VERSION_MINOR(version) (((uint32_t)(version) >> 8) & 0xff)
-#define VGLITE_VERSION_PATCH(version) ((uint32_t)(version) & 0xff)
+#define VGLITE_VERSION_MAJOR(version) (((vg_lite_uint32_t)(version) >> 16) & 0xff)
+#define VGLITE_VERSION_MINOR(version) (((vg_lite_uint32_t)(version) >> 8) & 0xff)
+#define VGLITE_VERSION_PATCH(version) ((vg_lite_uint32_t)(version) & 0xff)
 
 #define VGLITE_API_VERSION_3_0      VGLITE_MAKE_VERSION(3, 0, 0)
 
-#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4,0,112)
+#define VGLITE_RELEASE_VERSION      VGLITE_MAKE_VERSION(4,0,135)
 
 #define VGL_FALSE                   0
 #define VGL_TRUE                    1
@@ -138,6 +137,7 @@ extern "C" {
 
 /* VGLite API Types ***********************************************************************************************************************/
 
+typedef int                 vg_lite_bool_t;
 typedef unsigned char       vg_lite_uint8_t;
 typedef char                vg_lite_int8_t;
 typedef short               vg_lite_int16_t;
@@ -149,10 +149,11 @@ typedef float               vg_lite_float_t;
 typedef double              vg_lite_double_t;
 typedef char                vg_lite_char;
 typedef char*               vg_lite_string;
-typedef void*               vg_lite_pointer;
 typedef void                vg_lite_void;
+typedef void*               vg_lite_pointer;
 typedef unsigned int        vg_lite_color_t;
-
+typedef char*               vg_lite_char_ptr;
+typedef float*              vg_lite_float_ptr;
 
 /* VGLite API Enumerations ****************************************************************************************************************/
 
@@ -170,10 +171,11 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_OUT_OF_RESOURCES,       /*! Out of system resources. */
         VG_LITE_GENERIC_IO,             /*! Cannot communicate with the kernel driver. */
         VG_LITE_NOT_SUPPORT,            /*! Function call not supported. */
-        VG_LITE_ALREADY_EXISTS,         /*! Object already exists */
-        VG_LITE_NOT_ALIGNED,            /*! Data alignment error */
-        VG_LITE_FLEXA_TIME_OUT,         /*! VG timeout requesting for segment buffer */
-        VG_LITE_FLEXA_HANDSHAKE_FAIL,   /*! VG and SBI synchronizer handshake failed */
+        VG_LITE_ALREADY_EXISTS,         /*! Object already exists. */
+        VG_LITE_NOT_ALIGNED,            /*! Data alignment error. */
+        VG_LITE_FLEXA_TIME_OUT,         /*! VG timeout requesting for segment buffer. */
+        VG_LITE_FLEXA_OUTOFSYNC,        /*! Flexa outofsync. */
+        VG_LITE_FAIL                    /*! Other undefined errors. */
     } vg_lite_error_t;
 #endif
 
@@ -246,6 +248,15 @@ typedef unsigned int        vg_lite_color_t;
         gcFEATURE_BIT_VG_512_PARALLEL_PATHS,
         gcFEATURE_BIT_VG_DEC_COMPRESS_2_1,
         gcFEATURE_BIT_24BIT_PLANAR_SW,
+        gcFEATURE_BIT_VG_RGB8_ETC2_EAC,
+        gcFEATURE_BIT_VG_NEW_FACTOR,
+        gcFEATURE_BIT_VG_NEW_ROI_MASK,
+        gcFEATURE_BIT_VG_A124_A8L8,
+        gcFEATURE_BIT_VG_DEC_COMPRESS_2_2,
+        gcFEATURE_BIT_VG_DEC_COMPRESS_3_0,
+        gcFEATURE_BIT_VG_MESH_FOR_FRAME,
+        gcFEATURE_BIT_VG_SIMPLE_BLT,
+        gcFEATURE_BIT_VG_EXTERNAL_DMA_MESH,
         gcFEATURE_COUNT
     } vg_lite_feature_t;
 
@@ -400,6 +411,11 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_RGBA5658_PLANAR                 = 48 | (1 << 10),
         VG_LITE_NV24                            = 49 | (1 << 10),
         VG_LITE_NV24_TILED                      = 50 | (1 << 10),
+        VG_LITE_A1                              = 51 | (1 << 10),
+        VG_LITE_A2                              = 52 | (1 << 10),
+        VG_LITE_A8L8                            = 53 | (1 << 10),
+        VG_LITE_RGB888_ETC2_EAC                 = 54 | (1 << 10),
+        VG_LITE_L4                              = 55 | (1 << 10),
 
         VG_LITE_INDEX_1 = 0 | (1 << 11),  /*! Indexed format. */
         VG_LITE_INDEX_2 = 1 | (1 << 11),
@@ -484,7 +500,9 @@ typedef unsigned int        vg_lite_color_t;
                                                             /*!  A:   0xFF                                       !*/
         VG_LITE_BLEND_SUBTRACT_LVGL             = 13,       /*!  RGB: (D - S)*Sa + D*(1 - Sa)                    !*/
                                                             /*!  A:   0xFF                                       !*/
-        VG_LITE_BLEND_MULTIPLY_LVGL             = 14,       /*!  RGB: (S*D)*Sa + D*(1 - Sa)                      !*/
+        VG_LITE_BLEND_DIFFERENCE_LVGL           = 14,       /*!  RGB: |D - S|*Sa + D*(1 - Sa)                    !*/
+                                                            /*!  A:   0xFF                                       !*/
+        VG_LITE_BLEND_MULTIPLY_LVGL             = 15,       /*!  RGB: (S*D)*Sa + D*(1 - Sa)                      !*/
                                                             /*!  A:   0xFF                                       !*/
 
         /* Porter Duff Premultiplied Blending modes !*/
@@ -508,7 +526,71 @@ typedef unsigned int        vg_lite_color_t;
                                                             /*!  A:   (Sa + Da*(1 - Sa))                                                    !*/
         OPENVG_BLEND_ADDITIVE                   = 0x2009,   /*!  RGB: (SP + DP) / (Sa + Da)                                                 !*/
                                                             /*!  A:   (Sa + Da)                                                             !*/
+        SVG2_BLEND_NORMAL                       = 0X3000,
+        SVG2_BLEND_MULTIPLY                     = 0X3001,
+        SVG2_BLEND_SCREEN                       = 0X3003,
+        SVG2_BLEND_LIGHTEN                      = 0X3004,
+        SVG2_BLEND_DARKEN                       = 0X3005,
+        SVG2_BLEND_DIFFERENCE                   = 0X3006,
+        SVG2_BLEND_EXCLUSION                    = 0X3007,
+
+        VG_LITE_PORTER_DUFF_BLEND               = 0X4000,  /*!  Custom mode                                       !*/
     } vg_lite_blend_t;
+
+    typedef enum vg_lite_channel_mode {
+       VG_LITE_CHANNEL_MODE_PREMULTIPLY             = 0x00,  /*! Premultiply: Cs * As, Cd * Ad */
+       VG_LITE_CHANNEL_MODE_SRC_COLOR               = 0x01,  /*! Source Color: Cs */
+       VG_LITE_CHANNEL_MODE_DEST_COLOR              = 0x02,  /*! Destination Color: Cd */
+       VG_LITE_CHANNEL_MODE_SRC_ADD_DEST            = 0x03,  /*! Source + Destination: Cs + Cd */
+       VG_LITE_CHANNEL_MODE_DEST_SUB_SRC            = 0x04,  /*! Destination - Source: Cd - Cs */
+       VG_LITE_CHANNEL_MODE_SRC_MUL_DEST            = 0x05,  /*! Source * Destination: Cs * Cd */
+       VG_LITE_CHANNEL_MODE_DEST_SUB_SRC_ABS        = 0x06,  /*! Absolute(Destination - Source): abs(Cd - Cs) */
+       VG_LITE_CHANNEL_MODE_SRC_ADD_DEST_MINUS      = 0x07,  /*! Cs + Cd - Cs*Cd */
+       VG_LITE_CHANNEL_MODE_MAX_SRC_DEST            = 0x08,  /*! Max(Source, Destination): max(Cs, Cd) */
+       VG_LITE_CHANNEL_MODE_MIN_SRC_DEST            = 0x09,  /*! Min(Source, Destination): min(Cs, Cd) */
+       VG_LITE_CHANNEL_MODE_SRC_ADD_DEST_MINUS2     = 0x0A,  /*! Cs + Cd - 2*Cs*Cd */
+       VG_LITE_CHANNEL_MODE_BYPASS                  = 0xFF   /*! Bypass: No operation */
+    }vg_lite_channel_mode_t;
+
+    typedef enum vg_lite_blend_equation {
+       VG_LITE_BLEND_FUNC_ADD                       = 0x00,  /*! (SrcFactor * Src) + (DstFactor * Dst) */
+       VG_LITE_BLEND_FUNC_SUB                       = 0x01,  /*! (SrcFactor * Src) - (DstFactor * Dst) */
+       VG_LITE_BLEND_FUNC_REVERSE_SUB               = 0x02,  /*! (DstFactor * Dst) - (SrcFactor * Src) */
+       VG_LITE_BLEND_FUNC_MIN                       = 0x03,  /*! min(Src, Dst) */
+       VG_LITE_BLEND_FUNC_MAX                       = 0x04   /*! max(Src, Dst) */
+    }vg_lite_blend_equation_t;
+
+    typedef enum vg_lite_blend_factor_alpha {
+       VG_LITE_BLEND_FACTOR_ALPHA_ZERO              = 0x00,  /*! 0 */
+       VG_LITE_BLEND_FACTOR_ALPHA_ONE               = 0x01,  /*! 1 */
+       VG_LITE_BLEND_FACTOR_ALPHA_SRC_ALPHA         = 0x02,  /*! Source Alpha (As) */
+       VG_LITE_BLEND_FACTOR_ALPHA_INV_SRC_ALPHA     = 0x03,  /*! 1 - Source Alpha (1-As) */
+       VG_LITE_BLEND_FACTOR_ALPHA_DEST_ALPHA        = 0x04,  /*! Destination Alpha (Ad) */
+       VG_LITE_BLEND_FACTOR_ALPHA_INV_DEST_ALPHA    = 0x05,  /*! 1 - Destination Alpha (1-Ad) */
+       VG_LITE_BLEND_FACTOR_ALPHA_SRC_ALPHA_SAT     = 0x06,  /*! min(As, 1-Ad) */
+       VG_LITE_BLEND_FACTOR_ALPHA_CONST_ALPHA       = 0x07,  /*! Constant Alpha (Ac) */
+       VG_LITE_BLEND_FACTOR_ALPHA_INV_CONST_ALPHA   = 0x08   /*! 1 - Constant Alpha (1-Ac) */
+    }vg_lite_blend_factor_alpha_t;
+
+    typedef enum vg_lite_blend_factor_color {
+       VG_LITE_BLEND_FACTOR_COLOR_ZERO                               = 0x00,  /*! 0 */
+       VG_LITE_BLEND_FACTOR_COLOR_ONE                                = 0x01,  /*! 1 */
+       VG_LITE_BLEND_FACTOR_COLOR_SRC_COLOR                          = 0x02,  /*! Source Color (Cs) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_COLOR                      = 0x03,  /*! 1 - Source Color (1-Cs) */
+       VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA                          = 0x04,  /*! Source Alpha (As) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_SRC_ALPHA                      = 0x05,  /*! 1 - Source Alpha (1-As) */
+       VG_LITE_BLEND_FACTOR_COLOR_DEST_ALPHA                         = 0x06,  /*! Destination Alpha (Ad) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA                     = 0x07,  /*! 1 - Destination Alpha (1-Ad) */
+       VG_LITE_BLEND_FACTOR_COLOR_DEST_COLOR                         = 0x08,  /*! Destination Color (Cd) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_COLOR                     = 0x09,  /*! 1 - Destination Color (1-Cd) */
+       VG_LITE_BLEND_FACTOR_COLOR_SRC_ALPHA_SAT                      = 0x0A,  /*! min(As, 1-Ad) */
+       VG_LITE_BLEND_FACTOR_COLOR_CONST_ALPHA                        = 0x0B,  /*! Constant Alpha (Ac) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_CONST_ALPHA                    = 0x0C,  /*! 1 - Constant Alpha (1-Ac) */
+       VG_LITE_BLEND_FACTOR_COLOR_CONST_COLOR                        = 0x0D,  /*! Constant Color (Cc) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_CONST_COLOR                    = 0x0E,  /*! 1 - Constant Color (1-Cc) */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA_PLUS                = 0x0F,  /*! (1-Ad) + Ad*Cd */
+       VG_LITE_BLEND_FACTOR_COLOR_INV_DEST_ALPHA_MUL_DEST_COLOR      = 0x10   /*! 1 - (Ad * Cd) */
+    }vg_lite_blend_factor_color_t;
 
     /* Fill rules. Match OpenVG enum VGFillRule */
     typedef enum vg_lite_fill
@@ -567,9 +649,10 @@ typedef unsigned int        vg_lite_color_t;
     typedef enum vg_lite_compress_mode
     {
         VG_LITE_DEC_DISABLE = 0,                /*! disable compress */
-        VG_LITE_DEC_NON_SAMPLE,                 /*! compress ratio is 1.6 if use ARGB8888, compress ratio is 2 if use XRGB8888 */
-        VG_LITE_DEC_HSAMPLE,                    /*! compress ratio is 2 if use ARGB8888, compress ratio is 2.6 if use XRGB8888 */
-        VG_LITE_DEC_HV_SAMPLE,                  /*! compress ratio is 2.6 if use ARGB8888, compress ratio is 4 if use XRGB8888 */
+        VG_LITE_DEC_NON_SAMPLE,
+        VG_LITE_DEC_HSAMPLE,
+        VG_LITE_DEC_HV_SAMPLE,
+        VG_LITE_DEC_HIGH_QUALITY,
     } vg_lite_compress_mode_t;
 
     /* Draw path type. Match OpenVG enum VGPaintMode */
@@ -685,6 +768,14 @@ typedef unsigned int        vg_lite_color_t;
         VG_LITE_CMDCACHE_CLEAR   = 3,
         VG_LITE_CMDCACHE_EXECUTE = 4,
     } vg_lite_cmdcache_operation_t;
+
+    typedef enum vg_lite_mesh_mode
+    {
+        VG_LITE_MESH_DISABLE        = 0,
+        VG_LITE_MESH_FRAME          = 1,
+        VG_LITE_MESH_COPY_INTERNAL  = 2,
+        VG_LITE_MESH_COPY_EXTERNAL  = 6,
+    } vg_lite_mesh_mode_t;
 
 /* VGLite API Structures ******************************************************************************************************************/
 
@@ -842,6 +933,8 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t                     dash_length;
         vg_lite_uint32_t                    dash_index;
         vg_lite_float_t                     half_width;
+        vg_lite_uint8_t                     non_scale_flag;
+        vg_lite_quality_t                   quality;
 
         /* Total length of stroke dash patterns. */
         vg_lite_float_t                     pattern_length;
@@ -920,6 +1013,7 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_pointer handle;                         /*! The memory handle of the buffer's memory as allocated by the VGLite kernel. */
         vg_lite_pointer memory;                         /*! The logical pointer to the buffer's memory for the CPU. */
         vg_lite_uint32_t address;                       /*! The address to the buffer's memory for the hardware. */
+        vg_lite_uint32_t base_address;                  /*! The base address to the buffer's memory for the hardware. */
         vg_lite_memory_pool_t pool;                     /*! The buffer's memory pool. */
         vg_lite_yuvinfo_t yuv;                          /*! The yuv format details. */
         vg_lite_image_mode_t image_mode;                /*! The blit image mode. */
@@ -937,7 +1031,26 @@ typedef unsigned int        vg_lite_color_t;
         struct vg_lite_buffer *sw24bit_planar_buffer;   /*! sw24bit-planar_buffer is the original buffer of sw24bit_buffer */
         vg_lite_color_t bg_color;                       /*! Background for edge filter */
         vg_lite_uint8_t screen_copy;                    /*! Flag to optimize bandwidth when enable dec and copy image to full dst buffer without blending */
+        vg_lite_uint8_t svg_blend_flag;
+        struct vg_lite_buffer *mesh_buffer;
+        vg_lite_pattern_mode_t pattern_mode;
+#if VG_GL_SUPPORT
+        vg_lite_uint8_t msaa_enable;
+        vg_lite_uint8_t depth_enable;
+        vg_lite_pointer private_buffer;
+#endif
     } vg_lite_buffer_t;
+
+    /* Porter duff configuration factor. */
+    typedef struct vg_lite_porter_duff_config {
+        uint32_t factor_src_alpha;
+        uint32_t factor_src_color;
+        uint32_t factor_dst_alpha;
+        uint32_t factor_dst_color;
+        uint32_t final_equation_opcode;
+        uint32_t srcchannelmode;
+        uint32_t dstchannelmode;
+    }vg_lite_porter_duff_config_t;
 
     /* Path info for drawing command. */
     typedef struct vg_lite_path
@@ -957,6 +1070,9 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_color_t stroke_color;           /*! The stroke path fill color. */
         vg_lite_int8_t add_end;                 /*! Flag that add end_path in driver. */
         vg_lite_int8_t stroke_valid;            /*! Flag that judge whether current stroke data is come from current pathdata. */
+        vg_lite_int8_t append_path_flag;        /*! Flag that indicating whether the path data is uploaded via API vg_lite_append_path. */
+        vg_lite_uint32_t pdata_memory_size;     /*! The size of the memory path allocated by driver. */
+        vg_lite_paint_type_t stroke_paint_type; /*! Set stroke paint type. */
     } vg_lite_path_t;
 
     /* Color ramp definition. */
@@ -1084,13 +1200,31 @@ typedef unsigned int        vg_lite_color_t;
         vg_lite_float_t b_bias;
     } vg_lite_color_transform_t;
 
+    /* Flexa config parameter */
+    typedef struct vg_lite_flexa_config {
+        vg_lite_uint8_t plane1_stream_id;
+        vg_lite_uint8_t plane2_stream_id;
+        vg_lite_uint32_t seg_count;
+        vg_lite_uint32_t seg_size;
+        vg_lite_uint32_t mesh_size;
+        vg_lite_uint32_t start_timeout_mode;
+        vg_lite_uint32_t request_timeout_mode;
+        vg_lite_uint32_t offset_reset_mode;
+        vg_lite_uint32_t seg_offset;
+        vg_lite_uint32_t consumer_id;
+    } vg_lite_flexa_config_t;
+
+    /* Default parameter for mesh */
+    #define MESH_MODE       2
+    #define MESH_HEIGHT     16
+    #define MESH_COUNT      2
+
 /* VGLite API Functions *******************************************************************************************************************/
 
     /* Initialize a vglite context. */
     vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_height);
-
     /* Destroy a vglite context. */
-    vg_lite_error_t vg_lite_close(void);
+    vg_lite_error_t vg_lite_close(vg_lite_void);
 
     /* Get the VGLite driver information. */
     vg_lite_error_t vg_lite_get_info(vg_lite_info_t* info);
@@ -1102,10 +1236,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_uint32_t vg_lite_query_feature(vg_lite_feature_t feature);
 
     /* Flush command buffer and wait for GPU to complete. */
-    vg_lite_error_t vg_lite_finish(void);
+    vg_lite_error_t vg_lite_finish(vg_lite_void);
 
     /* Flush the command buffer without waiting for GPU to complete. */
-    vg_lite_error_t vg_lite_flush(void);
+    vg_lite_error_t vg_lite_flush(vg_lite_void);
 
     /* Get the value of register from register's address. */
     vg_lite_error_t vg_lite_get_register(vg_lite_uint32_t address, vg_lite_uint32_t* result);
@@ -1123,7 +1257,7 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_upload_buffer(vg_lite_buffer_t *buffer, vg_lite_uint8_t *data[3], vg_lite_uint32_t stride[3]);
 
     /* Map a buffer into hardware accessible address space. */
-    vg_lite_error_t vg_lite_map(vg_lite_buffer_t *buffer, vg_lite_map_flag_t flag, int32_t fd);
+    vg_lite_error_t vg_lite_map(vg_lite_buffer_t *buffer, vg_lite_map_flag_t flag, vg_lite_int32_t fd);
 
     /* Unmap a buffer that is mapped */
     vg_lite_error_t vg_lite_unmap(vg_lite_buffer_t *buffer);
@@ -1133,6 +1267,15 @@ typedef unsigned int        vg_lite_color_t;
 
     /* Fill a buffer rectangle area with a specified color. */
     vg_lite_error_t vg_lite_clear(vg_lite_buffer_t *target, vg_lite_rectangle_t *rect, vg_lite_color_t color);
+
+    /* Configure blend with porter duff factors, equation opcode, source and destination channel mode */
+    vg_lite_error_t vg_lite_blend_func(vg_lite_uint32_t factor_src_alpha,
+                                    vg_lite_uint32_t factor_src_color,
+                                    vg_lite_uint32_t factor_dst_alpha,
+                                    vg_lite_uint32_t factor_dst_color,
+                                    vg_lite_uint32_t final_equation_opcode,
+                                    vg_lite_uint32_t srcchannelmode,
+                                    vg_lite_uint32_t dstchannelmode);
 
     /* Copy a source image to target buffer with transformation, blending, color mixing, and filtering. */
     vg_lite_error_t vg_lite_blit(vg_lite_buffer_t *target,
@@ -1163,10 +1306,10 @@ typedef unsigned int        vg_lite_color_t;
     /* Copy a rectangle area of source image to target buffer without transformation, blending, color mixing, and filtering. */
     vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target,
                                     vg_lite_buffer_t *source,
-                                    vg_lite_int32_t   sx,
-                                    vg_lite_int32_t   sy,
                                     vg_lite_int32_t   dx,
                                     vg_lite_int32_t   dy,
+                                    vg_lite_int32_t   sx,
+                                    vg_lite_int32_t   sy,
                                     vg_lite_uint32_t  width,
                                     vg_lite_uint32_t  height);
 
@@ -1349,10 +1492,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_scissor_rects(vg_lite_buffer_t *target, vg_lite_uint32_t nums, vg_lite_rectangle_t rect[]);
 
     /* Enable scissor rects defined on mask layer. */
-    vg_lite_error_t vg_lite_enable_scissor(void);
+    vg_lite_error_t vg_lite_enable_scissor(vg_lite_void);
 
     /* Disable scissor rects defined on mask layer. */
-    vg_lite_error_t vg_lite_disable_scissor(void);
+    vg_lite_error_t vg_lite_disable_scissor(vg_lite_void);
 
     /* Query size of available contiguous video memory. */
     vg_lite_error_t vg_lite_get_mem_size(vg_lite_uint32_t *size);
@@ -1367,10 +1510,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_color_key(vg_lite_color_key4_t colorkey);
 
     /* Enable dither function. Dither is OFF by default. */
-    vg_lite_error_t vg_lite_enable_dither(void);
+    vg_lite_error_t vg_lite_enable_dither(vg_lite_void);
 
     /* Disable dither function. Dither is OFF by default. */
-    vg_lite_error_t vg_lite_disable_dither(void);
+    vg_lite_error_t vg_lite_disable_dither(vg_lite_void);
 
     /* Set a 64-byte aligned memory buffer (physical) as VGLite tessellation buffer. */
     vg_lite_error_t vg_lite_set_tess_buffer(vg_lite_uint32_t physical, vg_lite_uint32_t size);
@@ -1418,13 +1561,13 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_gaussian_filter(vg_lite_float_t w0, vg_lite_float_t w1, vg_lite_float_t w2);
 
     /*  Enable masklayer function. Masklayer is OFF by default. */
-    vg_lite_error_t vg_lite_enable_masklayer(void);
+    vg_lite_error_t vg_lite_enable_masklayer(vg_lite_void);
 
     /*  Disable masklayer function. Masklayer is OFF by default. */
-    vg_lite_error_t vg_lite_disable_masklayer(void);
+    vg_lite_error_t vg_lite_disable_masklayer(vg_lite_void);
 
     /* Setup a masklayer. */
-    vg_lite_error_t vg_lite_set_masklayer(vg_lite_buffer_t *masklayer);
+    vg_lite_error_t vg_lite_set_masklayer(vg_lite_buffer_t* masklayer, vg_lite_int32_t x, vg_lite_int32_t y);
 
     /* Free a masklayer and disable mask operation. */
     vg_lite_error_t vg_lite_destroy_masklayer(vg_lite_buffer_t *masklayer);
@@ -1460,10 +1603,10 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_gamma(vg_lite_gamma_conversion_t gamma_value);
 
     /* Enable color transformation, which is OFF by default. */
-    vg_lite_error_t vg_lite_enable_color_transform(void);
+    vg_lite_error_t vg_lite_enable_color_transform(vg_lite_void);
 
     /* Disable color transformation, which is OFF by default. */
-    vg_lite_error_t vg_lite_disable_color_transform(void);
+    vg_lite_error_t vg_lite_disable_color_transform(vg_lite_void);
 
     /* Set pixel color transformation scale and bias values for each pixel channel. */
     vg_lite_error_t vg_lite_set_color_transform(vg_lite_color_transform_t *values);
@@ -1477,20 +1620,14 @@ typedef unsigned int        vg_lite_color_t;
                                     vg_lite_uint32_t seg_count,
                                     vg_lite_uint32_t seg_size);
 
-    /* Enable flexa. */
-    vg_lite_error_t vg_lite_flexa_enable(void);
-
-    /* Disable flexa.*/
-    vg_lite_error_t vg_lite_flexa_disable(void);
-
     /* Set flexa stop flag after the last frame. */
-    vg_lite_error_t vg_lite_flexa_stop_frame(void);
+    vg_lite_error_t vg_lite_flexa_stop_frame(vg_lite_void);
 
     /* Dump command buffer */
-    vg_lite_error_t vg_lite_dump_command_buffer(void);
+    vg_lite_error_t vg_lite_dump_command_buffer(vg_lite_void);
 
     /* Dump vg_lite_buffer_t image to a png file. Support on Linux for now. */
-    vg_lite_error_t vg_lite_dump_png(const char *filename, vg_lite_buffer_t *buffer);
+    vg_lite_error_t vg_lite_dump_png(const vg_lite_char *filename, vg_lite_buffer_t *buffer);
 
     /* Return VGLite parameters in params[] array */
     vg_lite_error_t vg_lite_get_parameter(vg_lite_param_type_t type,
@@ -1504,16 +1641,17 @@ typedef unsigned int        vg_lite_color_t;
     vg_lite_error_t vg_lite_set_memory_pool(vg_lite_buffer_type_t type, vg_lite_memory_pool_t pool);
 
     /* Set an end flag for GPU to signal its completion of current frame.
-     * This API can be called at the end of a frame, and a vg_lite_finish() is contained withen the API.
+     * This API can be called at the end of a frame, and a vg_lite_finish()\vg_lite_flush is contained withen the API.
      * An interrupt will be received to indicate that GPU is idle.
+     * When using VG_LITE_MESH_COPY_INTERNAL\VG_LITE_MESH_COPY_EXTERNAL, put the actual submission in vg_lite_frame_delimiter.
      */
-    vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag);
+    vg_lite_error_t vg_lite_frame_delimiter(vg_lite_frame_flag_t flag, vg_lite_bool_t stall_flag);
 
     /* Using this API should set gcFEATURE_VG_COMMAND_BUFFER_CACHE to 1 in VGLite\vg_lite_options.h,
      * and set gcdVG_ENABLE_COMMAND_BUFFER_CACHE to 1 in VGLiteKernel\vg_lite_option.h.
      * VGLite command buffers can be saved and re-executed by application.
      */
-    vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, int *buf_index, vg_lite_matrix_t *matrix);
+    vg_lite_error_t vg_lite_cache_command(vg_lite_cmdcache_operation_t operation, vg_lite_int32_t *buf_index, vg_lite_matrix_t *matrix);
 
     /* This optional API is for enabling/disabling the path-spliting workaround for specific VG cores.
      */
@@ -1523,6 +1661,31 @@ typedef unsigned int        vg_lite_color_t;
      * This API can control whether function 'dump api' is enabled or disabled.
      */
     vg_lite_error_t vg_lite_set_dump_api(vg_lite_char flag);
+
+    /* Set mesh. For the target buffer that wants to use the mesh feature, the pointer to the mesh buffer needs to be given to target.mesh_buffer.
+     * mesh_size * mesh_height determines the height of the mesh buffer. 
+     */
+    vg_lite_error_t vg_lite_set_target_mesh(vg_lite_mesh_mode_t mesh_mode,
+                                            vg_lite_uint32_t mesh_height,
+                                            vg_lite_uint32_t mesh_count);
+
+    /* Enable Flexa  */
+    vg_lite_error_t vg_lite_flexa_enable();
+
+    /* Disanable Flexa */
+    vg_lite_error_t vg_lite_flexa_disable();
+
+    /* Set the parameters of the vg consumer */
+    vg_lite_error_t vg_lite_flexa_set_consumer(vg_lite_flexa_config_t* flexa_cfg, vg_lite_buffer_t* buffer);
+
+    /* Set the parameters of the vg producer */
+    vg_lite_error_t vg_lite_flexa_set_producer(vg_lite_flexa_config_t* flexa_cfg, vg_lite_buffer_t* buffer);
+
+    /* Enable the stop flag of the vg consumer */
+    vg_lite_error_t vg_lite_flexa_stop_consumer(vg_lite_flexa_config_t* flexa_cfg);
+
+    /* Enable the stop flag of the vg producer */
+    vg_lite_error_t vg_lite_flexa_stop_producer(vg_lite_flexa_config_t* flexa_cfg);
 
 #endif /* VGLITE_VERSION_3_0 */
 

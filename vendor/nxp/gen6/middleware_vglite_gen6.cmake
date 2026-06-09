@@ -9,6 +9,7 @@ target_sources(${MCUX_SDK_PROJECT_NAME} PRIVATE
     ${VgliteDir}/VGLite/linux/vg_lite_os.c
     ${VgliteDir}/VGLite/linux/vg_lite_ioctl.c
     ${VgliteDir}/VGLite/vg_lite_stroke.c
+	${VgliteDir}/VGLite/vg_lite_chip.c
 )
 
 

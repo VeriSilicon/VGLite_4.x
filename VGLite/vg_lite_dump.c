@@ -1,27 +1,26 @@
 /****************************************************************************
 *
-*    Copyright 2012 - 2023 Vivante Corporation, Santa Clara, California.
-*    All Rights Reserved.
+*    The MIT License (MIT)
 *
-*    Permission is hereby granted, free of charge, to any person obtaining
-*    a copy of this software and associated documentation files (the
-*    'Software'), to deal in the Software without restriction, including
-*    without limitation the rights to use, copy, modify, merge, publish,
-*    distribute, sub license, and/or sell copies of the Software, and to
-*    permit persons to whom the Software is furnished to do so, subject
-*    to the following conditions:
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
-*    The above copyright notice and this permission notice (including the
-*    next paragraph) shall be included in all copies or substantial
-*    portions of the Software.
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
 *
-*    THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-*    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-*    IN NO EVENT SHALL VIVANTE AND/OR ITS SUPPLIERS BE LIABLE FOR ANY
-*    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-*    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-*    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
 
@@ -41,31 +40,34 @@
     #include <stdbool.h>
     #include <pthread.h>
     #include <unistd.h>
-    #include "png.h"
+#endif
+
+#ifdef __linux__
+#include "png.h"
 #endif
 
 #if DUMP_CAPTURE || DUMP_LAST_CAPTURE
 
-static int DumpFlag  = 0;
-static void * dump_mutex = NULL;
+static vg_lite_int32_t DumpFlag  = 0;
+static vg_lite_void * dump_mutex = NULL;
 #if defined(__ZEPHYR__)
 typedef struct _vglitesDUMP_FILE_INFO
 {
-    void *    _debugFile;
-    uint32_t   _threadID;
+    vg_lite_void *    _debugFile;
+    vg_lite_uint32_t   _threadID;
 }vglitesDUMP_FILE_INFO;
 #else
 typedef struct _vglitesDUMP_FILE_INFO
 {
     FILE *    _debugFile;
-    uint32_t   _threadID;
+    vg_lite_uint32_t   _threadID;
 }vglitesDUMP_FILE_INFO;
 #endif
 
 typedef struct _vglitesBUFFERED_OUTPUT * vglitesBUFFERED_OUTPUT_PTR;
 typedef struct _vglitesBUFFERED_OUTPUT
 {
-    int                         indent;
+    vg_lite_int32_t                         indent;
     vglitesBUFFERED_OUTPUT_PTR  prev;
     vglitesBUFFERED_OUTPUT_PTR  next;
 }
@@ -89,19 +91,19 @@ static K_MUTEX_DEFINE(_dumpFileMutex);
     ((n) + ((align) - 1)) & ~((align) - 1) \
 )
 #if defined(__ZEPHYR__)
-static void *_SetDumpFile(
-    void *File, int CloseOldFile
+static vg_lite_void *_SetDumpFile(
+    vg_lite_void *File, vg_lite_int32_t CloseOldFile
     );
 #else
 static FILE *_SetDumpFile(
-    FILE *File, int CloseOldFile
+    FILE *File, vg_lite_int32_t CloseOldFile
     );
 #endif
 
-vg_lite_error_t vg_lite_CreateMutex(void **Mutex)
+vg_lite_error_t vg_lite_CreateMutex(vg_lite_void **Mutex)
 {
 #ifdef _WIN32
-    void *handle;
+    vg_lite_void *handle;
 
     assert(Mutex!=NULL);
     handle = CreateMutex(NULL, 0, NULL);
@@ -121,7 +123,7 @@ vg_lite_error_t vg_lite_CreateMutex(void **Mutex)
     if (mutex)
     {
         k_mutex_init(mutex);
-        *Mutex = (void *) mutex;
+        *Mutex = (vg_lite_void *) mutex;
     }
     else
     {
@@ -146,13 +148,13 @@ vg_lite_error_t vg_lite_CreateMutex(void **Mutex)
     pthread_mutexattr_destroy(&mta);
 
     /* Return mutex to caller. */
-    *Mutex = (void *) mutex;
+    *Mutex = (vg_lite_void *) mutex;
 #endif
     return VG_LITE_SUCCESS;
 }
 
 vg_lite_error_t
-vg_lite_AcquireMutex(void *Mutex, unsigned int Timeout)
+vg_lite_AcquireMutex(vg_lite_void *Mutex, vg_lite_uint32_t Timeout)
 {
     vg_lite_error_t status = VG_LITE_SUCCESS;
 #ifdef _WIN32
@@ -161,7 +163,7 @@ vg_lite_AcquireMutex(void *Mutex, unsigned int Timeout)
     /* Validate the arguments. */
     assert(Mutex != NULL);
 
-    milliSeconds = (Timeout == ((unsigned int) ~0U))
+    milliSeconds = (Timeout == ((vg_lite_uint32_t) ~0U))
         ? INFINITE
         : Timeout;
 
@@ -177,7 +179,7 @@ vg_lite_AcquireMutex(void *Mutex, unsigned int Timeout)
     /* Validate the arguments. */
     assert(Mutex != NULL);
 
-    z_timeout = (Timeout == ((unsigned int) ~0U)) ? K_FOREVER : K_MSEC(Timeout);
+    z_timeout = (Timeout == ((vg_lite_uint32_t) ~0U)) ? K_FOREVER : K_MSEC(Timeout);
 
     if (k_mutex_lock(Mutex, z_timeout))
     {
@@ -193,7 +195,7 @@ vg_lite_AcquireMutex(void *Mutex, unsigned int Timeout)
     mutex = (pthread_mutex_t *) Mutex;
 
     /* Test for infinite. */
-    if (Timeout == ((uint32_t) ~0U))
+    if (Timeout == ((vg_lite_uint32_t) ~0U))
     {
         /* Lock the mutex. */
         if (pthread_mutex_lock(mutex))
@@ -241,14 +243,14 @@ vg_lite_AcquireMutex(void *Mutex, unsigned int Timeout)
 }
 
 vg_lite_error_t
-vg_lite_ReleaseMutex(void *Mutex)
+vg_lite_ReleaseMutex(vg_lite_void *Mutex)
 {
 #ifdef _WIN32
         /* Validate the arguments. */
     assert(Mutex != NULL);
 
     /* Release the fast mutex. */
-    if (!ReleaseMutex((void *) Mutex))
+    if (!ReleaseMutex((vg_lite_void *) Mutex))
     {
         return VG_LITE_NOT_SUPPORT;
     }
@@ -278,7 +280,7 @@ vg_lite_ReleaseMutex(void *Mutex)
     {    \
         assert(vg_lite_CreateMutex(&dump_mutex) == VG_LITE_SUCCESS); \
     } \
-    assert(vg_lite_AcquireMutex(dump_mutex, ((unsigned int) ~0U)) == VG_LITE_SUCCESS); \
+    assert(vg_lite_AcquireMutex(dump_mutex, ((vg_lite_uint32_t) ~0U)) == VG_LITE_SUCCESS); \
 }
 
 #define vglitemUNLOCKDUMP() \
@@ -286,21 +288,21 @@ vg_lite_ReleaseMutex(void *Mutex)
 
 #define STACK_THREAD_NUMBER 1
 
-static uint32_t                         _usedFileSlot = 0;
-static uint32_t                         _currentPos = 0;
+static vg_lite_uint32_t                         _usedFileSlot = 0;
+static vg_lite_uint32_t                         _currentPos = 0;
 static vglitesDUMP_FILE_INFO            _FileArray[STACK_THREAD_NUMBER];
 
 #define vglitemOPT_VALUE(ptr)           (((ptr) == NULL) ? 0 : *(ptr))
 
 vg_lite_error_t vg_lite_PrintStrVSafe(
-    char * String,
+    vg_lite_char * String,
     size_t StringSize,
-    unsigned int * Offset,
-    const char * Format,
+    vg_lite_uint32_t * Offset,
+    const vg_lite_char * Format,
     va_list Arguments
     )
 {
-    unsigned int offset = vglitemOPT_VALUE(Offset);
+    vg_lite_uint32_t offset = vglitemOPT_VALUE(Offset);
     vg_lite_error_t status = VG_LITE_SUCCESS;
 
     /* Verify the arguments. */
@@ -311,12 +313,12 @@ vg_lite_error_t vg_lite_PrintStrVSafe(
     if (offset < StringSize - 1)
     {
         /* Print into the string. */
-        int n = vsnprintf(String + offset,
+        vg_lite_int32_t n = vsnprintf(String + offset,
                              StringSize - offset,
                              Format,
                              Arguments);
 
-        if (n < 0 || n >= (int)(StringSize - offset))
+        if (n < 0 || n >= (vg_lite_int32_t)(StringSize - offset))
         {
             status = VG_LITE_GENERIC_IO;
         }
@@ -335,10 +337,10 @@ vg_lite_error_t vg_lite_PrintStrVSafe(
 }
 
 vg_lite_error_t vg_lite_PrintStrSafe(
-    char * String,
+    vg_lite_char * String,
     size_t StringSize,
-    unsigned int * Offset,
-    const char* Format,
+    vg_lite_uint32_t * Offset,
+    const vg_lite_char* Format,
     ...
     )
 {
@@ -362,12 +364,12 @@ vg_lite_error_t vg_lite_PrintStrSafe(
     return status;
 }
 #if defined(__ZEPHYR__)
-void
+vg_lite_void
 vg_lite_SetDebugFile(
-    const char* FileName
+    const vg_lite_char* FileName
     )
 {
-    void *debugFile;
+    vg_lite_void *debugFile;
 
     if (FileName != NULL)
     {
@@ -380,9 +382,9 @@ vg_lite_SetDebugFile(
     }
 }
 #else
-void
+vg_lite_void
 vg_lite_SetDebugFile(
-    const char* FileName
+    const vg_lite_char* FileName
     )
 {
     FILE *debugFile;
@@ -404,17 +406,17 @@ vg_lite_SetDebugFile(
 \******************************************************************************/
 #ifdef __linux__
 #   define vglitemGETTHREADID() \
-    (uint32_t) pthread_self()
+    (vg_lite_uint32_t) pthread_self()
 
 #   define vglitemGETPROCESSID() \
     getpid()
 
 #elif defined (__ZEPHYR__)
 #   define vglitemGETTHREADID() \
-    (uint32_t) k_current_get()
+    (vg_lite_uint32_t) k_current_get()
 
 #   define vglitemGETPROCESSID() \
-    (uint32_t) k_current_get()
+    (vg_lite_uint32_t) k_current_get()
 
 #else
 #   define vglitemLOCKSECTION() \
@@ -438,7 +440,7 @@ vg_lite_SetDebugFile(
 #endif
 
 #if defined(__linux__) || defined (__ZEPHYR__)
-#ifdef __STRICT_ANSI__  /* ANSI C does not have snprintf, vsnprintf functions */
+#ifdef __STRICT_ANSI__  
 #   define vglitemSPRINTF(Destination, Size, Message, Value) \
         sprintf(Destination, Message, Value)
 
@@ -466,7 +468,7 @@ vg_lite_SetDebugFile(
 
 #endif
 
-vg_lite_error_t vgliteoDUMP_SetDumpFlag(int DumpState)
+vg_lite_error_t vgliteoDUMP_SetDumpFlag(vg_lite_int32_t DumpState)
 {
     DumpFlag = DumpState;
 
@@ -474,12 +476,12 @@ vg_lite_error_t vgliteoDUMP_SetDumpFlag(int DumpState)
 }
 
 #if defined(__ZEPHYR__)
-static void *_SetDumpFile(void *File, int CloseOldFile)
+static vg_lite_void *_SetDumpFile(vg_lite_void *File, vg_lite_int32_t CloseOldFile)
 {
-    void *oldFile = NULL;
-    uint32_t selfThreadID = vglitemGETTHREADID();
-    uint32_t pos;
-    uint32_t tmpCurPos;
+    vg_lite_void *oldFile = NULL;
+    vg_lite_uint32_t selfThreadID = vglitemGETTHREADID();
+    vg_lite_uint32_t pos;
+    vg_lite_uint32_t tmpCurPos;
     k_mutex_lock(&_dumpFileMutex, K_FOREVER);
     tmpCurPos = _currentPos;
 
@@ -533,12 +535,12 @@ error:
 
 #else
 
-static FILE *_SetDumpFile(FILE *File, int CloseOldFile)
+static FILE *_SetDumpFile(FILE *File, vg_lite_int32_t CloseOldFile)
 {
     FILE *oldFile = NULL;
-    uint32_t selfThreadID = vglitemGETTHREADID();
-    uint32_t pos;
-    uint32_t tmpCurPos;
+    vg_lite_uint32_t selfThreadID = vglitemGETTHREADID();
+    vg_lite_uint32_t pos;
+    vg_lite_uint32_t tmpCurPos;
 
 #ifdef _WIN32
     vglitemLOCKSECTION();
@@ -606,11 +608,11 @@ error:
 #endif
 
 #if defined(__ZEPHYR__)
-void * _GetDumpFile()
+vg_lite_void * _GetDumpFile()
 {
-    uint32_t selfThreadID;
-    uint32_t pos = 0;
-    void* retFile = NULL;
+    vg_lite_uint32_t selfThreadID;
+    vg_lite_uint32_t pos = 0;
+    vg_lite_pointer retFile = NULL;
 
     k_mutex_lock(&_dumpFileMutex, K_FOREVER);
 
@@ -639,8 +641,8 @@ exit:
 
 FILE * _GetDumpFile()
 {
-    uint32_t selfThreadID;
-    uint32_t pos = 0;
+    vg_lite_uint32_t selfThreadID;
+    vg_lite_uint32_t pos = 0;
     FILE* retFile = NULL;
 
 #ifdef __linux__
@@ -691,23 +693,23 @@ exit:
     }
 #endif
 
-static void OutputString(FILE *File, const char *String)
+static vg_lite_void OutputString(FILE *File, const vg_lite_char *String)
 {
     if (String != NULL) {
         vglitemOUTPUT_STRING(File, String);
     }
 }
 
-static void _Print(FILE *File, const char *Message, va_list Arguments)
+static vg_lite_void _Print(FILE *File, const vg_lite_char *Message, va_list Arguments)
 {
     /* Output to file or debugger. */
 
-    int i, j, n, indent;
-    static char buffer[4096];
+    vg_lite_int32_t i, j, n, indent;
+    static vg_lite_char buffer[4096];
     vglitesBUFFERED_OUTPUT_PTR outputBuffer = NULL;
 #ifdef _WIN32
-    static uint32_t prevThreadID;
-    uint32_t threadID;
+    static vg_lite_uint32_t prevThreadID;
+    vg_lite_uint32_t threadID;
 
     vglitemLOCKSECTION();
     /* Get the current thread ID. */
@@ -821,17 +823,17 @@ static void _Print(FILE *File, const char *Message, va_list Arguments)
     va_end(arguments); \
 }
 
-void vgliteoOS_Print(const char * Message, ...)
+vg_lite_void vgliteoOS_Print(const vg_lite_char * Message, ...)
 {
     vglitemDEBUGPRINT(_GetDumpFile(), Message);
 }
 
-void _SetDumpFileInfo()
+vg_lite_void _SetDumpFileInfo()
 {
 #define DUMP_FILE_PREFIX   "hal"
 
-    char dump_file[128];
-    unsigned int offset = 0;
+    vg_lite_char dump_file[128];
+    vg_lite_uint32_t offset = 0;
 
     /* Customize filename as needed. */
     vg_lite_PrintStrSafe(dump_file,
@@ -841,14 +843,14 @@ void _SetDumpFileInfo()
         vgliteDUMP_PATH,
         DUMP_FILE_PREFIX,
 #ifdef _WIN32
-        (void *)(uintptr_t)(GetCurrentProcessId()),
-        (void *)(uintptr_t)GetCurrentThreadId(),
+        (vg_lite_void *)(uintptr_t)(GetCurrentProcessId()),
+        (vg_lite_void *)(uintptr_t)GetCurrentThreadId(),
 #elif defined(__ZEPHYR__)
-        (void *)(uintptr_t)k_current_get(),
-        (void *)(uintptr_t)k_current_get(),
+        (vg_lite_void *)(uintptr_t)k_current_get(),
+        (vg_lite_void *)(uintptr_t)k_current_get(),
 #else
-        (void *)(uintptr_t)getpid(),
-        (void *)pthread_self(),
+        (vg_lite_void *)(uintptr_t)getpid(),
+        (vg_lite_void *)pthread_self(),
 #endif
         vgliteDUMP_KEY);
 
@@ -856,12 +858,12 @@ void _SetDumpFileInfo()
     vgliteoDUMP_SetDumpFlag(1);
 }
 
-vg_lite_error_t vglitefDump(char * Message, ...)
+vg_lite_error_t vglitefDump(vg_lite_char * Message, ...)
 {
     vg_lite_error_t status = VG_LITE_SUCCESS;
     unsigned offset = 0;
     va_list args;
-    char buffer[180];
+    vg_lite_char buffer[180];
 
     if (!DumpFlag)
     {
@@ -880,9 +882,9 @@ vg_lite_error_t vglitefDump(char * Message, ...)
     return status;
 }
 
-vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, size_t Offset, size_t Bytes)
+vg_lite_error_t vglitefDumpBuffer(vg_lite_char *Tag, size_t Physical, vg_lite_void * Logical, size_t Offset, size_t Bytes)
 {
-    unsigned int * ptr = (unsigned int *) Logical + (Offset >> 2);
+    vg_lite_uint32_t * ptr = (vg_lite_uint32_t *) Logical + (Offset >> 2);
     size_t bytes   = vglitemALIGN(Bytes + (Offset & 3), 4);
 
     if (!DumpFlag)
@@ -927,9 +929,9 @@ vg_lite_error_t vglitefDumpBuffer(char *Tag, size_t Physical, void * Logical, si
 #endif /* DUMP_CAPTURE */
 
 #if DUMP_LAST_CAPTURE
-vg_lite_error_t vglitefDumpBuffer_single(char* Tag, size_t Physical, void* Logical, size_t Offset, size_t Bytes)
+vg_lite_error_t vglitefDumpBuffer_single(vg_lite_char* Tag, size_t Physical, vg_lite_pointer Logical, size_t Offset, size_t Bytes)
 {
-    unsigned int* ptr = (unsigned int*)Logical + (Offset >> 2);
+    vg_lite_uint32_t* ptr = (vg_lite_uint32_t*)Logical + (Offset >> 2);
     size_t bytes = vglitemALIGN(Bytes + (Offset & 3), 4);
 
     if (!DumpFlag)
@@ -972,12 +974,12 @@ vg_lite_error_t vglitefDumpBuffer_single(char* Tag, size_t Physical, void* Logic
 }
 #endif
 
-vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
+vg_lite_error_t vg_lite_dump_png(const vg_lite_char *name, vg_lite_buffer_t *buffer)
 {
     vg_lite_error_t status = VG_LITE_SUCCESS;
 #ifdef __linux__
-    uint8_t *memory, *p, *q;
-    int x, y;
+    vg_lite_uint8_t *memory, *p, *q;
+    vg_lite_int32_t x, y;
     png_image image;
     uint16_t color;
 
@@ -1002,7 +1004,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
     }
 
     for (y = 0; y < buffer->height; y++) {
-        p = (uint8_t*) buffer->memory + y * buffer->stride;
+        p = (vg_lite_uint8_t*) buffer->memory + y * buffer->stride;
         q = memory + y * buffer->width * 3;
         for (x = 0; x < buffer->width; x++, q += 3) {
             switch (buffer->format) {
@@ -1032,7 +1034,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
 
                 case VG_LITE_ABGR8565:
                     p += 1;
-                    color = *(uint8_t *)p | *(uint8_t *)(p + 1) << 8;
+                    color = *(vg_lite_uint8_t *)p | *(vg_lite_uint8_t *)(p + 1) << 8;
                     p += 2;
                     q[0] = ((color & 0xF800) >> 8) | ((color & 0xE000) >> 13);
                     q[1] = ((color & 0x07E0) >> 3) | ((color & 0x0600) >> 9);
@@ -1040,7 +1042,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
 
                 case VG_LITE_BGRA5658:
-                    color = *(uint8_t *)p | *(uint8_t *)(p + 1) << 8;
+                    color = *(vg_lite_uint8_t *)p | *(vg_lite_uint8_t *)(p + 1) << 8;
                     p += 3;
                     q[0] = ((color & 0xF800) >> 8) | ((color & 0xE000) >> 13);
                     q[1] = ((color & 0x07E0) >> 3) | ((color & 0x0600) >> 9);
@@ -1049,7 +1051,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
 
                 case VG_LITE_ARGB8565:
                     p += 1;
-                    color = *(uint8_t *)p | *(uint8_t *)(p + 1) << 8;
+                    color = *(vg_lite_uint8_t *)p | *(vg_lite_uint8_t *)(p + 1) << 8;
                     p += 2;
                     q[0] = ((color & 0x001F) << 3) | ((color & 0x001C) >> 2);
                     q[1] = ((color & 0x07E0) >> 3) | ((color & 0x0600) >> 9);
@@ -1057,7 +1059,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
 
                 case VG_LITE_RGBA5658:
-                    color = *(uint8_t *)p | *(uint8_t *)(p + 1) << 8;
+                    color = *(vg_lite_uint8_t *)p | *(vg_lite_uint8_t *)(p + 1) << 8;
                     p += 3;
                     q[0] = ((color & 0x001F) << 3) | ((color & 0x001C) >> 2);
                     q[1] = ((color & 0x07E0) >> 3) | ((color & 0x0600) >> 9);
@@ -1195,7 +1197,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
 
                 case VG_LITE_RGBA2222:
-                    color = *(uint8_t*)p;
+                    color = *(vg_lite_uint8_t*)p;
                     p += 1;
                     q[0] = (color & 0x03) << 2 | (color & 0x03) << 4 | (color & 0x03) << 6 |(color & 0x03);
                     q[1] = (color & 0x0C) << 2 | (color & 0x0C) << 4 | (color & 0x0C) << 6 |(color & 0x0C);
@@ -1203,7 +1205,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
                     
                 case VG_LITE_BGRA2222:
-                    color = *(uint8_t*)p;
+                    color = *(vg_lite_uint8_t*)p;
                     p += 1;
                     q[2] = (color & 0x03) << 2 | (color & 0x03) << 4 | (color & 0x03) << 6 |(color & 0x03);
                     q[1] = (color & 0x0C) << 2 | (color & 0x0C) << 4 | (color & 0x0C) << 6 |(color & 0x0C);
@@ -1211,7 +1213,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
 
                 case VG_LITE_ARGB2222:
-                    color = *(uint8_t*)p;
+                    color = *(vg_lite_uint8_t*)p;
                     p += 1;
                     q[0] = (color & 0x0C) << 2 | (color & 0x0C) << 4 | (color & 0x0C) << 6 |(color & 0x0C);
                     q[1] = (color & 0x30) << 2 | (color & 0x30) << 4 | (color & 0x30) << 6 |(color & 0x30);
@@ -1219,7 +1221,7 @@ vg_lite_error_t vg_lite_dump_png(const char *name, vg_lite_buffer_t *buffer)
                     break;
 
                 case VG_LITE_ABGR2222:
-                    color = *(uint8_t*)p;
+                    color = *(vg_lite_uint8_t*)p;
                     p += 1;
                     q[2] = (color & 0x0C) << 2 | (color & 0x0C) << 4 | (color & 0x0C) << 6 |(color & 0x0C);
                     q[1] = (color & 0x30) << 2 | (color & 0x30) << 4 | (color & 0x30) << 6 |(color & 0x30);

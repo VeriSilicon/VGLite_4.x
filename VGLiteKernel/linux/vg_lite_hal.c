@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -47,6 +47,11 @@
 #endif
 #include <asm/cacheflush.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+MODULE_IMPORT_NS("DMA_BUF");
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+MODULE_IMPORT_NS(DMA_BUF);
+#endif
 MODULE_LICENSE("Dual MIT/GPL");
 
 /*#define GPU_REG_START   0x02204000
@@ -346,8 +351,8 @@ const char* vg_lite_hal_Status2Name(vg_lite_error_t status)
         return "VG_LITE_NOT_ALIGNED";
     case VG_LITE_FLEXA_TIME_OUT:
         return "VG_LITE_FLEXA_TIME_OUT";
-    case VG_LITE_FLEXA_HANDSHAKE_FAIL:
-        return "VG_LITE_FLEXA_HANDSHAKE_FAIL";
+    case VG_LITE_FLEXA_OUTOFSYNC:
+        return "VG_LITE_FLEXA_OUTOFSYNC";
     case VG_LITE_SYSTEM_CALL_FAIL:
         return "VG_LITE_SYSTEM_CALL_FAIL";
     default:
@@ -391,7 +396,7 @@ void vg_lite_hal_deinitialize(void)
     /* TODO: Remove power. */
 }
 
-uint32_t vg_lite_hal_cpu_to_gpu(uint64_t cpu_physical)
+static uint32_t vg_lite_hal_cpu_to_gpu(uint64_t cpu_physical)
 {
     return (uint32_t)cpu_physical;
 }
@@ -817,16 +822,19 @@ vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
     num_pages = GET_PAGE_COUNT(bytes, PAGE_SIZE);
 
     /* Make this mapping non-cached. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+    vm_flags_set(vma, VM_FLAGS);
+#else
     vma->vm_flags |= VM_FLAGS;
-
+#endif
     vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-
+    
     if (remap_pfn_range(vma, vma->vm_start, pfn, num_pages << PAGE_SHIFT, vma->vm_page_prot) < 0) {
         error = VG_LITE_OUT_OF_MEMORY;
     }
-
+    
     node->logical = (void *)((uint8_t*)_logical + offset);
-
+    
     up_write(&current_mm_mmap_sem);
 
     if(error)
@@ -835,7 +843,7 @@ vg_lite_error_t vg_lite_hal_map_memory(vg_lite_kernel_map_memory_t *node)
         unmap_node.logical = node->logical;
         vg_lite_hal_unmap_memory(&unmap_node);
     }
-
+    
     return error;
 }
 
@@ -909,14 +917,12 @@ int32_t vg_lite_hal_wait_interrupt(uint32_t timeout, uint32_t mask, uint32_t *va
     /* Wait for interrupt, ignoring timeout. */
     do {
         result = wait_event_interruptible_timeout(device->int_queue, device->int_flags & mask, jiffies);
-    } while (timeout == VG_LITE_INFINITE && result == 0);
-
-    /* Report the event(s) got. */
-    if (value != NULL) {
-        *value = device->int_flags & mask;
-    }
-
-    device->int_flags = 0;
+        /* Report the event(s) got. */
+        if (value != NULL) {
+            *value =  (*value | device->int_flags) & mask;
+        }
+        device->int_flags = 0;
+    } while ((timeout == VG_LITE_INFINITE && result == 0) || (result > 0 && (((*value & 0x1) != 1) && ((*value & 0x2) != 2))));
 
     return (result != 0);
 }
@@ -1029,6 +1035,29 @@ static vg_lite_int32_t import_pfns(struct mapped_memory *mapped, vg_lite_uintptr
         ONERROR(VG_LITE_OUT_OF_RESOURCES);
     }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+    for (i = 0; i < pfn_count; i++) {
+        struct follow_pfnmap_args args = {
+            .vma = vma,
+            .address = memory,
+        };
+        int ret; 
+        
+        ret = follow_pfnmap_start(&args);
+        if(ret){
+            vg_lite_kernel_error("follow_pfnmap_start failed at 0x%1x(ret: %d\n)", memory, ret);
+            goto err;
+        }
+        if(args.special || !pfn_valid(args.pfn)){
+            follow_pfnmap_end(&args);
+            goto err;
+        }
+        pfns[i] = args.pfn;
+        follow_pfnmap_end(&args);
+        
+        memory += PAGE_SIZE;
+    }
+#else
     for (i = 0; i < pfn_count; i++) {
         /* protect pfns[i] */
         spinlock_t *ptl;
@@ -1038,7 +1067,7 @@ static vg_lite_int32_t import_pfns(struct mapped_memory *mapped, vg_lite_uintptr
 #endif
         pud_t *pud;
         pmd_t *pmd;
-        pte_t *pte;
+        pte_t *pte; 
     
         pgd = pgd_offset(current->mm, memory);
         if (pgd_none(*pgd) || pgd_bad(*pgd))
@@ -1065,7 +1094,7 @@ static vg_lite_int32_t import_pfns(struct mapped_memory *mapped, vg_lite_uintptr
             goto err;
     
         pte = pte_offset_map_lock(current->mm, pmd, memory, &ptl);
-    
+
         if (!pte_present(*pte)) {
             pte_unmap_unlock(pte, ptl);
             goto err;
@@ -1077,7 +1106,7 @@ static vg_lite_int32_t import_pfns(struct mapped_memory *mapped, vg_lite_uintptr
         /* Advance to next. */
         memory += PAGE_SIZE;
     }
-
+#endif
     for (i = 0; i < pfn_count; i++) {
         if (pfn_valid(pfns[i])) {
             struct page *page = pfn_to_page(pfns[i]);
@@ -1178,7 +1207,11 @@ static vg_lite_int32_t import_pages(struct mapped_memory *mapped, vg_lite_uintpt
 #else
                             (vm_flags & VM_WRITE) ? 1 : 0, 0,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+                            pages);
+#else
                             pages, NULL);
+#endif
     up_read(&current_mm_mmap_sem);
 
     if (result < page_count) {
@@ -1247,7 +1280,7 @@ on_error:
 }
 
 #if defined(CONFIG_DMA_SHARED_BUFFER)
-vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_pointer *_sgt)
+static vg_lite_int32_t vg_lite_kernel_get_sgt(vg_lite_kernel_allocate_t *node, vg_lite_pointer *_sgt)
 {
     vg_lite_uintptr_t physical = 0;
     vg_lite_uint32_t bytes = node->bytes;
@@ -1845,7 +1878,7 @@ void vg_lite_hal_pm_suspend(void)
 }
 #endif
 
-int drv_open(struct inode *inode, struct file *file)
+static int drv_open(struct inode *inode, struct file *file)
 {
     struct client_data *data;
     vg_lite_uint32_t i = 0;
@@ -1866,14 +1899,14 @@ int drv_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-int drv_release(struct inode *inode, struct file *file)
+static int drv_release(struct inode *inode, struct file *file)
 {
     struct client_data *data = (struct client_data *)file->private_data;
 
     if (data != NULL) {
-        if (data->contiguous_mapped != NULL) {
+        //if (data->contiguous_mapped != NULL) {
             
-        }
+        //}
 
         kfree(data);
         file->private_data = NULL;
@@ -1882,7 +1915,7 @@ int drv_release(struct inode *inode, struct file *file)
     return 0;
 }
 
-long drv_ioctl(struct file *file, unsigned int ioctl_code, unsigned long arg)
+static long drv_ioctl(struct file *file, unsigned int ioctl_code, unsigned long arg)
 {
     struct ioctl_data arguments;
     void *data;
@@ -1930,7 +1963,7 @@ error:
     return -1;
 }
 
-ssize_t drv_read(struct file *file, char *buffer, size_t length, loff_t *offset)
+static ssize_t drv_read(struct file *file, char *buffer, size_t length, loff_t *offset)
 {
     struct client_data *private = (struct client_data *)file->private_data;
 
@@ -1946,7 +1979,7 @@ ssize_t drv_read(struct file *file, char *buffer, size_t length, loff_t *offset)
     return 4;
 }
 
-int drv_mmap(struct file *file, struct vm_area_struct *vm)
+static int drv_mmap(struct file *file, struct vm_area_struct *vm)
 {
     vg_lite_long_t size;
     struct client_data *private = (struct client_data *)file->private_data;
@@ -1963,6 +1996,8 @@ int drv_mmap(struct file *file, struct vm_area_struct *vm)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
     vm->vm_flags |= VM_RESERVED;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+    vm_flags_set(vm, VM_DONTEXPAND | VM_DONTDUMP);
 #else
     vm->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
 #endif
@@ -2024,6 +2059,7 @@ static void vg_lite_exit(void)
         if (device->register_base_mapped != NULL) {
             /* Unmap the GPU registers. */
             iounmap(device->register_base_mapped);
+            release_mem_region(device->register_mem_base, device->register_mem_size);
             device->register_base_mapped = NULL;
         }
 
@@ -2092,15 +2128,19 @@ static irqreturn_t irq_hander(int irq, void *context)
 
     /* Read interrupt status. */
     vg_lite_uint32_t flags = *(vg_lite_uint32_t *) (vg_lite_uint8_t *) (device->register_base_mapped + VG_LITE_INTR_STATUS);
+
+#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+    if(flags == 1 || flags == VGLITE_EVENT_FRAME_END)
+        record_running_time();
+#endif
+
     if (flags) {
         /* Combine with current interrupt flags. */
         device->int_flags |= flags;
- 
+
         /* Wake up any waiters. */
         wake_up_interruptible(&device->int_queue);
-#if gcdVG_RECORD_HARDWARE_RUNNING_TIME
-        record_running_time();
-#endif
+
         /* We handled the IRQ. */
         return IRQ_HANDLED;
     }
@@ -2130,6 +2170,14 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     device->pdev = pdev;
 
     /* Map the GPU registers. */
+    if (device->register_mem_base != 0) {
+    if(!request_mem_region(device->register_mem_base, device->register_mem_size, "vg_lite")) {
+          vg_lite_kernel_error("Failed to get ownership of BAR region.\n");
+          ONERROR(VG_LITE_OUT_OF_RESOURCES);
+        vg_lite_kernel_error("Failed to get ownership of BAR region.\n");
+        ONERROR(VG_LITE_OUT_OF_RESOURCES);
+    }
+    }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
     device->register_base_mapped = ioremap(device->register_mem_base/*GPU_REG_START*/, device->register_mem_size/* GPU_REG_SIZE*/);
 #else
@@ -2218,7 +2266,11 @@ static vg_lite_error_t vg_lite_init(struct platform_device *pdev)
     device->registered = 1;
 
     /* Create the graphics class. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+    device->class = class_create("vg_lite_class");
+#else
     device->class = class_create(THIS_MODULE, "vg_lite_class");
+#endif
     if (device->class == NULL) {
         vg_lite_kernel_error("class_create failed, ");
         vg_lite_exit();
@@ -2357,7 +2409,11 @@ on_error:
     return -1;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,11,0)
+static void gpu_remove(struct platform_device *pdev)
+#else
 static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
+#endif
 {
     if (!vg_lite_set_clock(VG_FALSE)) {
         vg_lite_set_power(VG_FALSE);
@@ -2369,8 +2425,9 @@ static vg_lite_int32_t gpu_remove(struct platform_device *pdev)
 #ifdef CONFIG_DEBUG_FS
     debug_fs_exit();
 #endif
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
     return 0;
+#endif
 }
 
 #if gcdVG_ENABLE_POWER_MANAGEMENT

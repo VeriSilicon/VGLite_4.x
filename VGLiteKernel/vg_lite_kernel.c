@@ -2,7 +2,7 @@
 *
 *    The MIT License (MIT)
 *
-*    Copyright (c) 2014 - 2025 Vivante Corporation
+*    Copyright (c) 2014 - 2026 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -42,8 +42,13 @@
 
 #ifdef __linux__
 #include <linux/jiffies.h>
-unsigned long start_time, end_time;
+unsigned long start_time, end_time, timming_flag = 0;
 unsigned long period_time, total_time = 0;
+
+#elif defined(FREERTOS)
+#include "FreeRTOS.h"
+TickType_t start_time, end_time, total_time = 0, period_time = 0;
+uint32_t timming_flag = 0;
 
 #else
 #include <sys/time.h>
@@ -55,6 +60,8 @@ unsigned long period_time, total_time = 0;
 
 #define FLEXA_TIMEOUT_STATE                 BIT(21)
 #define FLEXA_HANDSHEKE_FAIL_STATE          BIT(22)
+#define FLEXA_TIMEOUT                       (BIT(21) | BIT(23) | BIT(25) | BIT(27))
+#define FLEXA_OUT_OF_SYNC                   (BIT(22) | BIT(24) | BIT(26) | BIT(28))
 #define MIN_TS_SIZE                         (8 << 10)
 
 #if gcdVG_ENABLE_BACKUP_COMMAND
@@ -364,6 +371,13 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
     global_power_context.power_context_size = 0;
 #endif
 
+    context->init_command_buffer = NULL;
+    context->init_command_buffer_logical = NULL;
+    context->init_command_buffer_klogical = NULL;
+    context->init_command_buffer_physical = 0;
+    context->init_command_buffer_size = 1024;
+    context->init_command_buffer_offset = 0;
+
 #if gcdVG_ENABLE_COMMAND_BUFFER_CACHE
     fb_command_backup.handle = NULL;
     fb_command_backup.command_buffer_logical = NULL;
@@ -499,6 +513,22 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         data->fb_command_buffer_size = fb_command_backup.command_buffer_size;
     }
 #endif
+    /* Allocate init command buffer. 1KB */
+    error = vg_lite_kernel_vidmem_allocate(&context->init_command_buffer_size,
+                                           flags,
+                                           VG_LITE_POOL_RESERVED_MEMORY1,
+                                           &context->init_command_buffer_logical,
+                                           &context->init_command_buffer_klogical,
+                                           &context->init_command_buffer_physical,
+                                           &context->init_command_buffer);
+    if (error != VG_LITE_SUCCESS) {
+        /* Free any allocated memory. */
+        vg_lite_kernel_terminate_t terminate = { context };
+        do_terminate(&terminate);
+
+        /* Out of memory. */
+        ONERROR(error);
+    }
 
     /* Allocate the tessellation buffer. */
     if ((data->tess_width > 0) && (data->tess_height > 0)) 
@@ -507,11 +537,10 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         int height = 0;
         int vg_countbuffer_size = 0, total_size = 0, ts_buffer_size = 0;
 
-        height = VG_LITE_ALIGN(data->tess_height, 16);
-
 #if (CHIPID==0x355 || CHIPID==0x255)
         {
             unsigned long stride, buffer_size, l1_size, l2_size;
+            height = VG_LITE_ALIGN(data->tess_height, 16);
 #if (CHIPID==0x355)
             data->capabilities.cap.l2_cache = 1;
             width = VG_LITE_ALIGN(width, 128);
@@ -539,6 +568,7 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
         }
 #else /* (CHIPID==0x355 || CHIPID==0x255) */
         {   
+            height = VG_LITE_ALIGN(data->tess_height, 8);
             /* Check if we can used tiled tessellation (128x16). */
             if (((width & 127) == 0) && ((height & 15) == 0)) {
                 data->capabilities.cap.tiled = 0x3;
@@ -549,7 +579,11 @@ static vg_lite_error_t init_vglite(vg_lite_kernel_initialize_t * data)
 
             vg_countbuffer_size = (height + 13) / 14;
             vg_countbuffer_size = vg_countbuffer_size * 64;
-            total_size = height * 128 + vg_countbuffer_size;
+#if gcFEATURE_VG_XNODE_NUMBER
+            total_size = 2 * (32 + 9 * (height / 8 + 1)) * 64 + vg_countbuffer_size;
+#else
+            total_size = 2 * (32 + 5 * (height / 8 + 1)) * 64 + vg_countbuffer_size;
+#endif
             if (total_size < MIN_TS_SIZE)
                 total_size = MIN_TS_SIZE;
             ts_buffer_size = total_size - vg_countbuffer_size;
@@ -652,6 +686,12 @@ static vg_lite_error_t terminate_vglite(vg_lite_kernel_terminate_t * data)
     }
 #endif
 
+    if (context->init_command_buffer) {
+        /* Free the init command buffer. */
+        vg_lite_kernel_vidmem_free(context->init_command_buffer);
+        context->init_command_buffer = NULL;
+    }
+
 #if gcdVG_ENABLE_BACKUP_COMMAND
     if (global_power_context.power_context) {
         /* Free the power context. */
@@ -750,10 +790,9 @@ static vg_lite_error_t do_free(vg_lite_kernel_free_t * data)
 
 static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
 {
-    uint32_t offset;
+    uint32_t offset, physical;
     vg_lite_kernel_context_t *context = NULL;
-    uint32_t physical = data->context->command_buffer_physical[data->command_id];
-
+    
 #if defined(__linux__) && !defined(EMULATOR)
     vg_lite_kernel_context_t mycontext = {
     .command_buffer = { 0 },
@@ -768,11 +807,13 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
     context = &mycontext;
     physical = context->command_buffer_physical[data->command_id];
 #else
-    context = data->context;
-    if (context == NULL)
+    if (data->context == NULL)
     {
         return VG_LITE_NO_CONTEXT;
     }
+
+    context = data->context;
+    physical = data->context->command_buffer_physical[data->command_id];
 #endif
     /* Perform a memory barrier. */
     vg_lite_hal_barrier();
@@ -788,9 +829,22 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
 
 #if gcdVG_RECORD_HARDWARE_RUNNING_TIME
 #ifdef __linux__
-    start_time = jiffies;
+    if(!timming_flag){
+        start_time = jiffies;
+        timming_flag = 1;
+    }
+
+#elif defined(FREERTOS)
+    if(!timming_flag){
+        start_time = xTaskGetTickCount();
+        timming_flag = 1;
+    }
+
 #else
-    gettimeofday(&start_time, NULL);
+    if(!timming_flag){
+        gettimeofday(&start_time, NULL);
+        timming_flag = 1;
+    }
 #endif
 #endif
 
@@ -805,56 +859,70 @@ static vg_lite_error_t do_submit(vg_lite_kernel_submit_t * data)
 }
 
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
-static void dump_last_frame(void)
+static void dump_last_frame(vg_lite_kernel_context_t *context)
 {
-    uint32_t *ptr = backup_command_buffer_klogical;
-    uint32_t size = backup_command_buffer_size;
+    uint32_t *ptr;
+    uint32_t size;
     uint32_t i = 0;
     uint32_t data = 0;
 
+    ptr = (uint32_t*)context->init_command_buffer_klogical;
+    size = context->init_command_buffer_offset / 4;
+
     vg_lite_kernel_print("This is init command buffer:\n");
-    vg_lite_kernel_print("@[%s 0x%08X 0x00000088\n", "command", physical_address);
-    vg_lite_kernel_print("  0x30010A35 0x%08X 0x30010AC8 0x%08X\n", init_buffer[0], init_buffer[1]);
-    vg_lite_kernel_print("  0x30010ACB 0x%08X 0x30010ACC 0x%08X\n", init_buffer[2], init_buffer[3]);
-    vg_lite_kernel_print("  0x30010A90 0x%08X 0x30010A91 0x%08X\n", init_buffer[4], init_buffer[5]);
-    vg_lite_kernel_print("  0x30010A92 0x%08X 0x30010A93 0x%08X\n", init_buffer[6], init_buffer[7]);
-    vg_lite_kernel_print("  0x30010A94 0x%08X 0x30010A95 0x%08X\n", init_buffer[8], init_buffer[9]);
-    vg_lite_kernel_print("  0x30010A96 0x%08X 0x30010A97 0x%08X\n", init_buffer[10], init_buffer[11]);
-    vg_lite_kernel_print("  0x30010A00 0x00000001 0x30010A1B 0x00000011\n");
-    vg_lite_kernel_print("  0x10000007 0x00000000 0x20000007 0x00000000\n");
-    vg_lite_kernel_print("  0x00000000 0x00000000\n");
+    vg_lite_kernel_print("@[%s 0x%08X 0x%08X\n", "command", context->init_command_buffer_physical, size*4);
+    int temp_value = size % 4;
+    for (i = 0; i < size - temp_value; i += 4) {
+        vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
+    }
+    if (temp_value)
+    {
+        int j = size % 4;
+        switch (j)
+        {
+        case 1:
+            vg_lite_kernel_print("  0x%08X\n", ptr[size - 1]);
+            break;
+        case 2:
+            vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[size - 2], ptr[size - 1]);
+            break;
+        case 3:
+            vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[size - 3], ptr[size - 2], ptr[size - 1]);
+            break;
+        default:
+            break;
+        }
+    }
     vg_lite_kernel_print("] -- %s\n", "command");
 
-    if (is_init == 1)
-    {
-        vg_lite_kernel_print("the last submit command is init command.\n");
+    ptr = backup_command_buffer_klogical;
+    size = backup_command_buffer_size / 4;
+
+    vg_lite_kernel_print("the last submit command before hang:\n");
+    vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", backup_command_buffer_klogical, size*4);
+    temp_value = size % 4;
+    for (i = 0; i < size - temp_value; i += 4) {
+        vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
     }
-    else
+    if (temp_value)
     {
-        vg_lite_kernel_print("the last submit command before hang:\n");
-        vg_lite_kernel_print( "@[%s 0x%08X 0x%08X\n", "command", backup_command_buffer_klogical, size);
-        for (i = 0; i < size; i += 4) {
-            vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X 0x%08X\n", ptr[i], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
-        }
-        if (size % 16)
+        int j = size % 4;
+        switch (j)
         {
-            int j = size % 16 / 4;
-            switch (j)
-            {
-            case 1:
-                vg_lite_kernel_print("  0x%08X\n", ptr[(size - size % 16) / 4]);
-                break;
-            case 2:
-                vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[(size - size % 16) / 4], ptr[(size - size % 16) / 4 + 1]);
-                break;
-            case 3:
-                vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[(size - size % 16) / 4], ptr[(size - size % 16) / 4 + 1], ptr[(size - size % 16) / 4 + 2]);
-                break;
-            default:
-                break;
-            }
+        case 1:
+            vg_lite_kernel_print("  0x%08X\n", ptr[size - 1]);
+            break;
+        case 2:
+            vg_lite_kernel_print("  0x%08X 0x%08X\n", ptr[size - 2], ptr[size - 1]);
+            break;
+        case 3:
+            vg_lite_kernel_print("  0x%08X 0x%08X 0x%08X\n", ptr[size - 3], ptr[size - 2], ptr[size - 1]);
+            break;
+        default:
+            break;
         }
     }
+
     vg_lite_kernel_print("] -- %s\n", "command");
 
     data = vg_lite_hal_peek(VG_LITE_HW_IDLE);
@@ -864,9 +932,30 @@ static void dump_last_frame(void)
 
 static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 {
+    vg_lite_kernel_context_t* context = NULL;
+#if defined(__linux__) && !defined(EMULATOR)
+    vg_lite_kernel_context_t mycontext = {
+    .command_buffer = { 0 },
+    .command_buffer_logical = { 0 },
+    .command_buffer_klogical = { 0 },
+    .command_buffer_physical = { 0 },
+    };
+
+    if (copy_from_user(&mycontext, data->context, sizeof(vg_lite_kernel_context_t)) != 0) {
+        return VG_LITE_NO_CONTEXT;
+    }
+    context = &mycontext;
+#else
+    context = data->context;
+    if (context == NULL)
+    {
+        return VG_LITE_NO_CONTEXT;
+    }
+#endif
 #if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
     vg_lite_error_t error = VG_LITE_SUCCESS;
 #endif
+
     /* Wait for interrupt. */
 #if gcdVG_DUMP_DEBUG_REGISTER
     if (!vg_lite_hal_wait_interrupt(5000, data->event_mask, &data->event_got)) {
@@ -966,7 +1055,7 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         debug = vg_lite_hal_peek(0xE8);
         vg_lite_kernel_print("0x%x = 0x%08x\n", 0xE8, debug); 
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
-        dump_last_frame();
+        dump_last_frame(context);
 #endif
         return VG_LITE_TIMEOUT;
     }
@@ -981,7 +1070,7 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
         }
 
 #if gcdVG_ENABLE_DUMP_COMMAND && gcdVG_ENABLE_BACKUP_COMMAND
-        dump_last_frame();
+        dump_last_frame(context);
 #endif
 
 #if gcdVG_ENABLE_GPU_RESET && gcdVG_ENABLE_BACKUP_COMMAND
@@ -1012,13 +1101,12 @@ static vg_lite_error_t do_wait(vg_lite_kernel_wait_t * data)
 #endif
 
 #if gcFEATURE_VG_FLEXA
-    if (data->event_got & FLEXA_TIMEOUT_STATE)
+    if (data->event_got & FLEXA_TIMEOUT)
         return VG_LITE_FLEXA_TIME_OUT;
-
-    if (data->event_got & FLEXA_HANDSHEKE_FAIL_STATE)
-        return VG_LITE_FLEXA_HANDSHAKE_FAIL;
+    if (data->event_got & FLEXA_OUT_OF_SYNC)
+        return VG_LITE_FLEXA_OUTOFSYNC;
+   
 #endif
-
     /* set gpu to idle state  */
     vg_lite_set_gpu_execute_state(VG_LITE_GPU_STOP);
 
@@ -1131,55 +1219,258 @@ static vg_lite_error_t do_peek(vg_lite_kernel_info_t * data)
     return VG_LITE_SUCCESS;
 }
 
+#if gcFEATURE_VG_MESH_FOR_FRAME
+static vg_lite_error_t do_target_mesh_set_control(vg_lite_kernel_mesh_info_t* data)
+{
+
+    vg_lite_hal_poke(0x0520, data->mesh_control);
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_target_mesh_set_w_h(vg_lite_kernel_mesh_info_t* data)
+{
+
+    vg_lite_hal_poke(0x0530, data->width | (data->height << 16));
+
+    return VG_LITE_SUCCESS;
+}
+#endif
+
 #if gcFEATURE_VG_FLEXA
-static vg_lite_error_t do_flexa_enable(vg_lite_kernel_flexa_info_t * data)
+static vg_lite_error_t do_flexa_enable(vg_lite_kernel_flexa_info_t* data)
 {
-    /* reset all flexa states */
-    vg_lite_hal_poke(0x03600, 0x0);
-    /* set sync mode */
-    vg_lite_hal_poke(0x03604, data->segment_address);
+    vg_lite_hal_poke(0x0520, data->sync_mode | data->mesh_size);
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("\n  0x520: sync_mode: %d, mesh_size: %d \n", data->sync_mode, data->mesh_size);
+    vg_lite_kernel_print("\n  VG AHB register 0x520: 0x%x\n", data->sync_mode | data->mesh_size);
+#endif
 
-    vg_lite_hal_poke(0x03608, data->segment_count);
+    return VG_LITE_SUCCESS;
+}
 
-    vg_lite_hal_poke(0x0360C, data->segment_size);
+static vg_lite_error_t do_flexa_set_target_w_h(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x0530, data->target_width | (data->target_height << 16));
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("\n  VG AHB register 0x530: 0x%x\n", data->target_width | (data->target_height << 16));
+#endif
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_consumer0_address(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x03608, data->segment_address);
+
+    vg_lite_hal_poke(0x0360C, data->segment_count);
+
+    vg_lite_hal_poke(0x03614, data->segment_offset);
+
+    vg_lite_hal_poke(0x03610, data->segment_size);
+
+    vg_lite_hal_poke(0x03618, data->plane2_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer0_start_timeout_mode | data->consumer0_request_timeout_mode | data->consumer0_consumer_id);
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_consumer1_address(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x03624, data->segment_address);
+
+    vg_lite_hal_poke(0x03628, data->segment_count);
+
+    vg_lite_hal_poke(0x03630, data->segment_offset);
+
+    vg_lite_hal_poke(0x0362C, data->segment_size);
+
+    vg_lite_hal_poke(0x03634, data->plane1_stream_id | data->sbi_mode | data->start_flag  | data->reset_flag | data->consumer1_start_timeout_mode | data->consumer1_request_timeout_mode | data->consumer1_consumer_id);
+
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("VG_FLEXA register 0x03624, segment_address: 0x%x \n", data->segment_address);
+    vg_lite_kernel_print("\n  VG AHB register 0x03624: 0x%x \n", data->segment_address);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03628, segment_count: %d \n", data->segment_count);
+    vg_lite_kernel_print("\n  VG AHB register 0x03628: 0x%x\n", data->segment_count);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03630, segment_offset: %d\n", data->segment_offset);
+    vg_lite_kernel_print("\n  VG AHB register 0x03630: 0x%x\n", data->segment_offset);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x0362c, segment_size: %d\n", data->segment_size);
+    vg_lite_kernel_print("\n  VG AHB register 0x0362C: 0x%x\n", data->segment_size);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03634, stream_id: %d, sbi_mode: %d, start_flag: %d, stop_flag: %d, reset_flag: %d\n",
+        data->plane1_stream_id, data->sbi_mode, data->start_flag, data->reset_flag);
+    vg_lite_kernel_print("VG_FLEXA register 0x03634, consumer_start_timeout_mode: %d, consumer_request_timeout_mode: %d, consumer_consumer_id: %d\n",
+        data->consumer1_start_timeout_mode, data->consumer1_request_timeout_mode, data->consumer1_consumer_id);
+    vg_lite_kernel_print("\n  VG AHB register 0x03634: 0x%x\n", data->plane1_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer1_start_timeout_mode | data->consumer1_request_timeout_mode | data->consumer1_consumer_id);
+
+#endif
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_distribute_consumer1(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x03604, data->consumer1_set | data->consumer0_set);
+
+    vg_lite_hal_poke(0x03624, data->segment_address);
+
+    vg_lite_hal_poke(0x03628, data->segment_count);
+
+    vg_lite_hal_poke(0x03630, data->segment_offset);
+
+    vg_lite_hal_poke(0x0362C, data->segment_size);
+
+    vg_lite_hal_poke(0x03634, data->plane1_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer1_start_timeout_mode | data->consumer1_request_timeout_mode | data->consumer1_consumer_id);
+
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("VG_FLEXA register 0x03604, consumer1_set: %d, consumer0_set: %d\n", data->consumer1_set, data->consumer0_set);
+    vg_lite_kernel_print("\n  VG AHB register 0x03604: 0x%x\n", data->consumer1_set | data->consumer0_set);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03624, consumer1_segment_address: 0x%x\n", data->segment_address);
+    vg_lite_kernel_print("\n  VG AHB register 0x03624: 0x%x\n", data->segment_address);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03628, consumer1_segment_count: %d\n", data->segment_count);
+    vg_lite_kernel_print("\n  VG AHB register 0x03628: %d\n", data->segment_count);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03630, consumer1_segment_offset: %d\n", data->segment_offset);
+    vg_lite_kernel_print("\n  VG AHB register 0x03630: %d\n", data->segment_offset);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x0362C, consumer1_segment_size: %d\n", data->segment_size);
+    vg_lite_kernel_print("\n  VG AHB register 0x0362C: %d\n", data->segment_size);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03634, stream_id: %d, sbi_mode: %d, start_flag: %d, stop_flag: %d, reset_flag: %d\n",
+        data->plane1_stream_id, data->sbi_mode, data->start_flag, data->reset_flag);
+    vg_lite_kernel_print("VG_FLEXA register 0x03634, consumer_start_timeout_mode: %d, consumer_request_timeout_mode: %d, consumer_consumer_id: %d\n",
+        data->consumer1_start_timeout_mode, data->consumer1_request_timeout_mode, data->consumer1_consumer_id);
+    vg_lite_kernel_print("\n  VG AHB register 0x03634: 0x%x\n", data->plane1_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer1_start_timeout_mode | data->consumer1_request_timeout_mode | data->consumer1_consumer_id);
+#endif
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_distribute_consumer0(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x03604, data->consumer1_set | data->consumer0_set);
+
+    vg_lite_hal_poke(0x03608, data->segment_address);
+
+    vg_lite_hal_poke(0x0360C, data->segment_count);
+
+    vg_lite_hal_poke(0x03614, data->segment_offset);
+
+    vg_lite_hal_poke(0x03610, data->segment_size);
+
+    vg_lite_hal_poke(0x03618, data->plane2_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer0_start_timeout_mode | data->consumer0_request_timeout_mode | data->consumer0_consumer_id);
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("VG_FLEXA register 0x03604, consumer1_set: %d, consumer0_set: %d\n", data->consumer1_set, data->consumer0_set);
+    vg_lite_kernel_print("\n  VG AHB register 0x03604: 0x%x\n", data->consumer1_set | data->consumer0_set);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03608, consumer0_segment_address: 0x%x\n", data->segment_address);
+    vg_lite_kernel_print("\n  VG AHB register 0x03608: 0x%x\n", data->segment_address);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x0360C, consumer0_segment_count: %d\n", data->segment_count);
+    vg_lite_kernel_print("\n  VG AHB register 0x0360C: 0x%x\n", data->segment_count);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03614, consumer0_segment_count: %d\n", data->segment_offset);
+    vg_lite_kernel_print("\n  VG AHB register 0x03614: 0x%x\n", data->segment_offset);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03610, consumer0_segment_size: %d\n", data->segment_size);
+    vg_lite_kernel_print("\n  VG AHB register 0x03610: 0x%x\n", data->segment_size);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03618, stream_id: %d, sbi_mode: %d, start_flag: %d, stop_flag: %d, reset_flag: %d\n",
+        data->plane2_stream_id, data->sbi_mode, data->start_flag, data->reset_flag);
+    vg_lite_kernel_print("VG_FLEXA register 0x03618, consumer_start_timeout_mode: %d, consumer_request_timeout_mode: %d, consumer_consumer_id: %d\n",
+        data->consumer0_start_timeout_mode, data->consumer0_request_timeout_mode, data->consumer0_consumer_id);
+    vg_lite_kernel_print("\n  VG AHB register 0x03618: 0x%x\n", data->plane2_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->consumer0_start_timeout_mode | data->consumer0_request_timeout_mode | data->consumer0_consumer_id);
+#endif
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_producer_address(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x03640, data->segment_address);
+
+    vg_lite_hal_poke(0x03644, data->segment_count);
+
+    vg_lite_hal_poke(0x0364C, data->segment_offset);
+
+    vg_lite_hal_poke(0x03648, data->segment_size);
+
+    vg_lite_hal_poke(0x03650, data->plane1_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->producer0_start_timeout_mode | data->producer0_request_timeout_mode | data->producer0_consumer_id);
+
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("VG_FLEXA register 0x03640, producer0_set: %d, producer0_set: 0x%x\n", data->segment_address);
+    vg_lite_kernel_print("\n  VG AHB register 0x03640: 0x%x\n", data->segment_address);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03644, producer0_segment_count: %d\n", data->segment_count);
+    vg_lite_kernel_print("\n  VG AHB register 0x03644: 0x%x\n", data->segment_count);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x0364C, producer0_segment_offset: %d\n", data->segment_offset);
+    vg_lite_kernel_print("\n  VG AHB register 0x0364C: 0x%x\n", data->segment_offset);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03648, consumer0_segment_size: %d\n", data->segment_size);
+    vg_lite_kernel_print("\n  VG AHB register 0x03648: 0x%x\n", data->segment_size);
+
+    vg_lite_kernel_print("VG_FLEXA register 0x03650, stream_id: %d, sbi_mode: %d, start_flag: %d, stop_flag: %d, reset_flag: %d\n",
+        data->plane1_stream_id, data->sbi_mode, data->start_flag, data->reset_flag);
+    vg_lite_kernel_print("VG_FLEXA register 0x03650, producer0_start_timeout_mode: %d, producer0_request_timeout_mode: %d, producer0_consumer_id: %d\n",
+        data->producer0_start_timeout_mode, data->producer0_request_timeout_mode, data->producer0_consumer_id);
+    vg_lite_kernel_print("\n  VG AHB register 0x03650: 0x%x\n", data->plane1_stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->producer0_start_timeout_mode | data->producer0_request_timeout_mode | data->producer0_consumer_id);
+#endif    
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_set_producer1_address(vg_lite_kernel_flexa_info_t* data)
+{
+    vg_lite_hal_poke(0x0365C, data->segment_address);
+
+    vg_lite_hal_poke(0x03660, data->segment_count);
+
+    vg_lite_hal_poke(0x03668, data->segment_offset);
+
+    vg_lite_hal_poke(0x03664, data->segment_size);
+
+    vg_lite_hal_poke(0x0366C, data->stream_id | data->sbi_mode | data->start_flag | data->reset_flag | data->producer1_start_timeout_mode | data->producer1_request_timeout_mode | data->producer1_consumer_id);
+
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t do_flexa_disable(vg_lite_kernel_flexa_info_t* data)
+{
 
     vg_lite_hal_poke(0x0520, data->sync_mode);
 
-    vg_lite_hal_poke(0x03610, data->stream_id | data->sbi_mode | data->start_flag | data->stop_flag | data->reset_flag);
-
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t do_flexa_set_background_address(vg_lite_kernel_flexa_info_t * data)
+static vg_lite_error_t do_flexa_stop_consumer(vg_lite_kernel_flexa_info_t* data)
 {
-    vg_lite_hal_poke(0x03604, data->segment_address);
-
-    vg_lite_hal_poke(0x03608, data->segment_count);
-
-    vg_lite_hal_poke(0x0360C, data->segment_size);
-
-    vg_lite_hal_poke(0x03610, data->stream_id | data->sbi_mode | data->start_flag | data->stop_flag | data->reset_flag);
-
+    unsigned int value = 0;
+    value = vg_lite_hal_peek(0x03618);
+    value &= ~(1u << 9);
+    vg_lite_hal_poke(0x03618, value | data->stop_flag);
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("\n  VG AHB register 0x03618: 0x%x\n", value | data->stop_flag);
+#endif
+    value = 0;
+    value = vg_lite_hal_peek(0x03634);
+    value &= ~(1u << 9);
+    vg_lite_hal_poke(0x03634, value | data->stop_flag);
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("\n  VG AHB register 0x03634: 0x%x\n", value | data->stop_flag);
+#endif
     return VG_LITE_SUCCESS;
 }
 
-static vg_lite_error_t do_flexa_disable(vg_lite_kernel_flexa_info_t * data)
+static vg_lite_error_t do_flexa_stop_producer(vg_lite_kernel_flexa_info_t* data)
 {
-
-    vg_lite_hal_poke(0x0520, data->sync_mode);
-
-    vg_lite_hal_poke(0x03610, data->stream_id | data->sbi_mode);
-
-    /* reset all flexa states */
-    vg_lite_hal_poke(0x03600, 0x0);
-
-    return VG_LITE_SUCCESS;
-}
-
-static vg_lite_error_t do_flexa_stop_frame(vg_lite_kernel_flexa_info_t * data)
-{
-    vg_lite_hal_poke(0x03610, data->stream_id | data->sbi_mode | data->start_flag | data->stop_flag | data->reset_flag);
-
+    uint64_t  value = 0;
+    value = vg_lite_hal_peek(0x03650);
+    value &= ~(1u << 9);
+    vg_lite_hal_poke(0x03650, value | data->stop_flag);
+#if gcdVG_ENABLE_DUMP_AHB_REGISTER
+    vg_lite_kernel_print("\n  VG AHB register 0x03650: 0x%x\n", value | data->stop_flag);
+#endif
     return VG_LITE_SUCCESS;
 }
 #endif
@@ -1280,13 +1571,20 @@ static vg_lite_error_t do_get_running_time(vg_lite_kernel_hardware_running_time_
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
 #if gcdVG_RECORD_HARDWARE_RUNNING_TIME
+
 #ifdef __linux__
     data->run_time = total_time;
     data->hertz = HZ;
+
+#elif defined(FREERTOS)
+    data->run_time = total_time;
+    data->hertz = 1;
+
 #else
     data->run_time = total_time;
     data->hertz = 1e6;
 #endif
+
 #endif
     return error;
 }
@@ -1299,15 +1597,23 @@ vg_lite_error_t record_running_time(void)
 
 #ifdef __linux__
     end_time = jiffies;
-    period_time = end_time - start_time;
+    period_time = jiffies_to_msecs(end_time - start_time);
     total_time += period_time;
+    timming_flag = 0;
+    //printk("GPU hardware running period time: %ld ms\n", period_time);
+    //printk("GPU hardware running total time: %ld ms\n", total_time);
+
+#elif defined(FREERTOS)
+    end_time = xTaskGetTickCount();
+    period_time = (end_time - start_time) * portTICK_PERIOD_MS;
+    total_time += period_time;
+    timming_flag = 0;
 
 #else
     gettimeofday(&end_time, NULL);
     period_time = (end_time.tv_sec - start_time.tv_sec)*1e6 + end_time.tv_usec - start_time.tv_usec;
     total_time += period_time;
-    //printk("GPU hardware running period time: %f s\n", (float)period_time/1e-6);
-    //printk("GPU hardware running total time: %f s\n", (float)total_time/1e-6);
+    timming_flag = 0;
 #endif
 
 #endif
@@ -1381,6 +1687,14 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
             /* Get register value. */
             return do_peek(data);
 
+#if gcFEATURE_VG_MESH_FOR_FRAME
+        case VG_LITE_SET_TARGET_MESH_CONTROL:
+            return do_target_mesh_set_control(data);
+
+        case VG_LITE_SET_TARGET_MESH_W_H:
+            return do_target_mesh_set_w_h(data);
+#endif
+
 #if gcFEATURE_VG_FLEXA
         case VG_LITE_FLEXA_DISABLE:
             /* Write register value. */
@@ -1390,13 +1704,40 @@ vg_lite_error_t vg_lite_kernel(vg_lite_kernel_command_t command, void * data)
             /* Write register value. */
             return do_flexa_enable(data);
 
-        case VG_LITE_FLEXA_STOP_FRAME:
+        case VG_LITE_FLEXA_STOP_CONSUMER:
             /* Write register value. */
-            return do_flexa_stop_frame(data);
+            return do_flexa_stop_consumer(data);
 
-        case VG_LITE_FLEXA_SET_BACKGROUND_ADDRESS:
+        case VG_LITE_FLEXA_STOP_PRODUCER:
             /* Write register value. */
-            return do_flexa_set_background_address(data);
+            return do_flexa_stop_producer(data);
+
+        case VG_LITE_FLEXA_SET_CONSUMER0_ADDRESS:
+            /* Write register value. */
+            return do_flexa_set_consumer0_address(data);
+
+        case VG_LITE_FLEXA_SET_CONSUMER1_ADDRESS:
+            /* Write register value. */
+            return do_flexa_set_consumer1_address(data);
+
+        case VG_LITE_FLEXA_SET_PRODUCER_ADDRESS:
+            /* Write register value. */
+            return do_flexa_set_producer_address(data);
+
+        case VG_LITE_FLEXA_SET_PRODUCER1_ADDRESS:
+            /* Write register value. */
+            return do_flexa_set_producer1_address(data);
+
+        case VG_LITE_FLEXA_SET_DISTRIBUTE_CONSUMER1:
+            /* Write register value. */
+            return do_flexa_set_distribute_consumer1(data);
+
+        case VG_LITE_FLEXA_SET_DISTRIBUTE_CONSUMER0:
+            /* Write register value. */
+            return do_flexa_set_distribute_consumer0(data);
+        case VG_LITE_FLEXA_SET_TARGET_W_H:
+            /* Write register value. */
+            return do_flexa_set_target_w_h(data);
 #endif
 
         case VG_LITE_QUERY_MEM:
