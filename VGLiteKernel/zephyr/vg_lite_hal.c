@@ -196,8 +196,8 @@ const char *vg_lite_hal_Status2Name(vg_lite_error_t status)
         return "VG_LITE_NOT_ALIGNED";
     case VG_LITE_FLEXA_TIME_OUT:
         return "VG_LITE_FLEXA_TIME_OUT";
-    case VG_LITE_FLEXA_HANDSHAKE_FAIL:
-        return "VG_LITE_FLEXA_HANDSHAKE_FAIL";
+    case VG_LITE_FLEXA_OUTOFSYNC:
+        return "VG_LITE_FLEXA_OUTOFSYNC";
     case VG_LITE_SYSTEM_CALL_FAIL:
         return "VG_LITE_SYSTEM_CALL_FAIL";
     default:
