@@ -18,6 +18,7 @@ config PM_DEVICE
       
 config VG_LITE_K_MEM_POOL_SIZE
     hex "VG-Lite heap size"
+    default 0x0
     help
       Size (in bytes) of the memory pool used by VG-Lite.
 
