@@ -22,7 +22,7 @@
 #include <vg_lite_hw.h>
 #include <vg_lite.h>
 
-#define VGLITE_GPU_NODE         DT_NODELABEL(gpu2d)
+#define VGLITE_GPU_NODE         DT_NODELABEL(gpu)
 #define VGLITE_GPU_BASE         DT_REG_ADDR(VGLITE_GPU_NODE)
 #define VGLITE_GPU_IRQN         DT_IRQN(VGLITE_GPU_NODE)
 #define CLOCK_ID_GPU            DT_CLOCKS_CELL_BY_IDX(VGLITE_GPU_NODE, 0, name)
