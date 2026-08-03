@@ -27,6 +27,21 @@
 #include "vg_lite_context.h"
 #include "vg_lite_chip.h"
 
+#if gcFEATURE_VG_CONIC_GRADIENT
+#include "vg_lite_atan.h"
+
+#if !CONIC_ATAN_RUNTIME_CONFIG
+/* Compile-time single-table selection: bind unsuffixed aliases to the one
+ * table that was emitted for the current TEX_SIZE. Under RUNTIME_CONFIG=1
+ * we dispatch on the runtime size directly and don't use these aliases. */
+#define _CONIC_CAT2(a, b) a##b
+#define _CONIC_CAT(a, b)  _CONIC_CAT2(a, b)
+#define CONIC_ATAN_REF_TABLE   _CONIC_CAT(conic_atan_ref_,  CONIC_ATAN_TEX_SIZE)
+#define CONIC_ATAN_QMAP_TABLE  _CONIC_CAT(conic_atan_qmap_, CONIC_ATAN_TEX_SIZE)
+#define CONIC_ATAN_IDX_TABLE   _CONIC_CAT(conic_atan_idx_,  CONIC_ATAN_TEX_SIZE)
+#endif
+#endif
+
 /* Path data operations. */
 #define CDALIGN(value, by) (((value) + (by) - 1) & ~((by) - 1))
 #define CDMIN(x, y) ((x) > (y) ? (y) : (x))
@@ -940,7 +955,7 @@ vg_lite_error_t vg_lite_append_path(vg_lite_path_t *path,
     return error;
 }
 
-#if (CHIPID==0x355 || CHIPID==0x255) 
+#if (CHIPID==0x355 || CHIPID==0x255) /* GC355/GC255 vg_lite_draw functions */
 
 #define UPDATE_BOUNDING_BOX(bbx, point)                                 \
     do {                                                                \
@@ -3206,7 +3221,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
     vg_lite_uint32_t in_premult = 0;
     vg_lite_uint32_t premul_flag = 0;
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     vg_factor_config_t factor_config;
     factor_config.factor_src_alpha = 0x0;
     factor_config.factor_src_color = 0x0;
@@ -3424,7 +3439,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         width = target->width - point_min.x;
     }
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     porter_duff_config = s_context.porter_duff_config;
     config_factor_parameter(blend, porter_duff_config, &factor_config);
 
@@ -3666,7 +3681,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     vg_lite_uint32_t paintType = 0;
     vg_lite_uint32_t premul_flag = 0;
     vg_lite_uint32_t prediv_flag = 0;
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     vg_factor_config_t factor_config;
     factor_config.factor_src_alpha = 0x0;
     factor_config.factor_src_color = 0x0;
@@ -3992,7 +4007,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t *target,
     }
     blend_mode = convert_blend(blend);
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     porter_duff_config = s_context.porter_duff_config;
     config_factor_parameter(blend, porter_duff_config, &factor_config);
 
@@ -4386,7 +4401,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     vg_lite_float_t dx, dy, dxdx_dydy;
     vg_lite_float_t lg_step_x_lin, lg_step_y_lin, lg_constant_lin;
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     vg_factor_config_t factor_config;
     factor_config.factor_src_alpha = 0x0;
     factor_config.factor_src_color = 0x0;
@@ -4528,7 +4543,7 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 
     conversion = feature_a124_a8l8_l8_conversion(target->format, source->format);
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     porter_duff_config = s_context.porter_duff_config;
     config_factor_parameter(blend, porter_duff_config, &factor_config);
 
@@ -4852,10 +4867,8 @@ vg_lite_error_t vg_lite_draw_linear_grad(vg_lite_buffer_t* target,
 #if gcFEATURE_COMBO_VG_SPLIT_PATH_SUPPORT_BY_SW
     if (s_context.split_path)
     {
-#if gcFEATURE_VG_512_PARALLEL_PATHS_DISABLE
         vg_lite_uint32_t parallel_workpaths1 = 2;
         vg_lite_uint32_t parallel_workpaths2 = 2;
-#endif
 
         vg_lite_int32_t y;
         vg_lite_int32_t temp_height = 0;
@@ -5039,7 +5052,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     vg_lite_uint32_t prediv_flag = 0;
     vg_lite_uint32_t tile_setting = 0;
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     vg_factor_config_t factor_config;
     factor_config.factor_src_alpha = 0x0;
     factor_config.factor_src_color = 0x0;
@@ -5600,7 +5613,7 @@ vg_lite_error_t vg_lite_draw_radial_grad(vg_lite_buffer_t* target,
     /* Compute step values. */
     calculate_step_value(filter, &inverse_matrix, source->width, source->height, x_step, y_step, c_step);
 
-#if gcFEATURE_VG_NEW_FACTOR
+#if  gcFEATURE_VG_NEW_FACTOR
     porter_duff_config = s_context.porter_duff_config;
     config_factor_parameter(blend, porter_duff_config, &factor_config);
 
@@ -5930,3 +5943,622 @@ vg_lite_error_t vg_lite_draw_grad(vg_lite_buffer_t* target,
     return vg_lite_draw_pattern(target, path, fill_rule, matrix,
         &grad->image, &grad->matrix, blend, VG_LITE_PATTERN_PAD, 0, 0, VG_LITE_FILTER_LINEAR);
 }
+
+#if gcFEATURE_VG_CONIC_GRADIENT
+static vg_lite_uint8_t pack_color_component(vg_lite_float_t value)
+{
+    vg_lite_int32_t rounded = (vg_lite_int32_t)(value * 255.0f + 0.5f);
+
+    if (rounded < 0) {
+        rounded = 0;
+    }
+    if (rounded > 255) {
+        rounded = 255;
+    }
+    return (vg_lite_uint8_t)rounded;
+}
+
+static vg_lite_uint32_t pack_abgr8888(vg_lite_float_t r, vg_lite_float_t g,
+    vg_lite_float_t b, vg_lite_float_t a)
+{
+    vg_lite_uint32_t color = 0;
+
+    color |= (vg_lite_uint32_t)pack_color_component(a);
+    color |= (vg_lite_uint32_t)pack_color_component(b) << 8;
+    color |= (vg_lite_uint32_t)pack_color_component(g) << 16;
+    color |= (vg_lite_uint32_t)pack_color_component(r) << 24;
+    return color;
+}
+
+static vg_lite_float_t conic_map_spread_t(vg_lite_conic_gradient_t* grad, vg_lite_float_t t)
+{
+    vg_lite_gradient_spreadmode_t mode = grad->spread_mode;
+    vg_lite_float_t s0 = grad->color_ramp[0].stop;
+    vg_lite_float_t s1 = grad->color_ramp[grad->ramp_count - 1].stop;
+    vg_lite_float_t span = s1 - s0;
+    vg_lite_float_t u;
+    vg_lite_float_t v;
+
+    if (mode == VG_LITE_GRADIENT_SPREAD_REPEAT) {
+        t = t - floorf(t);
+    }
+    else if (mode == VG_LITE_GRADIENT_SPREAD_REFLECT) {
+        v = fmodf(t, 2.0f);
+        if (v < 0.0f) {
+            v += 2.0f;
+        }
+        if (v > 1.0f) {
+            t = 2.0f - v;
+        }
+        else {
+            t = v;
+        }
+    }
+    else {
+        if (t < 0.0f) {
+            t = 0.0f;
+        }
+        if (t > 1.0f) {
+            t = 1.0f;
+        }
+    }
+
+    if (mode == VG_LITE_GRADIENT_SPREAD_REPEAT || mode == VG_LITE_GRADIENT_SPREAD_REFLECT) {
+        if (span <= 0.0f) {
+            return s0;
+        }
+        u = (t - s0) / span;
+        if (mode == VG_LITE_GRADIENT_SPREAD_REPEAT) {
+            u = u - floorf(u);
+        }
+        else {
+            v = fmodf(u, 2.0f);
+            if (v < 0.0f) {
+                v += 2.0f;
+            }
+            if (v > 1.0f) {
+                u = 2.0f - v;
+            }
+            else {
+                u = v;
+            }
+        }
+        return s0 + u * span;
+    }
+
+    return t;
+}
+
+static void conic_apply_premul(vg_lite_uint8_t pre_multiplied, vg_lite_float_t c[4])
+{
+    if (pre_multiplied) {
+        c[0] *= c[3];
+        c[1] *= c[3];
+        c[2] *= c[3];
+    }
+}
+
+static void conic_ramp_color_at(vg_lite_conic_gradient_t* grad, vg_lite_float_t t,
+    vg_lite_float_t color[4])
+{
+    vg_lite_uint32_t stop = 0;
+    vg_lite_float_t weight;
+    vg_lite_float_t c1[4];
+    vg_lite_float_t c2[4];
+    vg_lite_gradient_spreadmode_t mode = grad->spread_mode;
+
+    t = conic_map_spread_t(grad, t);
+
+    while ((stop + 1) < grad->ramp_count && t > grad->color_ramp[stop + 1].stop) {
+        stop++;
+    }
+
+    if (mode != VG_LITE_GRADIENT_SPREAD_REPEAT && mode != VG_LITE_GRADIENT_SPREAD_REFLECT) {
+        if (t <= grad->color_ramp[0].stop) {
+            color[0] = grad->color_ramp[0].red;
+            color[1] = grad->color_ramp[0].green;
+            color[2] = grad->color_ramp[0].blue;
+            color[3] = grad->color_ramp[0].alpha;
+            conic_apply_premul(grad->pre_multiplied, color);
+            return;
+        }
+
+        if (t >= grad->color_ramp[grad->ramp_count - 1].stop) {
+            color[0] = grad->color_ramp[grad->ramp_count - 1].red;
+            color[1] = grad->color_ramp[grad->ramp_count - 1].green;
+            color[2] = grad->color_ramp[grad->ramp_count - 1].blue;
+            color[3] = grad->color_ramp[grad->ramp_count - 1].alpha;
+            conic_apply_premul(grad->pre_multiplied, color);
+            return;
+        }
+    }
+
+    while (stop + 1 < grad->ramp_count && t > grad->color_ramp[stop + 1].stop) {
+        stop++;
+    }
+
+    if (t == grad->color_ramp[stop + 1].stop) {
+        weight = 1.0f;
+        c1[0] = grad->color_ramp[stop + 1].red;
+        c1[1] = grad->color_ramp[stop + 1].green;
+        c1[2] = grad->color_ramp[stop + 1].blue;
+        c1[3] = grad->color_ramp[stop + 1].alpha;
+        c2[0] = c2[1] = c2[2] = c2[3] = 0.0f;
+    }
+    else {
+        vg_lite_float_t seg_span = grad->color_ramp[stop + 1].stop - grad->color_ramp[stop].stop;
+        if (seg_span == 0.0f) {
+            /* Hard edge: two adjacent stops at the same offset; use the right-hand color. */
+            color[0] = grad->color_ramp[stop + 1].red;
+            color[1] = grad->color_ramp[stop + 1].green;
+            color[2] = grad->color_ramp[stop + 1].blue;
+            color[3] = grad->color_ramp[stop + 1].alpha;
+            conic_apply_premul(grad->pre_multiplied, color);
+            return;
+        }
+        weight = (grad->color_ramp[stop + 1].stop - t) / seg_span;
+        c1[0] = grad->color_ramp[stop].red;
+        c1[1] = grad->color_ramp[stop].green;
+        c1[2] = grad->color_ramp[stop].blue;
+        c1[3] = grad->color_ramp[stop].alpha;
+        c2[0] = grad->color_ramp[stop + 1].red;
+        c2[1] = grad->color_ramp[stop + 1].green;
+        c2[2] = grad->color_ramp[stop + 1].blue;
+        c2[3] = grad->color_ramp[stop + 1].alpha;
+    }
+
+    conic_apply_premul(grad->pre_multiplied, c1);
+    conic_apply_premul(grad->pre_multiplied, c2);
+
+    color[0] = LERP(c1[0], c2[0], weight);
+    color[1] = LERP(c1[1], c2[1], weight);
+    color[2] = LERP(c1[2], c2[2], weight);
+    color[3] = LERP(c1[3], c2[3], weight);
+}
+
+static vg_lite_uint32_t _conic_tex_size(const vg_lite_conic_gradient_t* grad)
+{
+#if CONIC_ATAN_RUNTIME_CONFIG
+    return (grad->rt_config_set && grad->rt_tex_size > 0)
+        ? grad->rt_tex_size : (vg_lite_uint32_t)CONIC_ATAN_TEX_SIZE;
+#else
+    (void)grad;
+    return (vg_lite_uint32_t)CONIC_ATAN_TEX_SIZE;
+#endif
+}
+
+static vg_lite_uint8_t _conic_quarter_lut(const vg_lite_conic_gradient_t* grad)
+{
+#if CONIC_ATAN_RUNTIME_CONFIG
+    return grad->rt_config_set ? grad->rt_quarter_lut : (vg_lite_uint8_t)CONIC_ATAN_QUARTER_LUT;
+#else
+    (void)grad;
+    return (vg_lite_uint8_t)CONIC_ATAN_QUARTER_LUT;
+#endif
+}
+
+static vg_lite_uint32_t conic_avg_abgr8888(vg_lite_uint32_t c0, vg_lite_uint32_t c1,
+    vg_lite_uint32_t c2, vg_lite_uint32_t c3)
+{
+    vg_lite_uint32_t a = ((c0 & 0xFF) + (c1 & 0xFF) + (c2 & 0xFF) + (c3 & 0xFF)) / 4;
+    vg_lite_uint32_t b = (((c0 >> 8) & 0xFF) + ((c1 >> 8) & 0xFF)
+        + ((c2 >> 8) & 0xFF) + ((c3 >> 8) & 0xFF)) / 4;
+    vg_lite_uint32_t g = (((c0 >> 16) & 0xFF) + ((c1 >> 16) & 0xFF)
+        + ((c2 >> 16) & 0xFF) + ((c3 >> 16) & 0xFF)) / 4;
+    vg_lite_uint32_t r = (((c0 >> 24) & 0xFF) + ((c1 >> 24) & 0xFF)
+        + ((c2 >> 24) & 0xFF) + ((c3 >> 24) & 0xFF)) / 4;
+
+    return (r << 24) | (g << 16) | (b << 8) | a;
+}
+
+#if CONIC_ATAN_RUNTIME_CONFIG
+/* Runtime-selectable variant: dispatch to the per-size table picked by tsz.
+ * quarter=1 uses (ref,qmap); quarter=0 uses idx. */
+static vg_lite_uint8_t conic_atan_lookup(vg_lite_uint32_t x, vg_lite_uint32_t y,
+    vg_lite_uint32_t tsz, vg_lite_uint8_t quarter)
+{
+    vg_lite_int32_t  center;
+    vg_lite_int32_t  dx;
+    vg_lite_int32_t  dy;
+    vg_lite_int32_t  adx;
+    vg_lite_int32_t  ady;
+    vg_lite_uint32_t qi;
+    vg_lite_uint8_t  ref;
+
+    if (!quarter) {
+        /* Match historical [x][y] convention used by the RT=0 / QUARTER=0
+         * path (conic_fill_texture direct access); keep behaviour identical
+         * when rt_config_set=0 so enabling RUNTIME_CONFIG doesn't rotate
+         * the wheel. */
+        switch (tsz) {
+        case 64:  return conic_atan_idx_64[x][y];
+        case 128: return conic_atan_idx_128[x][y];
+        default:  return conic_atan_idx_256[x][y];
+        }
+    }
+
+    center = (vg_lite_int32_t)(tsz / 2);
+    dx = (vg_lite_int32_t)x - center;
+    dy = (vg_lite_int32_t)y - center;
+
+    if (dx == 0 && dy == 0) {
+        return 0;
+    }
+
+    adx = dx < 0 ? -dx : dx;
+    ady = dy < 0 ? -dy : dy;
+
+    /* Axis fast paths in the transposed [x][y] frame used by the QUARTER=0
+     * default path: bucket 0 at 3 o'clock, buckets increase CW.  127 (not
+     * 128) on 9-axis for REPEAT wrap-seam symmetry with 3-axis idx 0. */
+    if (adx == 0) {
+        return dy > 0 ? (vg_lite_uint8_t)64 : (vg_lite_uint8_t)192;
+    }
+    if (ady == 0) {
+        return dx > 0 ? (vg_lite_uint8_t)0 : (vg_lite_uint8_t)127;
+    }
+
+    /* Ref indexed [adx][ady] (swapped) to measure angle from vertical
+     * axis in the transposed frame. */
+    switch (tsz) {
+    case 64:  ref = conic_atan_ref_64[adx][ady]; break;
+    case 128: ref = conic_atan_ref_128[adx][ady]; break;
+    default:  ref = conic_atan_ref_256[adx][ady]; break;
+    }
+
+    if (dx > 0 && dy > 0) qi = 0;
+    else if (dx > 0 && dy < 0) qi = 2;
+    else if (dx < 0 && dy > 0) qi = 1;
+    else                        qi = 3;
+
+    switch (tsz) {
+    case 64:  return conic_atan_qmap_64[qi][ref];
+    case 128: return conic_atan_qmap_128[qi][ref];
+    default:  return conic_atan_qmap_256[qi][ref];
+    }
+}
+#elif CONIC_ATAN_QUARTER_LUT
+static vg_lite_uint8_t conic_atan_lookup(vg_lite_uint32_t x, vg_lite_uint32_t y)
+{
+    vg_lite_int32_t dx = (vg_lite_int32_t)x - (vg_lite_int32_t)CONIC_ATAN_TEX_CENTER;
+    vg_lite_int32_t dy = (vg_lite_int32_t)y - (vg_lite_int32_t)CONIC_ATAN_TEX_CENTER;
+    vg_lite_int32_t adx;
+    vg_lite_int32_t ady;
+    vg_lite_uint32_t qi;
+    vg_lite_uint8_t ref;
+
+    if (dx == 0 && dy == 0) {
+        return 0;
+    }
+
+    adx = dx < 0 ? -dx : dx;
+    ady = dy < 0 ? -dy : dy;
+
+    /* Axis fast paths in the transposed [x][y] frame used by the QUARTER=0
+     * default path: bucket 0 at 3 o'clock, buckets increase CW.  127 (not
+     * 128) on 9-axis for REPEAT wrap-seam symmetry with 3-axis idx 0. */
+    if (adx == 0) {
+        if (dy > 0) {
+            return 64;
+        }
+        else {
+            return 192;
+        }
+    }
+    if (ady == 0) {
+        if (dx > 0) {
+            return 0;
+        }
+        else {
+            return 127;
+        }
+    }
+
+    ref = CONIC_ATAN_REF_TABLE[adx][ady];
+
+    if (dx > 0 && dy > 0) {
+        qi = 0;
+    }
+    else if (dx > 0 && dy < 0) {
+        qi = 2;
+    }
+    else if (dx < 0 && dy > 0) {
+        qi = 1;
+    }
+    else {
+        qi = 3;
+    }
+
+    return CONIC_ATAN_QMAP_TABLE[qi][ref];
+}
+#else
+static vg_lite_uint8_t conic_atan_lookup(vg_lite_uint32_t x, vg_lite_uint32_t y)
+{
+    return CONIC_ATAN_IDX_TABLE[x][y];
+}
+#endif
+
+static vg_lite_uint32_t conic_center_pixel_color(vg_lite_uint32_t* angle_colors,
+    const vg_lite_conic_gradient_t* grad)
+{
+    vg_lite_uint32_t tsz = _conic_tex_size(grad);
+    vg_lite_uint32_t c = tsz / 2;  /* center in texture space */
+
+#if CONIC_ATAN_RUNTIME_CONFIG
+    vg_lite_uint8_t  q = _conic_quarter_lut(grad);
+    return conic_avg_abgr8888(
+        angle_colors[conic_atan_lookup(c - 1, c, tsz, q)],
+        angle_colors[conic_atan_lookup(c + 1, c, tsz, q)],
+        angle_colors[conic_atan_lookup(c, c - 1, tsz, q)],
+        angle_colors[conic_atan_lookup(c, c + 1, tsz, q)]);
+#else
+    return conic_avg_abgr8888(
+        angle_colors[conic_atan_lookup(c - 1, c)],
+        angle_colors[conic_atan_lookup(c + 1, c)],
+        angle_colors[conic_atan_lookup(c, c - 1)],
+        angle_colors[conic_atan_lookup(c, c + 1)]);
+#endif
+}
+
+static vg_lite_error_t conic_build_angle_colors(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t* angle_colors)
+{
+    vg_lite_uint32_t i;
+
+    for (i = 0; i < CONIC_ATAN_BUCKETS; i++) {
+        vg_lite_float_t t = (vg_lite_float_t)i / (vg_lite_float_t)(CONIC_ATAN_BUCKETS);
+        vg_lite_float_t color[4];
+
+        conic_ramp_color_at(grad, t, color);
+        angle_colors[i] = pack_abgr8888(color[0], color[1], color[2], color[3]);
+    }
+    return VG_LITE_SUCCESS;
+}
+
+static void conic_update_matrix(vg_lite_conic_gradient_t* grad)
+{
+    vg_lite_float_t center = (vg_lite_float_t)(_conic_tex_size(grad) / 2);
+    vg_lite_float_t scale = grad->conic_grad.radius / center;
+
+    vg_lite_identity(&grad->matrix);
+    vg_lite_translate(grad->conic_grad.cx, grad->conic_grad.cy, &grad->matrix);
+    vg_lite_rotate(grad->conic_grad.start_angle, &grad->matrix);
+    vg_lite_scale(scale, scale, &grad->matrix);
+    vg_lite_translate(-center, -center, &grad->matrix);
+}
+
+static vg_lite_error_t conic_fill_texture(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t* angle_colors)
+{
+    vg_lite_uint32_t  x;
+    vg_lite_uint32_t  y;
+    vg_lite_uint32_t  tsz = _conic_tex_size(grad);
+    vg_lite_uint32_t  tex_center = tsz / 2;
+    vg_lite_uint32_t  center_color = conic_center_pixel_color(angle_colors, grad);
+    vg_lite_uint32_t* row;
+    vg_lite_uint8_t   idx;
+    vg_lite_uint32_t  color;
+#if CONIC_ATAN_RUNTIME_CONFIG
+    vg_lite_uint8_t   q = _conic_quarter_lut(grad);
+#endif
+
+    for (y = 0; y < tsz; y++) {
+        row = (vg_lite_uint32_t*)
+            ((vg_lite_uint8_t*)grad->image.memory + y * grad->image.stride);
+
+        for (x = 0; x < tsz; x++) {
+#if CONIC_ATAN_RUNTIME_CONFIG
+            idx = conic_atan_lookup(x, y, tsz, q);
+#elif CONIC_ATAN_QUARTER_LUT
+            idx = conic_atan_lookup(x, y);
+#else
+            idx = CONIC_ATAN_IDX_TABLE[x][y];
+#endif
+            color = angle_colors[idx];
+            if (x == tex_center && y == tex_center) {
+                color = center_color;
+            }
+            row[x] = color;
+        }
+    }
+    return VG_LITE_SUCCESS;
+}
+
+vg_lite_error_t vg_lite_conic_grad_set(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t count,
+    vg_lite_color_ramp_t* color_ramp,
+    vg_lite_conic_gradient_parameter_t conic_param,
+    vg_lite_gradient_spreadmode_t spread_mode,
+    vg_lite_uint8_t pre_multiplied)
+{
+    vg_lite_uint32_t i;
+
+    if (grad == NULL || color_ramp == NULL || count < 2 || count > 16) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (conic_param.radius <= 0.0f) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    /* Validate stop monotonicity: stops must be non-decreasing. */
+    for (i = 0; i + 1 < count; i++) {
+        if (color_ramp[i + 1].stop < color_ramp[i].stop) {
+            return VG_LITE_INVALID_ARGUMENT;
+        }
+    }
+    /* Reject zero-span: first == last stop maps every angle to the same color. */
+    if (color_ramp[count - 1].stop <= color_ramp[0].stop) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    memset(grad, 0, sizeof(*grad));
+    grad->ramp_count = count;
+    grad->conic_grad = conic_param;
+    grad->spread_mode = spread_mode;
+    grad->pre_multiplied = pre_multiplied;
+    vg_lite_identity(&grad->matrix);
+
+    for (i = 0; i < count; i++) {
+        grad->color_ramp[i] = color_ramp[i];
+        grad->color_ramp[i].alpha = CLAMP(grad->color_ramp[i].alpha, 0.0f, 1.0f);
+        grad->color_ramp[i].red = CLAMP(grad->color_ramp[i].red, 0.0f, 1.0f);
+        grad->color_ramp[i].green = CLAMP(grad->color_ramp[i].green, 0.0f, 1.0f);
+        grad->color_ramp[i].blue = CLAMP(grad->color_ramp[i].blue, 0.0f, 1.0f);
+    }
+    grad->dirty = CONIC_DIRTY_RAMP | CONIC_DIRTY_GEOM;
+    return VG_LITE_SUCCESS;
+}
+
+static vg_lite_error_t conic_grad_set_geom(vg_lite_conic_gradient_t* grad,
+    vg_lite_conic_gradient_parameter_t conic_param)
+{
+    if (grad == NULL) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (conic_param.radius <= 0.0f) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    grad->conic_grad = conic_param;
+    grad->dirty |= CONIC_DIRTY_GEOM;
+    return VG_LITE_SUCCESS;
+}
+
+vg_lite_error_t vg_lite_conic_grad_update(vg_lite_conic_gradient_t* grad)
+{
+    vg_lite_uint32_t angle_colors[CONIC_ATAN_BUCKETS];
+    vg_lite_error_t error = VG_LITE_SUCCESS;
+
+    if (grad == NULL) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    if (grad->dirty == 0) {
+        return VG_LITE_SUCCESS;
+    }
+
+    if (grad->dirty & CONIC_DIRTY_RAMP) {
+        VG_LITE_RETURN_ERROR(conic_build_angle_colors(grad, angle_colors));
+
+        {
+            vg_lite_int32_t need = (vg_lite_int32_t)_conic_tex_size(grad);
+            if (grad->image.handle == NULL
+                || grad->image.width != need
+                || grad->image.height != need) {
+                if (grad->image.handle != NULL) {
+                    vg_lite_free(&grad->image);
+                }
+                memset(&grad->image, 0, sizeof(grad->image));
+                grad->image.width = need;
+                grad->image.height = need;
+                grad->image.format = VG_LITE_ABGR8888;
+                VG_LITE_RETURN_ERROR(vg_lite_allocate(&grad->image));
+            }
+        }
+
+        VG_LITE_RETURN_ERROR(conic_fill_texture(grad, angle_colors));
+    }
+
+    if (grad->dirty & CONIC_DIRTY_GEOM) {
+        conic_update_matrix(grad);
+    }
+
+    grad->dirty = 0;
+    return VG_LITE_SUCCESS;
+}
+
+vg_lite_error_t vg_lite_conic_grad_draw(vg_lite_buffer_t* target,
+    vg_lite_path_t* draw_path,
+    vg_lite_fill_t fill_rule,
+    vg_lite_matrix_t* path_matrix,
+    vg_lite_conic_gradient_t* grad,
+    vg_lite_blend_t blend,
+    vg_lite_filter_t filter)
+{
+    /* spread_mode folds t into [first_stop, last_stop] in conic_map_spread_t()
+     * when baking angle_colors. Pattern UV outside the texture must PAD-clamp;
+     * REPEAT/REFLECT on draw_pattern causes wrong colors beyond the circle. */
+    vg_lite_pattern_mode_t pattern_mode = VG_LITE_PATTERN_PAD;
+
+    if (grad == NULL || grad->image.handle == NULL) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+
+    return vg_lite_draw_pattern(target, draw_path, fill_rule, path_matrix,
+        &grad->image, &grad->matrix, blend,
+        pattern_mode, 0, 0, filter);
+}
+
+void vg_lite_conic_grad_clear(vg_lite_conic_gradient_t* grad)
+{
+    if (grad == NULL) {
+        return;
+    }
+    if (grad->image.handle != NULL) {
+        vg_lite_free(&grad->image);
+    }
+    memset(grad, 0, sizeof(*grad));
+}
+
+vg_lite_error_t vg_lite_conic_grad_set_tex_config(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t tex_size, vg_lite_uint8_t use_quarter_lut)
+{
+#if CONIC_ATAN_RUNTIME_CONFIG
+    if (grad == NULL) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    if (tex_size != 0 && tex_size != 64 && tex_size != 128 && tex_size != 256) {
+        return VG_LITE_INVALID_ARGUMENT;
+    }
+    /* Under RUNTIME_CONFIG all three tables are compiled in; any of
+     * {0,64,128,256} is selectable independent of the compile-time TEX_SIZE. */
+    grad->rt_tex_size = tex_size;
+    grad->rt_quarter_lut = use_quarter_lut;
+    grad->rt_config_set = 1;
+    grad->dirty = CONIC_DIRTY_RAMP | CONIC_DIRTY_GEOM;
+    return VG_LITE_SUCCESS;
+#else
+    (void)grad; (void)tex_size; (void)use_quarter_lut;
+    return VG_LITE_NOT_SUPPORT;
+#endif
+}
+#else
+
+vg_lite_error_t vg_lite_conic_grad_set(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t count,
+    vg_lite_color_ramp_t* color_ramp,
+    vg_lite_conic_gradient_parameter_t conic_param,
+    vg_lite_gradient_spreadmode_t spread_mode,
+    vg_lite_uint8_t pre_multiplied)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
+vg_lite_error_t vg_lite_conic_grad_update(vg_lite_conic_gradient_t* grad)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
+vg_lite_error_t vg_lite_conic_grad_draw(vg_lite_buffer_t* target,
+    vg_lite_path_t* draw_path,
+    vg_lite_fill_t fill_rule,
+    vg_lite_matrix_t* path_matrix,
+    vg_lite_conic_gradient_t* grad,
+    vg_lite_blend_t blend,
+    vg_lite_filter_t filter)
+{
+    return VG_LITE_NOT_SUPPORT;
+}
+
+void vg_lite_conic_grad_clear(vg_lite_conic_gradient_t* grad)
+{
+    (void)grad;
+}
+
+vg_lite_error_t vg_lite_conic_grad_set_tex_config(vg_lite_conic_gradient_t* grad,
+    vg_lite_uint32_t tex_size, vg_lite_uint8_t use_quarter_lut)
+{
+    (void)grad; (void)tex_size; (void)use_quarter_lut;
+    return VG_LITE_NOT_SUPPORT;
+}
+#endif

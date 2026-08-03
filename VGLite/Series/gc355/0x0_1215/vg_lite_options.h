@@ -139,5 +139,6 @@
 ***/
 #define gcFEATURE_VG_24BIT_PLANAR_SW                0
 #define gcFEATURE_VG_ROI_SCISSOR_LAYER              0
+#define gcFEATURE_VG_CONIC_GRADIENT                 1
 
 #endif
