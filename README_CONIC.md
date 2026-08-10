@@ -10,7 +10,7 @@ This document is for application developers.
 ## rendering
 ![demo](watchface.apng)
 
-The demo is available at: https://github.com/VeriSilicon/VGLite_Tests/tree/conic
+The demo is available at: https://github.com/VeriSilicon/VGLite_Tests/tree/REL/4.0.135_conic/VSI_CTS/samples/conic
 
 ## 1. Feature availability
 
