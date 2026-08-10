@@ -7,6 +7,11 @@ This document is for application developers.
 - Implementation: `VGLite/vg_lite_path.c`
 - Pre-generated angle LUT: `VGLite/vg_lite_atan.h`
 
+## rendering
+![demo](watchface.apng)
+
+The demo is available at: https://github.com/VeriSilicon/VGLite_Tests/tree/conic
+
 ## 1. Feature availability
 
 Conic gradient is compiled in only when the chip's
