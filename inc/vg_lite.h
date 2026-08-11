@@ -777,6 +777,12 @@ typedef float*              vg_lite_float_ptr;
         VG_LITE_MESH_COPY_EXTERNAL  = 6,
     } vg_lite_mesh_mode_t;
 
+    typedef enum vg_lite_conic_dirty_flag
+    {
+        CONIC_DIRTY_RAMP = 1,
+        CONIC_DIRTY_GEOM = 2
+    } vg_lite_conic_dirty_flag_t;
+
 /* VGLite API Structures ******************************************************************************************************************/
 
     /* VGLite driver information */
@@ -1103,6 +1109,13 @@ typedef float*              vg_lite_float_ptr;
         vg_lite_float_t fy;                                 /*! y coordinate of the focal point. */
     } vg_lite_radial_gradient_parameter_t;
 
+    typedef struct vg_lite_conic_gradient_parameter {
+        vg_lite_float_t cx;                                 /*! x coordinate of the center point. */
+        vg_lite_float_t cy;                                 /*! y coordinate of the center point. */
+        vg_lite_float_t radius;                             /*! radius. */
+        vg_lite_float_t start_angle;                        /*! Start angle in degrees. start_angle=0 places t=0 at +x (3 o'clock); positive values rotate the gradient clockwise (Y-down screen coordinates). */
+    } vg_lite_conic_gradient_parameter_t;
+
     /* Linear gradient definition. */
     typedef struct vg_lite_linear_gradient {
         vg_lite_uint32_t *colors;                           /*! Colors for stops. */
@@ -1152,6 +1165,21 @@ typedef float*              vg_lite_float_ptr;
         vg_lite_uint8_t pre_multiplied;                     /*! If color values of color_ramp[] are multiply by alpha value of color_ramp[]. */
         vg_lite_gradient_spreadmode_t spread_mode;          /*! The spread mode that applied to the pixels out of the image after transformed. */
     } vg_lite_radial_gradient_t;
+
+    /* Software conic gradient: CPU-bake NxN angle texture + draw_pattern. */
+    typedef struct vg_lite_conic_gradient {
+        vg_lite_buffer_t image;                            /*! Baked angle texture (ABGR8888), filled on update. */
+        vg_lite_matrix_t matrix;                           /*! Maps path space onto the baked texture. */
+        vg_lite_uint32_t ramp_count;                       /*! Number of color stops in color_ramp[], up to 16. */
+        vg_lite_color_ramp_t color_ramp[16];               /*! Color stops (offset + RGBA) provided by the app. */
+        vg_lite_uint8_t pre_multiplied;                    /*! If 1, driver pre-multiplies RGB by alpha at bake time in conic_ramp_color_at (color_ramp[] holds straight color). */
+        vg_lite_gradient_spreadmode_t spread_mode;         /*! PAD/REPEAT/REFLECT for t putside the stop range. */
+        vg_lite_conic_gradient_parameter_t conic_grad;     /*! Center. radius, and start_angle. */
+        vg_lite_uint8_t dirty;                             /*! Dirty flags: CONIC_DIRTY_RAMP / CONIC_DIRTY_GEOM. */
+        vg_lite_uint32_t rt_tex_size;                      /*! Runtime tex size override (CONIC_ATAN_RUNTIME_CONFIG=1): 0=default, 64/128/256. */
+        vg_lite_uint8_t  rt_quarter_lut;                   /*! Runtime quarter-LUT switch (CONIC_ATAN_RUNTIME_CONFIG=1): 0=full, 1=quarter. */
+        vg_lite_uint8_t  rt_config_set;                    /*! Set to 1 by vg_lite_conic_grad_set_tex_config(). */
+    } vg_lite_conic_gradient_t;
 
     /* Colorkey definition */
     typedef struct vg_lite_color_key
@@ -1686,6 +1714,37 @@ typedef float*              vg_lite_float_ptr;
 
     /* Enable the stop flag of the vg producer */
     vg_lite_error_t vg_lite_flexa_stop_producer(vg_lite_flexa_config_t* flexa_cfg);
+
+    /* Set attributes for a conic gradient object (color ramp + geometry + spread). */
+    vg_lite_error_t vg_lite_conic_grad_set(vg_lite_conic_gradient_t* grad,
+        vg_lite_uint32_t count,
+        vg_lite_color_ramp_t* color_ramp,
+        vg_lite_conic_gradient_parameter_t conic_param,
+        vg_lite_gradient_spreadmode_t spread_mode,
+        vg_lite_uint8_t pre_multiplied);
+
+    /* Bake / refresh the conic gradient object. */
+    vg_lite_error_t vg_lite_conic_grad_update(vg_lite_conic_gradient_t* grad);
+
+    /* Draw a path filled with a baked conic gradient. */
+    vg_lite_error_t vg_lite_conic_grad_draw(vg_lite_buffer_t* target,
+        vg_lite_path_t* draw_path,
+        vg_lite_fill_t fill_rule,
+        vg_lite_matrix_t* path_matrix,
+        vg_lite_conic_gradient_t* grad,
+        vg_lite_blend_t blend,
+        vg_lite_filter_t filter);
+
+    /* Free resources held by a conic gradient object. */
+    void vg_lite_conic_grad_clear(vg_lite_conic_gradient_t* grad);
+
+    /* Override runtime tex size and quarter-LUT mode for testing.
+     * Requires CONIC_ATAN_RUNTIME_CONFIG=1; returns VG_LITE_NOT_SUPPORT otherwise.
+     * tex_size: 0=compile-time default, or 64/128/256 (any of the three is
+     *   selectable -- all LUTs are compiled in when RUNTIME_CONFIG=1).
+     * use_quarter_lut: 0=full NxN LUT, 1=quarter ref+qmap. */
+    vg_lite_error_t vg_lite_conic_grad_set_tex_config(vg_lite_conic_gradient_t* grad,
+        vg_lite_uint32_t tex_size, vg_lite_uint8_t use_quarter_lut);
 
 #endif /* VGLITE_VERSION_3_0 */
 
