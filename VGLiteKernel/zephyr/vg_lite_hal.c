@@ -44,6 +44,10 @@ LOG_MODULE_REGISTER(GPU, LOG_LEVEL_INF);
 #define VGLITE_MEM_ALIGNMENT 64
 #define VGLITE_ATTRIBUTE_MEM_ALIGN __aligned(VGLITE_MEM_ALIGNMENT)
 
+static void *g_cmd_buf_addr = NULL;
+static size_t g_cmd_buf_size = 0;
+static struct k_spinlock g_cmd_lock;
+
 static char __nocache vg_lite_heap_mem[CONFIG_VG_LITE_K_MEM_POOL_SIZE]
   VGLITE_ATTRIBUTE_MEM_ALIGN
   ATTRIBUTE_VG_LITE_HEAP;
@@ -66,7 +70,7 @@ struct vg_lite_dev_data {
 static struct vg_lite_dev_data * gp_dev_data = NULL;
 
 void vg_lite_set_gpu_clock_state(int enabled);
-extern void clear_cache_op(void);
+extern void gpu_cache_flush_range(void *addr, size_t size);
 
 void *vg_lite_os_malloc(size_t size)
 {
@@ -108,8 +112,11 @@ void vg_lite_hal_delay(uint32_t milliseconds)
 
 void vg_lite_hal_barrier(void)
 {
-    /* flush the write buffer for uncache and write through memory */
-    clear_cache_op();
+    k_spinlock_key_t key = k_spin_lock(&g_cmd_lock);
+    void *logical = g_cmd_buf_addr;
+    size_t size = g_cmd_buf_size;
+    k_spin_unlock(&g_cmd_lock, key);
+    gpu_cache_flush_range(logical, size);
 }
 
 void vg_lite_hal_initialize(void)
@@ -305,6 +312,17 @@ void vg_lite_hal_poke(uint32_t address, uint32_t data)
 {
     /* Write data to the GPU register. */
     sys_write32(data, VGLITE_GPU_BASE + address);
+
+    /* Capture command buffer info for cache operations */
+    if (address == VG_LITE_HW_CMDBUF_ADDRESS) {
+        k_spinlock_key_t key = k_spin_lock(&g_cmd_lock);
+        g_cmd_buf_addr = (void *)(uintptr_t)data;
+        k_spin_unlock(&g_cmd_lock, key);
+    } else if (address == VG_LITE_HW_CMDBUF_SIZE) {
+        k_spinlock_key_t key = k_spin_lock(&g_cmd_lock);
+        g_cmd_buf_size = data * 8;  /* Size is in 8-byte units */
+        k_spin_unlock(&g_cmd_lock, key);
+    }
 }
 
 vg_lite_error_t vg_lite_hal_query_mem(vg_lite_kernel_mem_t *mem)
