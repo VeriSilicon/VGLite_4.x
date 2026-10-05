@@ -2555,6 +2555,12 @@ vg_lite_uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
 static vg_lite_error_t submit(vg_lite_context_t * context);
 static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_ms, vg_lite_uint32_t mask);
 static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context);
+/* Registers that must ALWAYS be written (never cached) because writing them
+  * triggers hardware pipeline actions beyond simple value latching.
+  */
+#define VG_LITE_IS_TRIGGER_REG(a) \
+    ((a) == 0x0A00 || (a) == 0x0A01 || (a) == 0x0A1B || (a) == 0x0A1F || (a) == 0x0A34 || (a) == 0x0A2D)
+
 #if gcFEATURE_VG_MESH_FOR_FRAME
 static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target);
 static vg_lite_error_t vg_lite_target_mesh_copy(vg_lite_buffer_t* target);
@@ -2648,9 +2654,9 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
      * When recording cached commands, always emit to ensure the replay is self-contained.
      */
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-    if ((address >> 8) == 0x0A && address != 0x0A1B && !context->backup_fb_command_flag)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
 #else
-    if ((address >> 8) == 0x0A && address != 0x0A1B)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
 #endif
     {
         vg_lite_uint32_t idx = address & 0xFF;
@@ -2718,9 +2724,9 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t add
 
     /* Per-register state cache: same logic as push_state. */
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-    if ((address >> 8) == 0x0A && address != 0x0A1B && !context->backup_fb_command_flag)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
 #else
-    if ((address >> 8) == 0x0A && address != 0x0A1B)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
 #endif
     {
         vg_lite_uint32_t idx = address & 0xFF;
