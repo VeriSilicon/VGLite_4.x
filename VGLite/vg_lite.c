@@ -2554,12 +2554,19 @@ vg_lite_uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
 
 static vg_lite_error_t submit(vg_lite_context_t * context);
 static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_ms, vg_lite_uint32_t mask);
-static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context);
+/* Forward declaration for the cmd overflow slow path.
+ * The HANDLE_CMD_OVERFLOW macro inlines the common no-overflow check
+ * and only calls the slow path when the buffer is actually full.
+ */
+static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context);
 /* Registers that must ALWAYS be written (never cached) because writing them
   * triggers hardware pipeline actions beyond simple value latching.
   */
 #define VG_LITE_IS_TRIGGER_REG(a) \
     ((a) == 0x0A00 || (a) == 0x0A01 || (a) == 0x0A1B || (a) == 0x0A1F || (a) == 0x0A34 || (a) == 0x0A2D)
+
+#define HANDLE_CMD_OVERFLOW(size, ctx) \
+    (((size) < CMDBUF_SIZE(*(ctx))) ? VG_LITE_SUCCESS : handle_cmd_overflow_slow((size), (ctx)))
 
 #if gcFEATURE_VG_MESH_FOR_FRAME
 static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target);
@@ -2574,7 +2581,7 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address,
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATES(count, address);
 
@@ -2663,7 +2670,7 @@ vg_lite_error_t push_states_batch(vg_lite_context_t * context,
         return VG_LITE_NO_CONTEXT;
 
     total_bytes = VG_LITE_ALIGN(count + 1, 2) * 4;
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8 + total_bytes, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8 + total_bytes, context));
 
     /* Write the multi-state header. */
     ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] =
@@ -2762,7 +2769,7 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
         context->hw.hw_states[idx].init = 1;
     }
     {
-        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+        VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -2832,7 +2839,7 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t add
         context->hw.hw_states[idx].init = 1;
     }
     {
-        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+        VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -2884,7 +2891,7 @@ vg_lite_error_t push_call(vg_lite_context_t * context, vg_lite_uint32_t address,
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_CALL((bytes + 7) / 8);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = address;
@@ -2937,7 +2944,7 @@ static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, vg_lite_uint32
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -2974,7 +2981,7 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, vg_lite_int32
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -3039,7 +3046,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, vg_lite_uint32_t size, vg
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16 + bytes, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16 + bytes, context));
 
     /* Command buffer size must be at least data size "bytes" plus header and END command */
     if ((bytes + 16) > CMDBUF_SIZE(*context)) {
@@ -3107,7 +3114,7 @@ vg_lite_error_t push_stall(vg_lite_context_t * context, vg_lite_uint32_t module)
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_SEMAPHORE(module);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -3371,8 +3378,11 @@ static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_
 #endif
 }
 
-/* Handle cmd overflow accordingly */
-static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context) {
+/* Handle cmd overflow - slow path: flush current buffer and reclaim space.
+ * The fast-path macro HANDLE_CMD_OVERFLOW() in vg_lite_context.h inlines the
+ * common no-overflow check and only calls this when the buffer is actually full.
+ */
+static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context) {
     vg_lite_error_t error;
     if (size >= CMDBUF_SIZE(*context)) {
 #if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
@@ -3977,7 +3987,7 @@ static vg_lite_error_t push_mesh_stall(vg_lite_context_t* context, vg_lite_uint3
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x1583, 0x1F01));
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8, context));
 
     ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STALL(module);
     ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
