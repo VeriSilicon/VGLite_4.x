@@ -1011,6 +1011,10 @@ void vg_flush_previous_rt(void)
             vg_lite_flush();
         }
     }
+    else
+    {
+        vg_lite_flush();
+    }
 #else  
     vg_lite_flush();
 #endif
