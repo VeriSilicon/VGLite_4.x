@@ -93,7 +93,7 @@
 #define FC_BURST_BYTES              64
 #define FC_BIT_TO_BYTES             64
 
-#define STATES_COUNT                208
+#define STATES_COUNT                256
 #define MIN_TS_SIZE                 8 << 10
 
 #define VG_LITE_RETURN_ERROR(func) \
