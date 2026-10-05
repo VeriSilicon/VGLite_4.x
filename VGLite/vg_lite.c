@@ -5193,16 +5193,10 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -5999,16 +5993,10 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -8844,16 +8832,10 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tile_setting | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_pointer)&c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_pointer)&c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_pointer)&c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_pointer)&x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_pointer)&x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_pointer)&x_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_pointer)&y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_pointer)&y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_pointer)&y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
         (source->format <= VG_LITE_AYUY2)) ||
