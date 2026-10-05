@@ -2641,6 +2641,101 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address,
     return VG_LITE_SUCCESS;
 }
 
+/**
+ * Push multiple consecutive STATE register writes using a single VG_LITE_STATES
+ * header.  This is more efficient than individual push_state calls for consecutive
+ * registers: fewer function calls, fewer overflow checks, and a more compact
+ * encoding in the command buffer.
+ *
+ * Command buffer cost:  ALIGN(count + 1, 2) * 4  bytes
+ * vs  count * 8  bytes with individual push_state calls.
+ */
+vg_lite_error_t push_states_batch(vg_lite_context_t * context,
+                                  vg_lite_uint32_t     address,
+                                  vg_lite_uint32_t     count,
+                                  const vg_lite_uint32_t *data)
+{
+    vg_lite_uint32_t i;
+    vg_lite_uint32_t total_bytes;
+    vg_lite_error_t  error;
+
+    if (!has_valid_command_buffer(context))
+        return VG_LITE_NO_CONTEXT;
+
+    total_bytes = VG_LITE_ALIGN(count + 1, 2) * 4;
+    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8 + total_bytes, context));
+
+    /* Write the multi-state header. */
+    ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] =
+        VG_LITE_STATES(count, address);
+
+    /* Write data words. */
+    for (i = 0; i < count; i++) {
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = data[i];
+    }
+
+    /* Pad to 64-bit alignment with a NOP if needed. */
+    if (count % 2 == 0) {
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = VG_LITE_NOP();
+    }
+
+    /* Update per-register state cache for consistency with push_state. */
+    for (i = 0; i < count; i++) {
+        vg_lite_uint32_t reg = address + i;
+        if ((reg >> 8) == 0x0A) {
+            vg_lite_uint32_t idx = reg & 0xFF;
+            context->hw.hw_states[idx].state = data[i];
+            context->hw.hw_states[idx].init  = 1;
+        }
+    }
+
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if (context->fb_command_offset + total_bytes > CACHE_COMMAND_BUFFER_SIZE) {
+        printf("The size of cache is %d bytes, exceeding the capacity of cache buffer(%d bytes)!\n",
+               context->fb_command_offset + total_bytes, CACHE_COMMAND_BUFFER_SIZE);
+        printf("Please clear cache or increase cache buffer size!\n");
+        return VG_LITE_OUT_OF_MEMORY;
+    }
+
+    if (context->backup_fb_command_flag) {
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] =
+            VG_LITE_STATES(count, address);
+        for (i = 0; i < count; i++) {
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1 + i] = data[i];
+        }
+        if (count % 2 == 0) {
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1 + i] = VG_LITE_NOP();
+        }
+        context->fb_command_offset += total_bytes;
+    }
+#endif
+
+#if DUMP_COMMAND
+    {
+        vg_lite_uint32_t loops;
+        if (strncmp(filename, "Commandbuffer", 13)) {
+            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        }
+        fp = fopen(filename, "a");
+        if (fp == NULL)
+            printf("error!\n");
+        fprintf(fp, "Command buffer: 0x%08x, ",
+                ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0]);
+        for (loops = 0; loops < count; loops++) {
+            fprintf(fp, "0x%08x, ",
+                    ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + loops]);
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+        fp = NULL;
+    }
+#endif
+
+    CMDBUF_OFFSET(*context) += total_bytes;
+
+    return VG_LITE_SUCCESS;
+}
+
 /* Push a single state command into the current command buffer. */
 vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_uint32_t data)
 {

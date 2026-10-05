@@ -464,6 +464,7 @@ extern vg_lite_error_t push_state_ptr(vg_lite_context_t* context, vg_lite_uint32
 extern vg_lite_error_t push_call(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t bytes);
 extern vg_lite_error_t push_data(vg_lite_context_t* context, vg_lite_uint32_t size, vg_lite_pointer data);
 extern vg_lite_error_t push_clut(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t count, vg_lite_uint32_t* data);
+extern vg_lite_error_t push_states_batch(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t count, const vg_lite_uint32_t* data);
 extern vg_lite_error_t push_stall(vg_lite_context_t* context, vg_lite_uint32_t module);
 extern vg_lite_pointer vg_lite_os_malloc(size_t size);
 extern vg_lite_void  vg_lite_os_free(vg_lite_pointer memory);
