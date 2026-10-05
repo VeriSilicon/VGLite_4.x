@@ -2642,13 +2642,26 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    /* Per-register state cache: skip write if the GPU register already holds this value.
+     * Only cache registers in the 0x0Axx drawing range (index = address & 0xFF, < STATES_COUNT).
+     * Register 0x0A1B is a control/trigger register that must always be written.
+     * When recording cached commands, always emit to ensure the replay is self-contained.
+     */
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if ((address >> 8) == 0x0A && address != 0x0A1B && !context->backup_fb_command_flag)
+#else
+    if ((address >> 8) == 0x0A && address != 0x0A1B)
+#endif
+    {
+        vg_lite_uint32_t idx = address & 0xFF;
+        if (context->hw.hw_states[idx].init && context->hw.hw_states[idx].state == data)
+            return VG_LITE_SUCCESS;  /* Register already holds this value - skip */
+
+        context->hw.hw_states[idx].state = data;
+        context->hw.hw_states[idx].init = 1;
+    }
     {
         VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
-
-        /* TODO context->hw.hw_states[address & 0xff].state = data;
-        context->hw.hw_states[address & 0xff].init = 1;*/
 
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -6033,6 +6046,10 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
             VG_LITE_RETURN_ERROR(vg_lite_close());
         }
     }
+
+    /* Invalidate the per-register state cache: after hardware init all register
+     * values are undefined, so every first write must go through to the GPU. */
+    memset(s_context.hw.hw_states, 0, sizeof(s_context.hw.hw_states));
 
     s_context.rtbuffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
     if (!s_context.rtbuffer)
