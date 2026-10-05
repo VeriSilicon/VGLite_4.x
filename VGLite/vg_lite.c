@@ -5174,12 +5174,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_NEW_FACTOR
     config_factor_parameter(blend, porter_duff_config, &factor_config);
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
+    {
+        /* Pack registers 0x0AF6-0x0AFB as one contiguous batch of 6. */
+        vg_lite_uint32_t factor_data[6];
+        factor_data[0] = factor_config.srcchannelmode | (factor_config.dstchannelmode << 8); /* 0x0AF6 */
+        factor_data[1] = factor_config.final_equation_opcode;                                /* 0x0AF7 */
+        factor_data[2] = factor_config.factor_src_alpha;                                     /* 0x0AF8 */
+        factor_data[3] = factor_config.factor_src_color;                                     /* 0x0AF9 */
+        factor_data[4] = factor_config.factor_dst_alpha;                                     /* 0x0AFA */
+        factor_data[5] = factor_config.factor_dst_color;                                     /* 0x0AFB */
+        VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0AF6, 6, factor_data));
+    }
 #endif
 
     /* Setup the command buffer. */
@@ -5981,12 +5986,17 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_NEW_FACTOR
     config_factor_parameter(blend, porter_duff_config, &factor_config);
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
+    {
+        /* Pack registers 0x0AF6-0x0AFB as one contiguous batch of 6. */
+        vg_lite_uint32_t factor_data[6];
+        factor_data[0] = factor_config.srcchannelmode | (factor_config.dstchannelmode << 8); /* 0x0AF6 */
+        factor_data[1] = factor_config.final_equation_opcode;                                /* 0x0AF7 */
+        factor_data[2] = factor_config.factor_src_alpha;                                     /* 0x0AF8 */
+        factor_data[3] = factor_config.factor_src_color;                                     /* 0x0AF9 */
+        factor_data[4] = factor_config.factor_dst_alpha;                                     /* 0x0AFA */
+        factor_data[5] = factor_config.factor_dst_color;                                     /* 0x0AFB */
+        VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0AF6, 6, factor_data));
+    }
 #endif
 
     /* Setup the command buffer. */
