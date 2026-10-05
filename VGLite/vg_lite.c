@@ -2567,7 +2567,6 @@ static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_c
 
 #define HANDLE_CMD_OVERFLOW(size, ctx) \
     (((size) < CMDBUF_SIZE(*(ctx))) ? VG_LITE_SUCCESS : handle_cmd_overflow_slow((size), (ctx)))
-
 #if gcFEATURE_VG_MESH_FOR_FRAME
 static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target);
 static vg_lite_error_t vg_lite_target_mesh_copy(vg_lite_buffer_t* target);
@@ -2647,6 +2646,42 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address,
 
     return VG_LITE_SUCCESS;
 }
+
+/**
+ * Pre-flight command buffer space check: ensure enough space for a complete
+ * draw operation.  Call once at the top of each API function (blit, clear, draw)
+ * with the worst-case command byte count.  This eliminates the per-push_state
+ * overflow checks for the remainder of the call — the inline HANDLE_CMD_OVERFLOW
+ * macro becomes a no-op since the space is already guaranteed.
+ *
+ * If the buffer cannot accommodate the request, it is flushed and reclaimed.
+ */
+static vg_lite_error_t ensure_cmdbuf_space(vg_lite_context_t * context, vg_lite_uint32_t bytes)
+{
+    if (!has_valid_command_buffer(context))
+        return VG_LITE_NO_CONTEXT;
+
+    if (CMDBUF_OFFSET(*context) + bytes >= CMDBUF_SIZE(*context)) {
+        return handle_cmd_overflow_slow(CMDBUF_OFFSET(*context) + bytes, context);
+    }
+    return VG_LITE_SUCCESS;
+}
+
+/* Maximum command buffer bytes consumed by a single vg_lite_blit call.
+ * set_render_target: ~6 regs × 8 = 48
+ * blend factors:     1 batch of 6 = 28
+ * draw control:      ~8 regs × 8 = 64
+ * step values:       3 batches   = 48
+ * source config:     ~8 regs × 8 = 64
+ * rectangle:                       8
+ * stripe mode:       2 regs × 8 = 16
+ * YUV/planar:        ~3 regs × 8 = 24
+ * precision opt:     ~6 regs × 8 = 48
+ * submit END:                      8
+ * Padding/headroom:               64
+ * Total:                         ~420, rounded up to 512
+ */
+#define VG_LITE_BLIT_CMD_BUDGET  512
 
 /**
  * Push multiple consecutive STATE register writes using a single VG_LITE_STATES
@@ -3608,8 +3643,12 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
     VG_LITE_CHECK_NULL_POINTER(target);
 
-    /* Check if render target parameters are really changed. */
-    if (memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) {
+    /* Check if render target parameters are really changed.
+     * Compare only the fields that affect GPU register programming,
+     * not the entire struct (which may include padding, debug pointers,
+     * and uninitialized fields that cause false positives with memcmp).
+     */
+    if (RT_FIELDS_CHANGED(s_context.rtbuffer, target)) {
         rt_changed = 1;
     }
     /* Simply return if render target, scissor, mirror, gamma, flexa states are not changed. */
@@ -5104,6 +5143,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
+    /* Pre-flight: ensure command buffer has enough space for the entire blit
+     * command sequence.  This single check replaces ~25 individual overflow
+     * checks that would otherwise happen inside each push_state call.
+     */
+    VG_LITE_RETURN_ERROR(ensure_cmdbuf_space(&s_context, VG_LITE_BLIT_CMD_BUDGET));
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -5208,6 +5253,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
+    /* Batch consecutive step-value registers for efficiency. */
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
@@ -5916,6 +5962,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         }
     }
 #endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
+
+    /* Pre-flight: ensure command buffer has enough space for the entire blit_rect
+     * command sequence, avoiding per-push_state overflow checks.
+     */
+    VG_LITE_RETURN_ERROR(ensure_cmdbuf_space(&s_context, VG_LITE_BLIT_CMD_BUDGET));
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -6013,6 +6065,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
+    /* Batch consecutive step-value registers for efficiency. */
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
@@ -8852,6 +8905,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tile_setting | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
+    /* Batch consecutive step-value registers for efficiency. */
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
