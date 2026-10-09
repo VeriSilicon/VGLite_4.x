@@ -1,7 +1,3 @@
-config VGLITE
-    bool "Enable NXP VGLITE Driver"
-    default y
-    
 config GPU_DEV
     bool "Enable VGLite GPU device"
     default y
