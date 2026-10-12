@@ -2554,7 +2554,19 @@ vg_lite_uint32_t convert_yuv2rgb(vg_lite_yuv2rgb_t yuv)
 
 static vg_lite_error_t submit(vg_lite_context_t * context);
 static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_ms, vg_lite_uint32_t mask);
-static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context);
+/* Forward declaration for the cmd overflow slow path.
+ * The HANDLE_CMD_OVERFLOW macro inlines the common no-overflow check
+ * and only calls the slow path when the buffer is actually full.
+ */
+static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context);
+/* Registers that must ALWAYS be written (never cached) because writing them
+  * triggers hardware pipeline actions beyond simple value latching.
+  */
+#define VG_LITE_IS_TRIGGER_REG(a) \
+    ((a) == 0x0A00 || (a) == 0x0A01 || (a) == 0x0A1B || (a) == 0x0A1F || (a) == 0x0A34 || (a) == 0x0A2D)
+
+#define HANDLE_CMD_OVERFLOW(size, ctx) \
+    (((size) < CMDBUF_SIZE(*(ctx))) ? VG_LITE_SUCCESS : handle_cmd_overflow_slow((size), (ctx)))
 #if gcFEATURE_VG_MESH_FOR_FRAME
 static vg_lite_error_t mesh_rt_reset(vg_lite_buffer_t* target);
 static vg_lite_error_t vg_lite_target_mesh_copy(vg_lite_buffer_t* target);
@@ -2568,7 +2580,7 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address,
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8 + VG_LITE_ALIGN(count + 1, 2) * 4, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATES(count, address);
 
@@ -2635,6 +2647,137 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, vg_lite_uint32_t address,
     return VG_LITE_SUCCESS;
 }
 
+/**
+ * Pre-flight command buffer space check: ensure enough space for a complete
+ * draw operation.  Call once at the top of each API function (blit, clear, draw)
+ * with the worst-case command byte count.  This eliminates the per-push_state
+ * overflow checks for the remainder of the call — the inline HANDLE_CMD_OVERFLOW
+ * macro becomes a no-op since the space is already guaranteed.
+ *
+ * If the buffer cannot accommodate the request, it is flushed and reclaimed.
+ */
+static vg_lite_error_t ensure_cmdbuf_space(vg_lite_context_t * context, vg_lite_uint32_t bytes)
+{
+    if (!has_valid_command_buffer(context))
+        return VG_LITE_NO_CONTEXT;
+
+    if (CMDBUF_OFFSET(*context) + bytes >= CMDBUF_SIZE(*context)) {
+        return handle_cmd_overflow_slow(CMDBUF_OFFSET(*context) + bytes, context);
+    }
+    return VG_LITE_SUCCESS;
+}
+
+/* Maximum command buffer bytes consumed by a single vg_lite_blit call.
+ * set_render_target: ~6 regs × 8 = 48
+ * blend factors:     1 batch of 6 = 28
+ * draw control:      ~8 regs × 8 = 64
+ * step values:       3 batches   = 48
+ * source config:     ~8 regs × 8 = 64
+ * rectangle:                       8
+ * stripe mode:       2 regs × 8 = 16
+ * YUV/planar:        ~3 regs × 8 = 24
+ * precision opt:     ~6 regs × 8 = 48
+ * submit END:                      8
+ * Padding/headroom:               64
+ * Total:                         ~420, rounded up to 512
+ */
+#define VG_LITE_BLIT_CMD_BUDGET  512
+
+/**
+ * Push multiple consecutive STATE register writes using a single VG_LITE_STATES
+ * header.  This is more efficient than individual push_state calls for consecutive
+ * registers: fewer function calls, fewer overflow checks, and a more compact
+ * encoding in the command buffer.
+ *
+ * Command buffer cost:  ALIGN(count + 1, 2) * 4  bytes
+ * vs  count * 8  bytes with individual push_state calls.
+ */
+vg_lite_error_t push_states_batch(vg_lite_context_t * context,
+                                  vg_lite_uint32_t     address,
+                                  vg_lite_uint32_t     count,
+                                  const vg_lite_uint32_t *data)
+{
+    vg_lite_uint32_t i;
+    vg_lite_uint32_t total_bytes;
+    vg_lite_error_t  error;
+
+    if (!has_valid_command_buffer(context))
+        return VG_LITE_NO_CONTEXT;
+
+    total_bytes = VG_LITE_ALIGN(count + 1, 2) * 4;
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8 + total_bytes, context));
+
+    /* Write the multi-state header. */
+    ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] =
+        VG_LITE_STATES(count, address);
+
+    /* Write data words. */
+    for (i = 0; i < count; i++) {
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = data[i];
+    }
+
+    /* Pad to 64-bit alignment with a NOP if needed. */
+    if (count % 2 == 0) {
+        ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + i] = VG_LITE_NOP();
+    }
+
+    /* Update per-register state cache for consistency with push_state. */
+    for (i = 0; i < count; i++) {
+        vg_lite_uint32_t reg = address + i;
+        if ((reg >> 8) == 0x0A) {
+            vg_lite_uint32_t idx = reg & 0xFF;
+            context->hw.hw_states[idx].state = data[i];
+            context->hw.hw_states[idx].init  = 1;
+        }
+    }
+
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if (context->fb_command_offset + total_bytes > CACHE_COMMAND_BUFFER_SIZE) {
+        printf("The size of cache is %d bytes, exceeding the capacity of cache buffer(%d bytes)!\n",
+               context->fb_command_offset + total_bytes, CACHE_COMMAND_BUFFER_SIZE);
+        printf("Please clear cache or increase cache buffer size!\n");
+        return VG_LITE_OUT_OF_MEMORY;
+    }
+
+    if (context->backup_fb_command_flag) {
+        ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[0] =
+            VG_LITE_STATES(count, address);
+        for (i = 0; i < count; i++) {
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1 + i] = data[i];
+        }
+        if (count % 2 == 0) {
+            ((vg_lite_uint32_t *)(context->fb_command_buffer + context->fb_command_offset))[1 + i] = VG_LITE_NOP();
+        }
+        context->fb_command_offset += total_bytes;
+    }
+#endif
+
+#if DUMP_COMMAND
+    {
+        vg_lite_uint32_t loops;
+        if (strncmp(filename, "Commandbuffer", 13)) {
+            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        }
+        fp = fopen(filename, "a");
+        if (fp == NULL)
+            printf("error!\n");
+        fprintf(fp, "Command buffer: 0x%08x, ",
+                ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0]);
+        for (loops = 0; loops < count; loops++) {
+            fprintf(fp, "0x%08x, ",
+                    ((vg_lite_uint32_t *)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1 + loops]);
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+        fp = NULL;
+    }
+#endif
+
+    CMDBUF_OFFSET(*context) += total_bytes;
+
+    return VG_LITE_SUCCESS;
+}
+
 /* Push a single state command into the current command buffer. */
 vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address, vg_lite_uint32_t data)
 {
@@ -2642,13 +2785,26 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    /* Per-register state cache: skip write if the GPU register already holds this value.
+     * Only cache registers in the 0x0Axx drawing range (index = address & 0xFF, < STATES_COUNT).
+     * Register 0x0A1B is a control/trigger register that must always be written.
+     * When recording cached commands, always emit to ensure the replay is self-contained.
+     */
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
+#else
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
+#endif
     {
-        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+        vg_lite_uint32_t idx = address & 0xFF;
+        if (context->hw.hw_states[idx].init && context->hw.hw_states[idx].state == data)
+            return VG_LITE_SUCCESS;  /* Register already holds this value - skip */
 
-        /* TODO context->hw.hw_states[address & 0xff].state = data;
-        context->hw.hw_states[address & 0xff].init = 1;*/
+        context->hw.hw_states[idx].state = data;
+        context->hw.hw_states[idx].init = 1;
+    }
+    {
+        VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -2703,13 +2859,22 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t add
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    /* TODO wait for hw to complete development. */
-    /* if (address == 0x0A1B || context->hw.hw_states[address & 0xff].state != data || !context->hw.hw_states[address & 0xff].init) */
+    /* Per-register state cache: same logic as push_state. */
+#if gcFEATURE_VG_COMMAND_BUFFER_CACHE
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
+#else
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
+#endif
     {
-        VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+        vg_lite_uint32_t idx = address & 0xFF;
+        if (context->hw.hw_states[idx].init && context->hw.hw_states[idx].state == data)
+            return VG_LITE_SUCCESS;  /* Register already holds this value - skip */
 
-        /* TODO context->hw.hw_states[address & 0xff].state = data;
-        context->hw.hw_states[address & 0xff].init = 1;*/
+        context->hw.hw_states[idx].state = data;
+        context->hw.hw_states[idx].init = 1;
+    }
+    {
+        VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STATE(address);
         ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = data;
@@ -2761,7 +2926,7 @@ vg_lite_error_t push_call(vg_lite_context_t * context, vg_lite_uint32_t address,
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_CALL((bytes + 7) / 8);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = address;
@@ -2814,7 +2979,7 @@ static vg_lite_error_t push_pe_clear(vg_lite_context_t * context, vg_lite_uint32
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -2851,7 +3016,7 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, vg_lite_int32
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_DATA(1);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -2916,7 +3081,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, vg_lite_uint32_t size, vg
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16 + bytes, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16 + bytes, context));
 
     /* Command buffer size must be at least data size "bytes" plus header and END command */
     if ((bytes + 16) > CMDBUF_SIZE(*context)) {
@@ -2984,7 +3149,7 @@ vg_lite_error_t push_stall(vg_lite_context_t * context, vg_lite_uint32_t module)
     if (!has_valid_command_buffer(context))
         return VG_LITE_NO_CONTEXT;
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 16, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_SEMAPHORE(module);
     ((vg_lite_uint32_t *) (CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -3248,8 +3413,11 @@ static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_
 #endif
 }
 
-/* Handle cmd overflow accordingly */
-static vg_lite_error_t handle_cmd_overflow(vg_lite_uint32_t size, vg_lite_context_t* context) {
+/* Handle cmd overflow - slow path: flush current buffer and reclaim space.
+ * The fast-path macro HANDLE_CMD_OVERFLOW() in vg_lite_context.h inlines the
+ * common no-overflow check and only calls this when the buffer is actually full.
+ */
+static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context) {
     vg_lite_error_t error;
     if (size >= CMDBUF_SIZE(*context)) {
 #if gcFEATURE_VG_SIMPLE_BLT || gcFEATURE_VG_EXTERNAL_DMA_MESH
@@ -3475,8 +3643,12 @@ vg_lite_error_t set_render_target(vg_lite_buffer_t *target)
 
     VG_LITE_CHECK_NULL_POINTER(target);
 
-    /* Check if render target parameters are really changed. */
-    if (memcmp(s_context.rtbuffer, target, sizeof(vg_lite_buffer_t))) {
+    /* Check if render target parameters are really changed.
+     * Compare only the fields that affect GPU register programming,
+     * not the entire struct (which may include padding, debug pointers,
+     * and uninitialized fields that cause false positives with memcmp).
+     */
+    if (RT_FIELDS_CHANGED(s_context.rtbuffer, target)) {
         rt_changed = 1;
     }
     /* Simply return if render target, scissor, mirror, gamma, flexa states are not changed. */
@@ -3854,7 +4026,7 @@ static vg_lite_error_t push_mesh_stall(vg_lite_context_t* context, vg_lite_uint3
 
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x1583, 0x1F01));
 
-    VG_LITE_RETURN_ERROR(handle_cmd_overflow(CMDBUF_OFFSET(*context) + 8, context));
+    VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 8, context));
 
     ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[0] = VG_LITE_STALL(module);
     ((vg_lite_uint32_t*)(CMDBUF_BUFFER(*context) + CMDBUF_OFFSET(*context)))[1] = 0;
@@ -4971,6 +5143,12 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     }
 #endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
 
+    /* Pre-flight: ensure command buffer has enough space for the entire blit
+     * command sequence.  This single check replaces ~25 individual overflow
+     * checks that would otherwise happen inside each push_state call.
+     */
+    VG_LITE_RETURN_ERROR(ensure_cmdbuf_space(&s_context, VG_LITE_BLIT_CMD_BUDGET));
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -5051,12 +5229,17 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_NEW_FACTOR
     config_factor_parameter(blend, porter_duff_config, &factor_config);
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
+    {
+        /* Pack registers 0x0AF6-0x0AFB as one contiguous batch of 6. */
+        vg_lite_uint32_t factor_data[6];
+        factor_data[0] = factor_config.srcchannelmode | (factor_config.dstchannelmode << 8); /* 0x0AF6 */
+        factor_data[1] = factor_config.final_equation_opcode;                                /* 0x0AF7 */
+        factor_data[2] = factor_config.factor_src_alpha;                                     /* 0x0AF8 */
+        factor_data[3] = factor_config.factor_src_color;                                     /* 0x0AF9 */
+        factor_data[4] = factor_config.factor_dst_alpha;                                     /* 0x0AFA */
+        factor_data[5] = factor_config.factor_dst_color;                                     /* 0x0AFB */
+        VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0AF6, 6, factor_data));
+    }
 #endif
 
     /* Setup the command buffer. */
@@ -5070,16 +5253,11 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
+    /* Batch consecutive step-value registers for efficiency. */
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -5784,6 +5962,12 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
         }
     }
 #endif /* gcFEATURE_COMBO_VG_BLIT_PRECISION_OPT_BY_SW */
+
+    /* Pre-flight: ensure command buffer has enough space for the entire blit_rect
+     * command sequence, avoiding per-push_state overflow checks.
+     */
+    VG_LITE_RETURN_ERROR(ensure_cmdbuf_space(&s_context, VG_LITE_BLIT_CMD_BUDGET));
+
     error = set_render_target(target);
     if (error != VG_LITE_SUCCESS) {
         return error;
@@ -5864,28 +6048,28 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
 
 #if gcFEATURE_VG_NEW_FACTOR
     config_factor_parameter(blend, porter_duff_config, &factor_config);
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF6, factor_config.srcchannelmode | (factor_config.dstchannelmode << 8)));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF8, factor_config.factor_src_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF9, factor_config.factor_src_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFA, factor_config.factor_dst_alpha));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AFB, factor_config.factor_dst_color));
-    VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0AF7, factor_config.final_equation_opcode));
+    {
+        /* Pack registers 0x0AF6-0x0AFB as one contiguous batch of 6. */
+        vg_lite_uint32_t factor_data[6];
+        factor_data[0] = factor_config.srcchannelmode | (factor_config.dstchannelmode << 8); /* 0x0AF6 */
+        factor_data[1] = factor_config.final_equation_opcode;                                /* 0x0AF7 */
+        factor_data[2] = factor_config.factor_src_alpha;                                     /* 0x0AF8 */
+        factor_data[3] = factor_config.factor_src_color;                                     /* 0x0AF9 */
+        factor_data[4] = factor_config.factor_dst_alpha;                                     /* 0x0AFA */
+        factor_data[5] = factor_config.factor_dst_color;                                     /* 0x0AFB */
+        VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0AF6, 6, factor_data));
+    }
 #endif
 
     /* Setup the command buffer. */
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | paintType | in_premult | imageMode | blend_mode | transparency_mode | tile_setting | s_context.enable_mask | s_context.color_transform | s_context.matrix_enable | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_void *) &c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_void *) &c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_void *) &c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_void *) &x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_void *) &x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_void *) &x_step[2]));
+    /* Batch consecutive step-value registers for efficiency. */
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_void *) &y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_void *) &y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_void *) &y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
          (source->format <= VG_LITE_AYUY2)) ||
@@ -6033,6 +6217,10 @@ vg_lite_error_t vg_lite_init(vg_lite_uint32_t tess_width, vg_lite_uint32_t tess_
             VG_LITE_RETURN_ERROR(vg_lite_close());
         }
     }
+
+    /* Invalidate the per-register state cache: after hardware init all register
+     * values are undefined, so every first write must go through to the GPU. */
+    memset(s_context.hw.hw_states, 0, sizeof(s_context.hw.hw_states));
 
     s_context.rtbuffer = (vg_lite_buffer_t *)vg_lite_os_malloc(sizeof(vg_lite_buffer_t));
     if (!s_context.rtbuffer)
@@ -8717,16 +8905,11 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A00, 0x00000001 | in_premult | imageMode | transparency_mode | tile_setting | eco_fifo | s_context.scissor_enable | stripe_mode));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A01, 0));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A02, color));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A18, (vg_lite_pointer)&c_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A19, (vg_lite_pointer)&c_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1A, (vg_lite_pointer)&c_step[2]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1C, (vg_lite_pointer)&x_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1D, (vg_lite_pointer)&x_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A1E, (vg_lite_pointer)&x_step[2]));
+    /* Batch consecutive step-value registers for efficiency. */
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A18, 3, (const vg_lite_uint32_t *)c_step));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A1C, 3, (const vg_lite_uint32_t *)x_step));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1F, 0x00000001));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A20, (vg_lite_pointer)&y_step[0]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A21, (vg_lite_pointer)&y_step[1]));
-    VG_LITE_RETURN_ERROR(push_state_ptr(&s_context, 0x0A22, (vg_lite_pointer)&y_step[2]));
+    VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
         (source->format <= VG_LITE_AYUY2)) ||

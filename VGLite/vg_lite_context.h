@@ -93,7 +93,33 @@
 #define FC_BURST_BYTES              64
 #define FC_BIT_TO_BYTES             64
 
-#define STATES_COUNT                208
+/* Render target field comparison and inline overflow check macros are
+ * defined in vg_lite.c where the slow-path function lives.  Only the
+ * RT_FIELDS_CHANGED macro (pure struct comparison) is safe to share here.
+ */
+
+/* Render target field comparison: compare only the GPU-register-affecting
+ * fields instead of the full vg_lite_buffer_t struct (which may include
+ * padding, debug pointers, and uninitialized fields that cause false
+ * positives with memcmp).
+ */
+#define RT_FIELDS_CHANGED(cached, target) \
+    ((cached)->address         != (target)->address         || \
+     (cached)->format          != (target)->format          || \
+     (cached)->width           != (target)->width           || \
+     (cached)->height          != (target)->height          || \
+     (cached)->stride          != (target)->stride          || \
+     (cached)->tiled           != (target)->tiled           || \
+     (cached)->compress_mode   != (target)->compress_mode   || \
+     (cached)->premultiplied   != (target)->premultiplied   || \
+     (cached)->apply_premult   != (target)->apply_premult   || \
+     (cached)->svg_blend_flag  != (target)->svg_blend_flag  || \
+     (cached)->yuv.uv_planar   != (target)->yuv.uv_planar   || \
+     (cached)->yuv.alpha_planar != (target)->yuv.alpha_planar || \
+     (cached)->yuv.yuv2rgb     != (target)->yuv.yuv2rgb     || \
+     (cached)->yuv.swizzle     != (target)->yuv.swizzle)
+
+#define STATES_COUNT                256
 #define MIN_TS_SIZE                 8 << 10
 
 #define VG_LITE_RETURN_ERROR(func) \
@@ -464,6 +490,7 @@ extern vg_lite_error_t push_state_ptr(vg_lite_context_t* context, vg_lite_uint32
 extern vg_lite_error_t push_call(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t bytes);
 extern vg_lite_error_t push_data(vg_lite_context_t* context, vg_lite_uint32_t size, vg_lite_pointer data);
 extern vg_lite_error_t push_clut(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t count, vg_lite_uint32_t* data);
+extern vg_lite_error_t push_states_batch(vg_lite_context_t* context, vg_lite_uint32_t address, vg_lite_uint32_t count, const vg_lite_uint32_t* data);
 extern vg_lite_error_t push_stall(vg_lite_context_t* context, vg_lite_uint32_t module);
 extern vg_lite_pointer vg_lite_os_malloc(size_t size);
 extern vg_lite_void  vg_lite_os_free(vg_lite_pointer memory);
