@@ -12,7 +12,6 @@ if (DEFINED ENV{VGLITE_DIR})
     set(VgliteDir   $ENV{VGLITE_DIR})
 endif()
 
-
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_STATIC_LIBRARY_PREFIX lib)
 
@@ -31,13 +30,12 @@ target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
     "$<BUILD_INTERFACE:${VgliteDir}/VGLiteKernel>" 
 )
 
-zephyr_include_directories(${VgliteDir})
-zephyr_include_directories(${VgliteDir}/inc)
-
 # Add VG Lite specific linker sections
 zephyr_linker_sources(DATA_SECTIONS
     ${VgliteDir}/VGLiteKernel/zephyr/vglite_sections.ld)
 
-#Define the GPU ID for all sources
+# Define the GPU ID for all sources
 add_compile_definitions(GCID_REV_CID=gc255/0x40A)
+
 target_link_libraries(vglite PRIVATE zephyr_interface)
+target_link_libraries(vglite PRIVATE kernel)
