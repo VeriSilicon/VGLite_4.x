@@ -6907,6 +6907,14 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
     buffer->yuv.v_planar =
     buffer->yuv.alpha_planar = 0;
 
+    /* Default L8/A8L8 luminance conversion to BT.709 as documented
+     * in the API manual (p.11): "For L8 target formats, the RGB
+     * color is converted to L8 by using the default ITU-R BT.709
+     * conversion rules."
+     */
+    if (buffer->format == VG_LITE_L8 || buffer->format == VG_LITE_A8L8)
+        buffer->yuv.yuv2rgb = VG_LITE_YUV709;
+
     /* Align height in case format is tiled. */
     if ((buffer->format >= VG_LITE_YUY2 && buffer->format <= VG_LITE_NV16) || buffer->format == VG_LITE_NV24) {
         buffer->height = VG_LITE_ALIGN(buffer->height, 4);
