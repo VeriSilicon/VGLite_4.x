@@ -110,6 +110,7 @@ string(APPEND CMAKE_C_FLAGS                     " -DVG_TARGET_FAST_CLEAR=0")
 # string(APPEND CMAKE_C_FLAGS                   " -DVGLITE_TST_FIRMWARE=0")
 # string(APPEND CMAKE_C_FLAGS                   " -DVG_LITE_SYS_GPU_CTRL=0")
 string(APPEND CMAKE_C_FLAGS                     " -DVG_BLIT_WORKAROUND=1")
+string(APPEND CMAKE_C_FLAGS                     " -DVG_LITE_STATE_CACHE_ENABLE=1")
 # string(APPEND CMAKE_C_FLAGS                   " -DVG_GPU_AUTO_CLOCK_GATING=1")
 
 # ------------------------------------------------------------------------------

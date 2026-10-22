@@ -2559,11 +2559,36 @@ static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_
  * and only calls the slow path when the buffer is actually full.
  */
 static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context);
-/* Registers that must ALWAYS be written (never cached) because writing them
-  * triggers hardware pipeline actions beyond simple value latching.
-  */
-#define VG_LITE_IS_TRIGGER_REG(a) \
-    ((a) == 0x0A00 || (a) == 0x0A01 || (a) == 0x0A1B || (a) == 0x0A1F || (a) == 0x0A34 || (a) == 0x0A2D)
+/* Per-register state cache; registers in VG_LITE_IS_NOCACHE_REG() are always written. */
+#ifndef VG_LITE_STATE_CACHE_ENABLE
+#define VG_LITE_STATE_CACHE_ENABLE  0
+#endif
+
+#define VG_LITE_NOCACHE_REG_COMMON(a) \
+    ((a) == 0x0A00 || (a) == 0x0A01 || (a) == 0x0A1B || \
+     (a) == 0x0A1F || (a) == 0x0A2D || (a) == 0x0A34)
+
+/* Modified by gc255 hardware during rendering (Verisilicon). */
+#define VG_LITE_NOCACHE_REG_GC255(a) \
+    ((a) == 0x0A39 || (a) == 0x0A3A || (a) == 0x0A3D)
+
+#define VG_LITE_NOCACHE_REG_GC355(a)    (0)
+#define VG_LITE_NOCACHE_REG_GC555(a)    (0)
+
+#if (CHIPID == 0x255)
+#define VG_LITE_NOCACHE_REG_CHIP(a)     VG_LITE_NOCACHE_REG_GC255(a)
+#elif (CHIPID == 0x355)
+#define VG_LITE_NOCACHE_REG_CHIP(a)     VG_LITE_NOCACHE_REG_GC355(a)
+#elif (CHIPID == 0x555)
+#define VG_LITE_NOCACHE_REG_CHIP(a)     VG_LITE_NOCACHE_REG_GC555(a)
+#else
+#define VG_LITE_NOCACHE_REG_CHIP(a)     (0)
+#undef  VG_LITE_STATE_CACHE_ENABLE
+#define VG_LITE_STATE_CACHE_ENABLE      0
+#endif
+
+#define VG_LITE_IS_NOCACHE_REG(a) \
+    (VG_LITE_NOCACHE_REG_COMMON(a) || VG_LITE_NOCACHE_REG_CHIP(a))
 
 #define HANDLE_CMD_OVERFLOW(size, ctx) \
     (((size) < CMDBUF_SIZE(*(ctx))) ? VG_LITE_SUCCESS : handle_cmd_overflow_slow((size), (ctx)))
@@ -2724,7 +2749,7 @@ vg_lite_error_t push_states_batch(vg_lite_context_t * context,
     /* Update per-register state cache for consistency with push_state. */
     for (i = 0; i < count; i++) {
         vg_lite_uint32_t reg = address + i;
-        if ((reg >> 8) == 0x0A) {
+        if ((reg >> 8) == 0x0A && !VG_LITE_IS_NOCACHE_REG(reg)) {
             vg_lite_uint32_t idx = reg & 0xFF;
             context->hw.hw_states[idx].state = data[i];
             context->hw.hw_states[idx].init  = 1;
@@ -2790,10 +2815,11 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
      * Register 0x0A1B is a control/trigger register that must always be written.
      * When recording cached commands, always emit to ensure the replay is self-contained.
      */
+#if VG_LITE_STATE_CACHE_ENABLE
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_NOCACHE_REG(address) && !context->backup_fb_command_flag)
 #else
-    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_NOCACHE_REG(address))
 #endif
     {
         vg_lite_uint32_t idx = address & 0xFF;
@@ -2803,6 +2829,7 @@ vg_lite_error_t push_state(vg_lite_context_t * context, vg_lite_uint32_t address
         context->hw.hw_states[idx].state = data;
         context->hw.hw_states[idx].init = 1;
     }
+#endif /* VG_LITE_STATE_CACHE_ENABLE */
     {
         VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
@@ -2860,10 +2887,11 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t add
         return VG_LITE_NO_CONTEXT;
 
     /* Per-register state cache: same logic as push_state. */
+#if VG_LITE_STATE_CACHE_ENABLE
 #if gcFEATURE_VG_COMMAND_BUFFER_CACHE
-    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address) && !context->backup_fb_command_flag)
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_NOCACHE_REG(address) && !context->backup_fb_command_flag)
 #else
-    if ((address >> 8) == 0x0A && !VG_LITE_IS_TRIGGER_REG(address))
+    if ((address >> 8) == 0x0A && !VG_LITE_IS_NOCACHE_REG(address))
 #endif
     {
         vg_lite_uint32_t idx = address & 0xFF;
@@ -2873,6 +2901,7 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, vg_lite_uint32_t add
         context->hw.hw_states[idx].state = data;
         context->hw.hw_states[idx].init = 1;
     }
+#endif /* VG_LITE_STATE_CACHE_ENABLE */
     {
         VG_LITE_RETURN_ERROR(HANDLE_CMD_OVERFLOW(CMDBUF_OFFSET(*context) + 16, context));
 
