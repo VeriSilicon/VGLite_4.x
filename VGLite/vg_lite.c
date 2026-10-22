@@ -6942,6 +6942,8 @@ vg_lite_error_t vg_lite_allocate(vg_lite_buffer_t * buffer)
 
 #if gcFEATURE_VG_16PIXELS_ALIGNED
         vg_lite_int32_t tmp_align = 16 * mul / div;
+        if (tmp_align < (vg_lite_int32_t)align)
+            tmp_align = (vg_lite_int32_t)align;
         if ((mul / div) % 2 != 0) {
             if (buffer->stride % tmp_align != 0) {
                 buffer->stride = (buffer->stride + tmp_align) / tmp_align * tmp_align;
