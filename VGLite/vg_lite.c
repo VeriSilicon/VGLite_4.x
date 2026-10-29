@@ -2573,7 +2573,7 @@ static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_c
     ((a) == 0x0A39 || (a) == 0x0A3A || (a) == 0x0A3D)
 
 #define VG_LITE_NOCACHE_REG_GC355(a)    (0)
-#define VG_LITE_NOCACHE_REG_GC555(a)    (0)
+#define VG_LITE_NOCACHE_REG_GC555(a)    ((a) == 0x0A27)
 
 #if (CHIPID == 0x255)
 #define VG_LITE_NOCACHE_REG_CHIP(a)     VG_LITE_NOCACHE_REG_GC255(a)
