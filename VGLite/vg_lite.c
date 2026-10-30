@@ -5293,7 +5293,7 @@ vg_lite_error_t vg_lite_blit(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
-         (source->format <= VG_LITE_AYUY2)) ||
+         (source->format <= VG_LITE_NV16)) ||
         ((source->format >= VG_LITE_YUY2_TILED) &&
          (source->format <= VG_LITE_AYUY2_TILED))) {
             yuv2rgb = convert_yuv2rgb(source->yuv.yuv2rgb);
@@ -6105,7 +6105,7 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
-         (source->format <= VG_LITE_AYUY2)) ||
+         (source->format <= VG_LITE_NV16)) ||
         ((source->format >= VG_LITE_YUY2_TILED) &&
          (source->format <= VG_LITE_AYUY2_TILED))) {
             yuv2rgb = convert_yuv2rgb(source->yuv.yuv2rgb);
@@ -6602,7 +6602,9 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
 {
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_uint32_t    yplane_size = 0;
-    vg_lite_kernel_allocate_t allocate, uv_allocate, v_allocate;
+    vg_lite_kernel_allocate_t allocate = { 0 };
+    vg_lite_kernel_allocate_t uv_allocate = { 0 };
+    vg_lite_kernel_allocate_t v_allocate = { 0 };
     
     if (!_is_tiled_yuv_planer_format(buffer->format))
     {
@@ -6673,12 +6675,19 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
     /* Allocate buffer memory: Y. */
     allocate.bytes = yplane_size;
     allocate.contiguous = 1;
+    allocate.pool = (vg_lite_vidmem_pool_t)s_context.render_buffer_pool;
+    /* All planes come from the render-buffer pool, like vg_lite_allocate(). */
+    uv_allocate.contiguous = 1;
+    uv_allocate.pool = allocate.pool;
+    v_allocate.contiguous = 1;
+    v_allocate.pool = allocate.pool;
     VG_LITE_RETURN_ERROR(vg_lite_kernel(VG_LITE_ALLOCATE, &allocate));
     
     /* Save the allocation. */
     buffer->handle  = allocate.memory_handle;
     buffer->memory  = allocate.memory;
     buffer->address = allocate.memory_gpu;
+    buffer->pool    = (vg_lite_memory_pool_t)allocate.pool;
     
     if ((buffer->format == VG_LITE_NV12) || (buffer->format == VG_LITE_ANV12)
         || (buffer->format == VG_LITE_NV16) || (buffer->format == VG_LITE_NV24) || (buffer->format == VG_LITE_NV24_TILED)
@@ -8955,7 +8964,7 @@ vg_lite_error_t vg_lite_copy_image(vg_lite_buffer_t *target, vg_lite_buffer_t *s
     VG_LITE_RETURN_ERROR(push_states_batch(&s_context, 0x0A20, 3, (const vg_lite_uint32_t *)y_step));
 
     if (((source->format >= VG_LITE_YUY2) &&
-        (source->format <= VG_LITE_AYUY2)) ||
+        (source->format <= VG_LITE_NV16)) ||
         ((source->format >= VG_LITE_YUY2_TILED) &&
             (source->format <= VG_LITE_AYUY2_TILED))) {
         yuv2rgb = convert_yuv2rgb(source->yuv.yuv2rgb);
