@@ -35,9 +35,14 @@ extern vg_lite_matrix_t identity_mtx;
 /* Get the plane memory pointer and strides info. */
 static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
                               vg_lite_uint8_t **memory,
-                              vg_lite_uint32_t *strides)
+                              vg_lite_uint32_t *strides,
+                              vg_lite_uint32_t *rows)
 {
     vg_lite_uint32_t count = 1;
+
+    /* Rows per plane: Y/packed plane = buffer height, chroma planes use the
+     * plane height from the YUV descriptor (set below where it differs). */
+    rows[0] = rows[1] = rows[2] = (vg_lite_uint32_t)buffer->height;
     
     switch (buffer->format) {
         case VG_LITE_RGBA8888:
@@ -81,6 +86,7 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = 0;
+            rows[1] = buffer->yuv.uv_height;
             break;
             
         case VG_LITE_AYUY2:
@@ -101,6 +107,8 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = buffer->yuv.alpha_stride;
+            /* The alpha plane (slot 2) is full height. */
+            rows[1] = buffer->yuv.uv_height;
             break;
             
         case VG_LITE_YV12:
@@ -113,6 +121,8 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = buffer->yuv.v_stride;
+            rows[1] = buffer->yuv.uv_height;
+            rows[2] = buffer->yuv.v_height;
             break;
             
         case VG_LITE_YUY2_TILED:
@@ -139,18 +149,23 @@ vg_lite_error_t vg_lite_upload_buffer(vg_lite_buffer_t  *buffer,
     vg_lite_int32_t plane_count;
     vg_lite_uint8_t  *buffer_memory[3] = {((vg_lite_uint8_t*)0)};
     vg_lite_uint32_t  buffer_strides[3] = {0};
+    vg_lite_uint32_t  buffer_rows[3] = {0};
     vg_lite_uint8_t  *pdata;
-    vg_lite_int32_t i, j;
+    vg_lite_int32_t i;
+    vg_lite_uint32_t j;
 
 
     /* Get buffer memory info. */
-    plane_count = get_buffer_planes(buffer, buffer_memory, buffer_strides);
+    plane_count = get_buffer_planes(buffer, buffer_memory, buffer_strides, buffer_rows);
 
     if (plane_count > 0) {
-        /* Copy the data to buffer. */
+        /* Copy the data to buffer. Each plane is copied with its own row
+         * count; subsampled chroma planes have fewer rows than the Y plane. */
         for (i = 0; i < plane_count;  i++) {
+            if (buffer_memory[i] == NULL || data[i] == NULL)
+                continue;
             pdata = data[i];
-            for (j = 0; j < buffer->height; j++) {
+            for (j = 0; j < buffer_rows[i]; j++) {
                 memcpy(buffer_memory[i], pdata, buffer_strides[i]);
                 buffer_memory[i] += buffer_strides[i];
                 pdata += stride[i];

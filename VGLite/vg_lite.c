@@ -6653,10 +6653,11 @@ static  vg_lite_error_t _allocate_tiled_yuv_planar(vg_lite_buffer_t *buffer)
             break;
             
         case VG_LITE_YV16:
+            /* 4:2:2 planar: U and V planes are (stride / 2) x height (2x1 subsampled). */
             buffer->yuv.uv_stride =
-            buffer->yuv.v_stride = buffer->stride;
+            buffer->yuv.v_stride = buffer->stride / 2;
             buffer->yuv.uv_height =
-            buffer->yuv.v_height = buffer->height / 2;
+            buffer->yuv.v_height = buffer->height;
             break;
             
         case VG_LITE_YV24:
@@ -6770,10 +6771,11 @@ static  vg_lite_error_t _map_yuv_planar(vg_lite_buffer_t* buffer, vg_lite_map_fl
         break;
 
     case VG_LITE_YV16:
+        /* 4:2:2 planar: U and V planes are (stride / 2) x height (2x1 subsampled). */
         buffer->yuv.uv_stride =
-            buffer->yuv.v_stride = buffer->stride;
+            buffer->yuv.v_stride = buffer->stride / 2;
         buffer->yuv.uv_height =
-            buffer->yuv.v_height = buffer->height / 2;
+            buffer->yuv.v_height = buffer->height;
         break;
 
     case VG_LITE_YV24:

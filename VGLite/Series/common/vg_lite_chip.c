@@ -1647,10 +1647,14 @@ vg_lite_error_t feature_check_target_yuv_output_format(vg_lite_buffer_format_t f
 #else
 vg_lite_error_t feature_check_target_yuv_output_format(vg_lite_buffer_format_t format)
 {
-    if (format == VG_LITE_YUY2 ||
-        format == VG_LITE_AYUY2 ||
-        format == VG_LITE_YUY2_TILED ||
-        format == VG_LITE_AYUY2_TILED) {
+    /*
+     * No YUV output: reject packed and planar YUV render targets. A planar
+     * YUV target (NV12, YV12, ...) is not rejected by the hardware and hangs
+     * the GPU (vg_lite_finish() returns VG_LITE_TIMEOUT).
+     */
+    if ((format >= VG_LITE_YUY2 && format <= VG_LITE_AYUY2_TILED) ||
+        format == VG_LITE_NV24 ||
+        format == VG_LITE_NV24_TILED) {
         return VG_LITE_NOT_SUPPORT;
     }
     return VG_LITE_SUCCESS;
