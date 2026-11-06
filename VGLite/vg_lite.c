@@ -2561,7 +2561,11 @@ static vg_lite_error_t stall(vg_lite_context_t * context, vg_lite_uint32_t time_
 static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_context_t* context);
 /* Per-register state cache; registers in VG_LITE_IS_NOCACHE_REG() are always written. */
 #ifndef VG_LITE_STATE_CACHE_ENABLE
+#if (CHIPID == 0x255) || (CHIPID == 0x355) || (CHIPID == 0x555)
+#define VG_LITE_STATE_CACHE_ENABLE  1
+#else
 #define VG_LITE_STATE_CACHE_ENABLE  0
+#endif
 #endif
 
 #define VG_LITE_NOCACHE_REG_COMMON(a) \
@@ -2572,7 +2576,7 @@ static vg_lite_error_t handle_cmd_overflow_slow(vg_lite_uint32_t size, vg_lite_c
 #define VG_LITE_NOCACHE_REG_GC255(a) \
     ((a) == 0x0A39 || (a) == 0x0A3A || (a) == 0x0A3D)
 
-#define VG_LITE_NOCACHE_REG_GC355(a)    (0)
+#define VG_LITE_NOCACHE_REG_GC355(a)    ((a) == 0x0A39 || (a) == 0x0A3A || (a) == 0x0A3D)
 #define VG_LITE_NOCACHE_REG_GC555(a)    ((a) == 0x0A27)
 
 #if (CHIPID == 0x255)
