@@ -556,6 +556,8 @@ vg_lite_error_t vg_lite_create_masklayer(vg_lite_buffer_t* masklayer, vg_lite_ui
 
     VG_LITE_RETURN_ERROR(vg_lite_clear(masklayer, NULL, (vg_lite_color_t)(0xFF << 24)));
 
+    VG_LITE_RETURN_ERROR(vg_lite_finish());
+
     return error;
 #else
     return VG_LITE_NOT_SUPPORT;
@@ -595,11 +597,23 @@ vg_lite_error_t vg_lite_blend_masklayer(
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_matrix_t matrix;
     vg_lite_filter_t filter = VG_LITE_FILTER_POINT;
-    vg_lite_rectangle_t area = *rect;
+    vg_lite_rectangle_t area;
 
+    if (dst_masklayer == NULL)
+        return VG_LITE_INVALID_ARGUMENT;
+
+    if (rect == NULL) {
+        area.x = 0;
+        area.y = 0;
+        area.width = dst_masklayer->width;
+        area.height = dst_masklayer->height;
+    }
+    else {
+        area = *rect;
+    }
 
     vg_lite_identity(&matrix);
-    vg_lite_translate((vg_lite_float_t)rect->x, (vg_lite_float_t)rect->y, &matrix);
+    vg_lite_translate((vg_lite_float_t)area.x, (vg_lite_float_t)area.y, &matrix);
 
     switch (operation)
     {
@@ -659,6 +673,8 @@ vg_lite_error_t vg_lite_set_masklayer(vg_lite_buffer_t* masklayer, vg_lite_int32
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, masklayer->address));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, masklayer->stride));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+
+    s_context.mask_layer = masklayer;
 
     return error;
 #else
@@ -730,6 +746,9 @@ vg_lite_error_t vg_lite_destroy_masklayer(vg_lite_buffer_t* masklayer)
 #if DUMP_CAPTURE
     vglitemDUMP_BUFFER("masklayer", (size_t)masklayer->address, masklayer->memory, 0, (masklayer->stride) * (masklayer->height));
 #endif
+
+    if (s_context.mask_layer == masklayer)
+        s_context.mask_layer = NULL;
 
     VG_LITE_RETURN_ERROR(vg_lite_free(masklayer));
 
