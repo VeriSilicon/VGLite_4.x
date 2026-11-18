@@ -3591,8 +3591,8 @@ vg_lite_uint32_t transform_float(vg_lite_float_point_t* result, vg_lite_float_t 
 
     /* Test for identity matrix. */
     if (matrix == NULL) {
-        result->x = truncf(x);
-        result->y = truncf(y);
+        result->x = (vg_lite_float_t)(vg_lite_int32_t)x;
+        result->y = (vg_lite_float_t)(vg_lite_int32_t)y;
 
         /* Success. */
         return 1;
