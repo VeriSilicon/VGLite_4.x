@@ -1,6 +1,9 @@
 config VGLITE
     bool "Enable NXP VGLITE Driver"
-    default n
+    default y if LV_USE_DRAW_VG_LITE
+    help
+      Enable the VGLite GPU driver module. Automatically enabled
+      when the LVGL VG-Lite draw backend (LV_USE_DRAW_VG_LITE) is active.
 
 config GPU_DEV
     bool "Enable VGLite GPU device"
