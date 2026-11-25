@@ -4048,7 +4048,7 @@ void update_dash_stroke(vg_lite_path_t* draw_path, vg_lite_stroke_t* flatten, vg
 
     while (flatten_point->next)
     {
-        float length;
+        float length = 0.0f;
         while (flatten_point->length == 0)
         {
             flatten_point = flatten_point->next;

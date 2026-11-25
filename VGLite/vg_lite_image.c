@@ -35,9 +35,14 @@ extern vg_lite_matrix_t identity_mtx;
 /* Get the plane memory pointer and strides info. */
 static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
                               vg_lite_uint8_t **memory,
-                              vg_lite_uint32_t *strides)
+                              vg_lite_uint32_t *strides,
+                              vg_lite_uint32_t *rows)
 {
     vg_lite_uint32_t count = 1;
+
+    /* Rows per plane: Y/packed plane = buffer height, chroma planes use the
+     * plane height from the YUV descriptor (set below where it differs). */
+    rows[0] = rows[1] = rows[2] = (vg_lite_uint32_t)buffer->height;
     
     switch (buffer->format) {
         case VG_LITE_RGBA8888:
@@ -81,6 +86,7 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = 0;
+            rows[1] = buffer->yuv.uv_height;
             break;
             
         case VG_LITE_AYUY2:
@@ -101,6 +107,8 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = buffer->yuv.alpha_stride;
+            /* The alpha plane (slot 2) is full height. */
+            rows[1] = buffer->yuv.uv_height;
             break;
             
         case VG_LITE_YV12:
@@ -113,6 +121,8 @@ static vg_lite_uint32_t get_buffer_planes(vg_lite_buffer_t *buffer,
             strides[0] = buffer->stride;
             strides[1] = buffer->yuv.uv_stride;
             strides[2] = buffer->yuv.v_stride;
+            rows[1] = buffer->yuv.uv_height;
+            rows[2] = buffer->yuv.v_height;
             break;
             
         case VG_LITE_YUY2_TILED:
@@ -139,18 +149,23 @@ vg_lite_error_t vg_lite_upload_buffer(vg_lite_buffer_t  *buffer,
     vg_lite_int32_t plane_count;
     vg_lite_uint8_t  *buffer_memory[3] = {((vg_lite_uint8_t*)0)};
     vg_lite_uint32_t  buffer_strides[3] = {0};
+    vg_lite_uint32_t  buffer_rows[3] = {0};
     vg_lite_uint8_t  *pdata;
-    vg_lite_int32_t i, j;
+    vg_lite_int32_t i;
+    vg_lite_uint32_t j;
 
 
     /* Get buffer memory info. */
-    plane_count = get_buffer_planes(buffer, buffer_memory, buffer_strides);
+    plane_count = get_buffer_planes(buffer, buffer_memory, buffer_strides, buffer_rows);
 
     if (plane_count > 0) {
-        /* Copy the data to buffer. */
+        /* Copy the data to buffer. Each plane is copied with its own row
+         * count; subsampled chroma planes have fewer rows than the Y plane. */
         for (i = 0; i < plane_count;  i++) {
+            if (buffer_memory[i] == NULL || data[i] == NULL)
+                continue;
             pdata = data[i];
-            for (j = 0; j < buffer->height; j++) {
+            for (j = 0; j < buffer_rows[i]; j++) {
                 memcpy(buffer_memory[i], pdata, buffer_strides[i]);
                 buffer_memory[i] += buffer_strides[i];
                 pdata += stride[i];
@@ -541,6 +556,8 @@ vg_lite_error_t vg_lite_create_masklayer(vg_lite_buffer_t* masklayer, vg_lite_ui
 
     VG_LITE_RETURN_ERROR(vg_lite_clear(masklayer, NULL, (vg_lite_color_t)(0xFF << 24)));
 
+    VG_LITE_RETURN_ERROR(vg_lite_finish());
+
     return error;
 #else
     return VG_LITE_NOT_SUPPORT;
@@ -580,11 +597,23 @@ vg_lite_error_t vg_lite_blend_masklayer(
     vg_lite_error_t error = VG_LITE_SUCCESS;
     vg_lite_matrix_t matrix;
     vg_lite_filter_t filter = VG_LITE_FILTER_POINT;
-    vg_lite_rectangle_t area = *rect;
+    vg_lite_rectangle_t area;
 
+    if (dst_masklayer == NULL)
+        return VG_LITE_INVALID_ARGUMENT;
+
+    if (rect == NULL) {
+        area.x = 0;
+        area.y = 0;
+        area.width = dst_masklayer->width;
+        area.height = dst_masklayer->height;
+    }
+    else {
+        area = *rect;
+    }
 
     vg_lite_identity(&matrix);
-    vg_lite_translate((vg_lite_float_t)rect->x, (vg_lite_float_t)rect->y, &matrix);
+    vg_lite_translate((vg_lite_float_t)area.x, (vg_lite_float_t)area.y, &matrix);
 
     switch (operation)
     {
@@ -644,6 +673,8 @@ vg_lite_error_t vg_lite_set_masklayer(vg_lite_buffer_t* masklayer, vg_lite_int32
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A14, masklayer->address));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A15, masklayer->stride));
     VG_LITE_RETURN_ERROR(push_state(&s_context, 0x0A1B, 0x00000010));
+
+    s_context.mask_layer = masklayer;
 
     return error;
 #else
@@ -715,6 +746,9 @@ vg_lite_error_t vg_lite_destroy_masklayer(vg_lite_buffer_t* masklayer)
 #if DUMP_CAPTURE
     vglitemDUMP_BUFFER("masklayer", (size_t)masklayer->address, masklayer->memory, 0, (masklayer->stride) * (masklayer->height));
 #endif
+
+    if (s_context.mask_layer == masklayer)
+        s_context.mask_layer = NULL;
 
     VG_LITE_RETURN_ERROR(vg_lite_free(masklayer));
 
